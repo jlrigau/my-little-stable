@@ -225,8 +225,10 @@ function lancerPhaser() {
     type: Phaser.AUTO,
     parent: "monde",
     backgroundColor: "#e7c187",
+    pixelArt: true,
+    roundPixels: true,
     scale: { mode: Phaser.Scale.RESIZE, width: "100%", height: "100%" },
-    scene: { create: sceneCreate, update: sceneUpdate },
+    scene: { preload: scenePreload, create: sceneCreate, update: sceneUpdate },
   });
 }
 
@@ -234,10 +236,75 @@ function txt(x, y, s, taille) {
   return sc.add.text(x, y, s, { fontSize: taille + "px", fontFamily: "sans-serif" }).setOrigin(0.5);
 }
 
+/* ===================== Assets graphiques (pixel-art CC0) =====================
+   SAND.png : tuile de sable (sol). Source : OpenGameArt, victordelima, CC0.
+   desert_decorations.png : planche de décors. Source : OpenGameArt, ScratchIO, CC0.
+   Voir assets/CREDITS.md. */
+
+function scenePreload() {
+  this.load.image("sol_sable", "assets/SAND.png");
+  this.load.image("decors", "assets/desert_decorations.png");
+}
+
+// Cadres découpés dans desert_decorations.png : [nom, x, y, largeur, hauteur]
+const FRAMES_DECOR = [
+  ["arbre",           7,  3, 73, 77],
+  ["arbre2",         92, 22, 52, 58],
+  ["cactus",        157, 25, 24, 55],
+  ["cactus_petit",  193, 42, 15, 38],
+  ["cactus_raquette", 219, 8, 25, 24],
+  ["cactus_baril",  223, 34, 17, 14],
+  ["agave",         213, 58, 38, 22],
+  ["rocher",        256, 11, 23, 21],
+  ["rocher_gros",   304, 58, 32, 22],
+  ["herbe",         268, 64, 24, 16],
+  ["herbe2",        272, 35, 18, 13],
+];
+
+function definirFramesDecors() {
+  const tex = sc.textures.get("decors");
+  FRAMES_DECOR.forEach(([nom, x, y, w, h]) => {
+    if (!tex.has(nom)) tex.add(nom, 0, x, y, w, h);
+  });
+}
+
+// Décor fixe du désert autour du ranch : [x, y, cadre, échelle]
+const SCENERY = [
+  [90, 210, "arbre", 2.2], [140, 880, "arbre2", 2.1], [1320, 95, "arbre2", 2.0],
+  [700, 95, "cactus", 2.4], [90, 620, "cactus_raquette", 2.6], [470, 660, "cactus_petit", 2.6],
+  [1010, 80, "cactus", 2.2], [300, 1115, "cactus", 2.2], [1010, 1130, "cactus_raquette", 2.4],
+  [1565, 410, "cactus", 2.0], [1565, 720, "cactus_petit", 2.2],
+  [430, 110, "rocher", 2.2], [330, 940, "rocher_gros", 2.0], [700, 1120, "rocher", 2.1],
+  [1500, 110, "rocher", 2.0], [1300, 1120, "agave", 2.0], [700, 560, "agave", 2.0],
+  [640, 320, "herbe", 2.6], [90, 430, "herbe2", 2.6], [1565, 960, "herbe", 2.6],
+];
+
+function dansCorral(x, y) {
+  return x > CORRAL.x - 30 && x < CORRAL.x + CORRAL.w + 30 &&
+         y > CORRAL.y - 30 && y < CORRAL.y + CORRAL.h + 30;
+}
+
+function placerScenery() {
+  // gros décors fixes
+  SCENERY.forEach(([x, y, cadre, ech]) => {
+    const o = sc.add.image(x, y, "decors", cadre).setOrigin(0.5, 1).setScale(ech);
+    o.setDepth(y);
+  });
+  // touffes d'herbe éparses dans le désert (hors corral)
+  for (let i = 0; i < 40; i++) {
+    const x = aleatoire(40, WORLD.w - 40), y = aleatoire(40, WORLD.h - 40);
+    if (dansCorral(x, y)) continue;
+    const o = sc.add.image(x, y, "decors", choisir(["herbe", "herbe2"]))
+      .setOrigin(0.5, 1).setScale(1.6).setAlpha(0.9);
+    o.setDepth(0);
+  }
+}
+
 function sceneCreate() {
   sc = this;
   this.cameras.main.setBounds(0, 0, WORLD.w, WORLD.h);
   this.cameras.main.setBackgroundColor("#e7c187");
+  definirFramesDecors();
   construireMonde();
   cursors = this.input.keyboard.createCursorKeys();
   wasd = this.input.keyboard.addKeys({ haut: "Z", bas: "S", gauche: "Q", droite: "D", up: "W", left: "A" });
@@ -248,20 +315,19 @@ function construireMonde() {
   sc.children.removeAll();
   decorObjs = [];
 
-  // Sol : fond sable + corral en herbe
-  const sol = sc.add.graphics();
-  sol.fillStyle(0xe7c187, 1); sol.fillRect(0, 0, WORLD.w, WORLD.h);
-  // quelques touffes
-  for (let i = 0; i < 60; i++) {
-    const t = txt(aleatoire(0, WORLD.w), aleatoire(0, WORLD.h), "🌿", 16);
-    t.setAlpha(0.5).setDepth(0);
-  }
-  // corral
+  // Sol : sable pixel-art tuilé sur tout le monde
+  sc.add.tileSprite(0, 0, WORLD.w, WORLD.h, "sol_sable")
+    .setOrigin(0, 0).setTileScale(2, 2).setDepth(-10);
+
+  // corral (enclos en herbe)
   const herbe = sc.add.graphics();
   herbe.fillStyle(0xbfe089, 1); herbe.fillRoundedRect(CORRAL.x, CORRAL.y, CORRAL.w, CORRAL.h, 30);
   herbe.lineStyle(8, 0x8a5a3b, 1); herbe.strokeRoundedRect(CORRAL.x, CORRAL.y, CORRAL.w, CORRAL.h, 30);
   herbe.setDepth(1);
   txt(CORRAL.x + CORRAL.w / 2, CORRAL.y - 26, "🐎 Le Corral", 26).setDepth(1);
+
+  // décor fixe du désert (arbres, cactus, rochers, herbe)
+  placerScenery();
 
   // Bâtiments
   STATIONS.forEach((s) => {
@@ -314,10 +380,19 @@ function majVisuelCheval(c) {
 
 function placerDecors() {
   decorObjs.forEach((o) => o.destroy()); decorObjs = [];
+  const CADRE_DECOR = { cactus: "cactus", arbre: "arbre" };
   etat.decors.forEach((id, k) => {
     const sl = SLOTS_DECOR[k % SLOTS_DECOR.length];
     const d = DECORS.find((x) => x.id === id);
-    if (d) { const o = txt(sl.x, sl.y, d.emoji, 42); o.setDepth(sl.y); decorObjs.push(o); }
+    if (!d) return;
+    let o;
+    if (CADRE_DECOR[id]) {
+      o = sc.add.image(sl.x, sl.y, "decors", CADRE_DECOR[id]).setOrigin(0.5, 1).setScale(2.4);
+    } else {
+      o = txt(sl.x, sl.y, d.emoji, 42);
+    }
+    o.setDepth(sl.y);
+    decorObjs.push(o);
   });
 }
 

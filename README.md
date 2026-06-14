@@ -12,7 +12,9 @@ Il peut s'ouvrir directement dans un navigateur **ou** être déployé sur **Git
 
 ## 🎮 Comment jouer
 
-Le ranch est en **vue de dessus fluide** (moteur **Phaser 3**, visuel à base d'emojis).
+Le ranch est en **vue de dessus fluide** (moteur **Phaser 3**). Le sol et les décors
+(sable, cactus, arbres, rochers, herbe) utilisent de vrais **assets pixel-art CC0** ;
+les personnages et les chevaux restent en **emojis**.
 Tu commences par **choisir ton personnage** (avatar + couleur), puis tu le déplaces dans
 le ranch pour t'occuper de tes chevaux.
 
@@ -57,6 +59,7 @@ Pour activer la publication (une seule fois) :
 | `index.html` | Structure de la page et écrans du jeu |
 | `style.css` | Thème graphique Far West |
 | `game.js` | Toute la logique du jeu |
+| `assets/` | Images pixel-art (sol + décors) et crédits (`CREDITS.md`) |
 | `.github/workflows/deploy.yml` | Déploiement automatique sur GitHub Pages |
 
 ## 💡 Idées d'évolutions
