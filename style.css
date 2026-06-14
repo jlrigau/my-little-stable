@@ -1,0 +1,396 @@
+/* ===== Mon Petit Haras — feuille de style ===== */
+
+:root {
+  /* Palette Far West : désert orangé, terre cuite, bois, cactus */
+  --vert: #7fae5a;          /* vert cactus */
+  --vert-fonce: #b5572b;    /* terre cuite (couleur d'accent principale) */
+  --jaune: #f4b942;         /* sable doré */
+  --orange: #e8722d;        /* orange canyon */
+  --rose: #d98a5f;          /* poulain / terre claire */
+  --bleu: #4aa3b8;          /* eau de l'oasis */
+  --brun: #8a5a3b;          /* bois du corral */
+  --creme: #fdf1dd;         /* parchemin */
+  --texte: #4a2f1d;
+  --ombre: 0 4px 0 rgba(74, 47, 29, 0.25);
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--texte);
+  /* Coucher de soleil sur le canyon */
+  background: linear-gradient(170deg, #ffce8f 0%, #ffb066 35%, #e8895a 70%, #c46a4a 100%);
+  background-attachment: fixed;
+}
+
+.ecran {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.cache {
+  display: none !important;
+}
+
+/* ===== Écran d'accueil ===== */
+#ecran-accueil {
+  align-items: center;
+  justify-content: center;
+}
+
+.boite-accueil {
+  background: var(--creme);
+  border: 6px solid var(--vert);
+  border-radius: 28px;
+  padding: 36px 28px;
+  width: min(420px, 92vw);
+  text-align: center;
+  box-shadow: var(--ombre);
+}
+
+.titre-jeu {
+  font-size: 2.4rem;
+  margin: 0 0 6px;
+  color: var(--vert-fonce);
+  text-shadow: 2px 2px 0 #fff;
+}
+
+.sous-titre {
+  font-size: 1.1rem;
+  margin: 0 0 22px;
+}
+
+.label-nom {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  font-size: 1.1rem;
+  border: 3px solid var(--brun);
+  border-radius: 14px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.msg-accueil {
+  min-height: 22px;
+  color: var(--orange);
+  font-weight: bold;
+}
+
+/* ===== Boutons ===== */
+.bouton {
+  background: var(--jaune);
+  border: none;
+  border-bottom: 5px solid #d9a400;
+  border-radius: 16px;
+  padding: 12px 18px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  color: var(--texte);
+  cursor: pointer;
+  transition: transform 0.08s, filter 0.1s;
+  margin: 4px;
+}
+
+.bouton:hover {
+  filter: brightness(1.06);
+}
+
+.bouton:active {
+  transform: translateY(3px);
+  border-bottom-width: 2px;
+}
+
+.bouton:disabled {
+  filter: grayscale(0.7) brightness(0.95);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.bouton-geant {
+  display: block;
+  width: 100%;
+  font-size: 1.3rem;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+
+.bouton-secondaire {
+  background: #d7e8ff;
+  border-bottom-color: #9bbbe0;
+}
+
+.bouton-jour {
+  background: var(--bleu);
+  border-bottom-color: #2b9ccc;
+  color: #fff;
+}
+
+/* ===== Barre du haut ===== */
+.barre-haut {
+  background: var(--vert-fonce);
+  color: #fff;
+  padding: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.titre-haras {
+  font-size: 1.3rem;
+  font-weight: bold;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.ressources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ressource {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 1.05rem;
+}
+
+/* ===== Zone des chevaux ===== */
+.zone-chevaux {
+  flex: 1;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+  align-content: start;
+}
+
+.carte-cheval {
+  background: var(--creme);
+  border: 5px solid var(--brun);
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: var(--ombre);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.carte-cheval.poulain {
+  border-color: var(--rose);
+  background: #fff0f5;
+}
+
+.cheval-tete {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cheval-emoji {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.cheval-infos h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.cheval-infos .race {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.badge {
+  display: inline-block;
+  background: var(--rose);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+.badge.adulte {
+  background: var(--vert);
+}
+
+/* Barres de besoins */
+.besoin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+
+.besoin .icone {
+  width: 22px;
+  text-align: center;
+}
+
+.barre {
+  flex: 1;
+  height: 16px;
+  background: #e7ddca;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #cdbfa0;
+}
+
+.barre-remplissage {
+  height: 100%;
+  border-radius: 8px 0 0 8px;
+  transition: width 0.3s;
+}
+
+.r-vert { background: var(--vert); }
+.r-jaune { background: var(--jaune); }
+.r-rouge { background: #f0676a; }
+
+/* Boutons d'actions du cheval */
+.actions-cheval {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.actions-cheval .bouton {
+  margin: 0;
+  font-size: 0.95rem;
+  padding: 9px 6px;
+}
+
+.bouton-concours {
+  grid-column: span 2;
+  background: var(--orange);
+  border-bottom-color: #d97a1f;
+  color: #fff;
+}
+
+/* ===== Barre du bas ===== */
+.barre-bas {
+  background: var(--vert-fonce);
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  position: sticky;
+  bottom: 0;
+  box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== Message volant ===== */
+.message-jeu {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 4px solid var(--vert);
+  border-radius: 16px;
+  padding: 12px 22px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  z-index: 50;
+  box-shadow: var(--ombre);
+  animation: pop 0.25s ease-out;
+}
+
+@keyframes pop {
+  from { transform: translateX(-50%) scale(0.6); opacity: 0; }
+  to { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+/* ===== Modale ===== */
+.modale {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.modale-contenu {
+  background: var(--creme);
+  border: 6px solid var(--vert);
+  border-radius: 24px;
+  padding: 24px;
+  width: min(560px, 95vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modale-contenu h2 {
+  margin-top: 0;
+  color: var(--vert-fonce);
+}
+
+.btn-fermer {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #f0676a;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+/* Liste de la boutique / élevage */
+.ligne-boutique {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  border: 3px solid #e0d3b5;
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.ligne-boutique .desc {
+  flex: 1;
+}
+
+.ligne-boutique .desc b {
+  font-size: 1.05rem;
+}
+
+.ligne-boutique .desc small {
+  display: block;
+  opacity: 0.75;
+}
+
+.aide-texte p {
+  line-height: 1.5;
+}
+
+.aide-texte li {
+  margin-bottom: 6px;
+  line-height: 1.4;
+}

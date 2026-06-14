@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🤠 Mon Ranch du Far West</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Écran de démarrage -->
+  <div id="ecran-accueil" class="ecran">
+    <div class="boite-accueil">
+      <h1 class="titre-jeu">🤠 Mon Ranch</h1>
+      <p class="sous-titre">Élève tes chevaux et fais grandir ton ranch dans le Far West&nbsp;!</p>
+      <label class="label-nom" for="nom-haras">Comment s'appelle ton ranch&nbsp;?</label>
+      <input id="nom-haras" type="text" maxlength="20" placeholder="Le Ranch du Canyon Doré" />
+      <button id="btn-commencer" class="bouton bouton-geant">▶️ Commencer l'aventure</button>
+      <button id="btn-charger" class="bouton bouton-secondaire">📂 Continuer ma partie</button>
+      <p id="msg-accueil" class="msg-accueil"></p>
+    </div>
+  </div>
+
+  <!-- Jeu principal -->
+  <div id="ecran-jeu" class="ecran cache">
+    <header class="barre-haut">
+      <div class="titre-haras">🤠 <span id="aff-nom-haras">Mon Ranch</span></div>
+      <div class="ressources">
+        <span class="ressource" title="Dollars">💰 <b id="aff-pieces">0</b></span>
+        <span class="ressource" title="Bottes de foin">🌾 <b id="aff-carottes">0</b></span>
+        <span class="ressource" title="Jour">📅 Jour <b id="aff-jour">1</b></span>
+        <span class="ressource" title="Box du corral" >🏚️ <b id="aff-boxes">0/0</b></span>
+      </div>
+    </header>
+
+    <div id="message-jeu" class="message-jeu cache"></div>
+
+    <main class="zone-chevaux" id="zone-chevaux"></main>
+
+    <footer class="barre-bas">
+      <button id="btn-boutique" class="bouton">🛒 Boutique</button>
+      <button id="btn-elevage" class="bouton">🐣 Élevage</button>
+      <button id="btn-jour-suivant" class="bouton bouton-jour">🌙 Jour suivant</button>
+      <button id="btn-aide" class="bouton bouton-secondaire">❓ Aide</button>
+    </footer>
+  </div>
+
+  <!-- Fenêtre modale réutilisable -->
+  <div id="modale" class="modale cache">
+    <div class="modale-contenu">
+      <button id="btn-fermer-modale" class="btn-fermer">✖</button>
+      <h2 id="modale-titre">Titre</h2>
+      <div id="modale-corps"></div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
