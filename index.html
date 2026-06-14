@@ -3,28 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>🐴 Mon Ranch</title>
-  <link rel="stylesheet" href="style.css?v=lpc2" />
+  <title>🐴 Mon Centre Équestre</title>
+  <link rel="stylesheet" href="style.css?v=ph4" />
 </head>
 <body>
   <!-- Accueil -->
   <div id="ecran-accueil" class="ecran">
     <div class="boite-accueil">
-      <h1 class="titre-jeu">🐴 Mon Ranch</h1>
-      <p class="sous-titre">Choisis ton personnage et occupe-toi de tes chevaux&nbsp;!</p>
-      <label class="label-nom" for="nom-haras">Le nom de ton ranch&nbsp;:</label>
-      <input id="nom-haras" type="text" maxlength="20" placeholder="Le Ranch des Étoiles" />
+      <h1 class="titre-jeu">🐴 Mon Centre Équestre</h1>
+      <p class="sous-titre">Crée ton personnage et occupe-toi de tes chevaux dans ton centre équestre&nbsp;!</p>
+      <label class="label-nom" for="nom-haras">Le nom de ton centre&nbsp;:</label>
+      <input id="nom-haras" type="text" maxlength="20" placeholder="Les Écuries du Pré Vert" />
       <button id="btn-commencer" class="bouton bouton-geant">▶️ Nouvelle partie</button>
       <button id="btn-charger" class="bouton bouton-secondaire">📂 Continuer ma partie</button>
       <p id="msg-accueil" class="msg-accueil"></p>
     </div>
   </div>
 
-  <!-- Choix du personnage -->
+  <!-- Création du personnage -->
   <div id="ecran-creation" class="ecran cache">
     <div class="boite-creation">
-      <h2>🧒 Choisis ton personnage</h2>
-      <div id="char-grid" class="char-grid"></div>
+      <h2>🎨 Choisis ton personnage</h2>
+      <div id="apercu-perso" class="apercu-perso"></div>
+      <div id="creation-controles" class="creation-controles"></div>
       <button id="btn-creation-ok" class="bouton bouton-geant">✅ C'est parti&nbsp;!</button>
     </div>
   </div>
@@ -32,13 +33,13 @@
   <!-- Jeu -->
   <div id="ecran-jeu" class="ecran cache">
     <header class="barre-haut">
-      <div class="titre-haras">🐴 <span id="aff-nom-haras">Mon Ranch</span></div>
+      <div class="titre-haras">🐴 <span id="aff-nom-haras">Mon Centre</span></div>
       <div class="ressources">
-        <span class="ressource" title="Pièces">💰 <b id="aff-pieces">0</b></span>
-        <span class="ressource" title="Foin">🌾 <b id="aff-foin">0</b></span>
+        <span class="ressource" title="Dollars">💰 <b id="aff-pieces">0</b></span>
+        <span class="ressource" title="Bottes de foin">🌾 <b id="aff-foin">0</b></span>
         <span class="ressource" title="Jour">📅 J<b id="aff-jour">1</b></span>
         <span class="ressource" title="Chevaux / box">🐴 <b id="aff-boxes">0/0</b></span>
-        <button id="btn-moi" class="mini-bouton" title="Changer de personnage">🧒</button>
+        <button id="btn-moi" class="mini-bouton" title="Changer mon apparence">🧍</button>
         <button id="btn-aide" class="mini-bouton" title="Aide">❓</button>
       </div>
     </header>
@@ -57,7 +58,7 @@
     </div>
 
     <div id="panneau" class="panneau">
-      <p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment.</p>
+      <p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment pour agir.</p>
     </div>
   </div>
 
@@ -71,6 +72,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
-  <script src="game.js?v=lpc2"></script>
+  <script src="game.js?v=ph4"></script>
 </body>
 </html>

@@ -1,107 +1,129 @@
 /* =========================================================
-   🐴 Mon Ranch — moteur Phaser 3 + sprites LPC
-   Personnages (filles/garçons) composés de couches LPC (corps + habits
-   + cheveux), chevaux LPC, ferme. Style cohérent, pour enfants.
-   100% statique. Licences des assets : voir CREDITS.md.
+   🐴 Mon Centre Équestre — moteur Phaser 3
+   Jeu de simulation pour enfants (9-10 ans).
+   Visuel en pixel-art (style LPC) : sol, clôtures, bâtiments,
+   personnages et chevaux animés. 100% statique (sauvegarde navigateur).
    ========================================================= */
 
 "use strict";
 
 /* ===================== Données ===================== */
 
-// Personnages : superposition de couches LPC (dos -> avant).
+// Personnages joueurs (sprites LPC). thumb = vignette pour les menus.
 const PERSOS = [
-  { id: "fille_1", label: "👧 Fille", layers: ["body_f", "legs_skirt_f", "top_f1", "hair_long"] },
-  { id: "fille_2", label: "👧 Fille", layers: ["body_f", "legs_pants_f", "top_f2", "hair_bob"] },
-  { id: "garcon_1", label: "👦 Garçon", layers: ["body_m", "legs_pants_m", "top_m1", "hair_plain"] },
-  { id: "garcon_2", label: "👦 Garçon", layers: ["body_m", "legs_pants2_m", "top_m2", "hair_page"] },
+  { id: "fille", nom: "Cavalière", key: "princess", thumb: "avatar_fille" },
+  { id: "garcon", nom: "Cavalier", key: "soldier", thumb: "avatar_garcon" },
 ];
-const LAYER_TEX = [...new Set(PERSOS.flatMap((p) => p.layers))];
+const THEMES = ["#4aa3b8", "#e8722d", "#d94a6a", "#7fae5a", "#7a5bd0", "#f4b942"];
 
-// Robes de cheval (assets/horse/*.png).
-const ROBES = [
-  { id: "brun", nom: "Brun", tex: "brun" },
-  { id: "blanc", nom: "Blanc", tex: "blanc" },
-  { id: "licorne", nom: "Licorne 🦄", tex: "licorne" },
+// Robes des chevaux = variantes de pelage (sprites LPC). col = pastille pour les menus.
+const COATS = [
+  { id: "brown", nom: "Bai", col: "#8a5a2b" },
+  { id: "black", nom: "Noir", col: "#332e2a" },
+  { id: "gray", nom: "Gris", col: "#9a9893" },
+  { id: "golden", nom: "Palomino", col: "#caa14a" },
+  { id: "white", nom: "Blanc", col: "#e7e2d8" },
+];
+
+const DECORS = [
+  { id: "arbre", nom: "Sapin", sprite: "pine", prix: 28 },
+  { id: "buisson", nom: "Buisson", sprite: "bush", prix: 16 },
+  { id: "abreuvoir", nom: "Abreuvoir", sprite: "trough", prix: 20 },
 ];
 
 const NOMS = ["Éclair", "Tornade", "Caramel", "Étoile", "Tonnerre", "Cannelle", "Bandit", "Mistral", "Pépite", "Comète", "Bravo", "Sable"];
-const PRIX_CHEVAL = 45, PRIX_FOIN = 4, PRIX_BOX = 80, AGE_ADULTE = 5;
 
-// Planches de chevaux : 3 frames x 4 directions.
-const ROWS = {
-  horse: { up: [0, 1, 2], left: [3, 4, 5], down: [6, 7, 8], right: [9, 10, 11] },
-  foal: { up: [0, 1, 2], right: [3, 4, 5], down: [6, 7, 8], left: [9, 10, 11] },
-  poule: { down: [0, 1, 2], left: [3, 4, 5], right: [6, 7, 8], up: [9, 10, 11] },
-};
-// Personnage LPC : 9 frames x 4 lignes (haut/gauche/bas/droite). Col 0 = immobile.
-const ROWP = { up: 0, left: 1, down: 2, right: 3 };
+const PRIX_CHEVAL = 45, PRIX_FOIN = 4, PRIX_BOX = 80, AGE_ADULTE = 5;
 
 /* ===================== Monde ===================== */
 
-const WORLD = { w: 1280, h: 960 };
-const CORRAL = { x: 560, y: 130, w: 660, h: 720 };
+const WORLD = { w: 1600, h: 1180 };
+const CORRAL = { x: 800, y: 150, w: 730, h: 880 };
 const STATIONS = [
-  { type: "dormir", x: 200, y: 250, tex: "maison", label: "🏠 Maison", sc: 2.2, r: 110 },
-  { type: "boutique", x: 200, y: 620, tex: "poulailler", label: "🏪 Magasin", sc: 2.6, r: 110 },
+  { type: "dormir", x: 250, y: 340, sprite: "barn_red", label: "Écurie" },
+  { type: "boutique", x: 250, y: 760, sprite: "barn_brown", label: "Magasin" },
+];
+const SLOTS_DECOR = [
+  { x: 520, y: 180 }, { x: 600, y: 1000 }, { x: 380, y: 520 }, { x: 150, y: 1000 },
+  { x: 540, y: 760 }, { x: 120, y: 140 }, { x: 1540, y: 120 }, { x: 1540, y: 1040 },
 ];
 
 /* ===================== État ===================== */
 
 let etat = null;
-const CLE = "mon-ranch-lpc2";
-function aleatoire(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+const CLE = "mon-ranch-phaser";
+
+function aleatoire(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function choisir(l) { return l[aleatoire(0, l.length - 1)]; }
 function borner(v) { return Math.max(0, Math.min(100, Math.round(v))); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function $(id) { return document.getElementById(id); }
+function couleurInt(hex) { return parseInt(hex.slice(1), 16); }
+
+// Robe -> identifiant de pelage valide (avec migration des anciennes sauvegardes en hex).
+function robeCoat(c) {
+  if (c && COATS.some((x) => x.id === c.robe)) return c.robe;
+  return COATS[0].id;
+}
+function persoDef(id) { return PERSOS.find((p) => p.id === id) || PERSOS[0]; }
+
+/* ===================== Chevaux ===================== */
 
 let compteurId = 1;
 function nouveauCheval(o = {}) {
   return {
-    id: compteurId++, nom: o.nom || choisir(NOMS), robe: o.robe || choisir(ROBES).id,
+    id: compteurId++,
+    nom: o.nom || choisir(NOMS),
+    robe: o.robe || choisir(COATS).id,
     age: o.age != null ? o.age : aleatoire(5, 9),
     faim: 70, energie: 80, proprete: 75, bonheur: 80,
-    x: aleatoire(CORRAL.x + 90, CORRAL.x + CORRAL.w - 90),
-    y: aleatoire(CORRAL.y + 90, CORRAL.y + CORRAL.h - 90),
-    tx: 0, ty: 0, prochainPas: 0, dir: "down", spr: null, ombre: null, nomT: null, moodT: null,
+    x: aleatoire(CORRAL.x + 80, CORRAL.x + CORRAL.w - 80),
+    y: aleatoire(CORRAL.y + 80, CORRAL.y + CORRAL.h - 80),
+    tx: 0, ty: 0, prochainPas: 0, obj: null,
   };
 }
 function estPoulain(c) { return c.age < AGE_ADULTE; }
 function moyenne(c) { return (c.faim + c.energie + c.proprete + c.bonheur) / 4; }
 
+/* ===================== Sauvegarde ===================== */
+
 function sauvegarder() {
   etat.compteurId = compteurId;
-  try { localStorage.setItem(CLE, JSON.stringify(etat, (k, v) => ["spr", "ombre", "nomT", "moodT"].includes(k) ? undefined : v)); } catch (e) {}
+  try { localStorage.setItem(CLE, JSON.stringify(etat, (k, v) => k === "obj" ? undefined : v)); } catch (e) {}
 }
 function charger() { try { const b = localStorage.getItem(CLE); return b ? JSON.parse(b) : null; } catch (e) { return null; } }
 
-/* ===================== Écrans ===================== */
+/* ===================== Flux des écrans ===================== */
 
-let persoChoisi = "fille_1", nomRanchTemp = "Mon Ranch", imgsApercu = {};
+let persoEnCours = null, nomRanchTemp = "Mon Centre";
 
 function init() {
   $("btn-commencer").addEventListener("click", () => {
-    nomRanchTemp = $("nom-haras").value.trim() || "Mon Ranch";
-    ouvrirCreation((id) => nouvellePartie(nomRanchTemp, id));
+    nomRanchTemp = $("nom-haras").value.trim() || "Mon Centre";
+    ouvrirCreation({ avatar: PERSOS[0].id, couleur: THEMES[0] }, () => nouvellePartie(nomRanchTemp, persoEnCours));
   });
   $("btn-charger").addEventListener("click", continuerPartie);
   $("nom-haras").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-commencer").click(); });
   if (charger()) $("msg-accueil").textContent = "Une partie existe : clique sur « Continuer ma partie » 🐴";
 
-  $("btn-moi").addEventListener("click", () => ouvrirCreation((id) => {
-    etat.perso = id; sauvegarder(); if (sc) creerJoueur(id);
+  $("btn-moi").addEventListener("click", () => ouvrirCreation({ ...etat.perso }, () => {
+    etat.perso = persoEnCours; sauvegarder();
+    if (joueurSprite) { joueurSprite.setTexture(persoDef(etat.perso.avatar).key); joueurFacing = "down"; joueurSprite.setFrame(18); }
   }));
   $("btn-aide").addEventListener("click", ouvrirAide);
+
   $("btn-fermer-modale").addEventListener("click", fermerModale);
   $("modale").addEventListener("click", (e) => { if (e.target.id === "modale") fermerModale(); });
+
   $("btn-action").addEventListener("click", () => interagir(cibleActive));
   document.addEventListener("click", (e) => {
     const btn = e.target.closest("button"); if (!btn) return;
     if (btn.dataset.cheval) actionCheval(btn.dataset.cheval);
     else if (btn.dataset.station) interagir({ type: btn.dataset.station });
     else if (btn.dataset.boutique) acheter(btn.dataset.boutique);
+    else if (btn.dataset.decor) acheterDecor(btn.dataset.decor);
   });
+
   document.querySelectorAll(".dpad-btn").forEach((b) => {
     const dir = b.dataset.dir;
     const on = (e) => { e.preventDefault(); touches[dir] = true; };
@@ -109,299 +131,423 @@ function init() {
     b.addEventListener("pointerdown", on); b.addEventListener("pointerup", off);
     b.addEventListener("pointerleave", off); b.addEventListener("pointercancel", off);
   });
-
-  // précharge les images pour les aperçus de personnages
-  LAYER_TEX.forEach((t) => { const im = new Image(); im.src = `assets/lpc/${t}.png?v=lpc2`; imgsApercu[t] = im; });
-}
-
-function ouvrirCreation(onValider) {
-  $("ecran-accueil").classList.add("cache");
-  $("ecran-jeu").classList.add("cache");
-  $("ecran-creation").classList.remove("cache");
-  const grid = $("char-grid"); grid.innerHTML = "";
-  persoChoisi = (etat && etat.perso) || PERSOS[0].id;
-  PERSOS.forEach((p) => {
-    const b = document.createElement("button");
-    b.className = "char-choice" + (p.id === persoChoisi ? " choisi" : "");
-    const cv = document.createElement("canvas"); cv.width = 64; cv.height = 64;
-    b.appendChild(cv);
-    const lab = document.createElement("span"); lab.textContent = p.label; b.appendChild(lab);
-    dessinerApercuPerso(cv, p);
-    b.addEventListener("click", () => {
-      persoChoisi = p.id;
-      grid.querySelectorAll(".char-choice").forEach((x) => x.classList.remove("choisi"));
-      b.classList.add("choisi");
-    });
-    grid.appendChild(b);
-  });
-  $("btn-creation-ok").onclick = () => {
-    onValider(persoChoisi);
-    if (etat) { $("ecran-creation").classList.add("cache"); $("ecran-jeu").classList.remove("cache"); }
-  };
-}
-
-// Dessine la frame "face, immobile" (ligne bas, colonne 0) des couches empilées.
-function dessinerApercuPerso(cv, preset) {
-  const ctx = cv.getContext("2d"); ctx.imageSmoothingEnabled = false;
-  const draw = () => {
-    ctx.clearRect(0, 0, 64, 64);
-    preset.layers.forEach((t) => { const im = imgsApercu[t]; if (im && im.complete && im.naturalWidth) ctx.drawImage(im, 0, ROWP.down * 64, 64, 64, 0, 0, 64, 64); });
-  };
-  draw();
-  preset.layers.forEach((t) => { const im = imgsApercu[t]; if (im && !im.complete) im.addEventListener("load", draw, { once: true }); });
 }
 
 function nouvellePartie(nom, perso) {
   compteurId = 1;
-  etat = { nomRanch: nom, perso, pieces: 40, foin: 6, jour: 1, boxes: 4, chevaux: [nouveauCheval({ nom: "Éclair", robe: "brun" })] };
+  etat = {
+    nomRanch: nom, perso, pieces: 40, foin: 6, jour: 1, boxes: 4,
+    chevaux: [nouveauCheval({ nom: "Éclair", robe: COATS[0].id })],
+    decors: [],
+  };
   sauvegarder(); demarrerJeu();
 }
+
 function continuerPartie() {
   const s = charger();
   if (!s) { $("msg-accueil").textContent = "Aucune partie sauvegardée."; return; }
   etat = s;
-  if (!etat.perso || !PERSOS.find((p) => p.id === etat.perso)) etat.perso = PERSOS[0].id;
-  etat.chevaux.forEach((c) => { c.spr = null; c.prochainPas = 0; if (!c.dir) c.dir = "down"; });
+  if (!etat.perso) etat.perso = { avatar: PERSOS[0].id, couleur: THEMES[0] };
+  if (!persoDef(etat.perso.avatar) || !PERSOS.some((p) => p.id === etat.perso.avatar)) etat.perso.avatar = PERSOS[0].id;
+  if (!etat.decors) etat.decors = [];
+  etat.decors = etat.decors.filter((id) => DECORS.some((d) => d.id === id));
+  etat.chevaux.forEach((c) => { c.obj = null; c.prochainPas = 0; c.robe = robeCoat(c); });
   compteurId = s.compteurId || (etat.chevaux.length + 1);
   demarrerJeu();
 }
+
 function demarrerJeu() {
-  $("ecran-accueil").classList.add("cache"); $("ecran-creation").classList.add("cache");
+  $("ecran-accueil").classList.add("cache");
+  $("ecran-creation").classList.add("cache");
   $("ecran-jeu").classList.remove("cache");
   $("aff-nom-haras").textContent = etat.nomRanch;
-  majHud(); lancerPhaser();
+  majHud();
+  lancerPhaser();
 }
 
 /* ===================== HUD / messages ===================== */
 
 function majHud() {
-  $("aff-pieces").textContent = etat.pieces; $("aff-foin").textContent = etat.foin;
-  $("aff-jour").textContent = etat.jour; $("aff-boxes").textContent = etat.chevaux.length + "/" + etat.boxes;
+  $("aff-pieces").textContent = etat.pieces;
+  $("aff-foin").textContent = etat.foin;
+  $("aff-jour").textContent = etat.jour;
+  $("aff-boxes").textContent = etat.chevaux.length + "/" + etat.boxes;
   sauvegarder();
 }
 let timerMessage = null;
 function message(t) {
-  const el = $("message-jeu"); el.textContent = t; el.classList.remove("cache");
+  const el = $("message-jeu");
+  el.textContent = t; el.classList.remove("cache");
   el.style.animation = "none"; void el.offsetWidth; el.style.animation = "";
   clearTimeout(timerMessage); timerMessage = setTimeout(() => el.classList.add("cache"), 2800);
 }
 
+/* ===================== Création (DOM) ===================== */
+
+function ouvrirCreation(perso, onValider) {
+  persoEnCours = perso;
+  $("ecran-accueil").classList.add("cache");
+  $("ecran-jeu").classList.add("cache");
+  $("ecran-creation").classList.remove("cache");
+  const apercuPerso = () => { $("apercu-perso").innerHTML = `<img class="vignette-grande" src="assets/sprite/${persoDef(persoEnCours.avatar).thumb}.png" alt="" />`; };
+  apercuPerso();
+
+  const cont = $("creation-controles");
+  cont.innerHTML = `<span class="grp-titre">Personnage</span><div class="ligne-avatars" id="grp-avatar"></div>
+    <span class="grp-titre">Couleur préférée</span><div class="ligne-swatch" id="grp-couleur"></div>`;
+  const ga = $("grp-avatar");
+  PERSOS.forEach((p) => {
+    const b = document.createElement("button");
+    b.className = "btn-avatar btn-vignette" + (persoEnCours.avatar === p.id ? " choisi" : "");
+    b.innerHTML = `<img src="assets/sprite/${p.thumb}.png" alt="${p.nom}" />`;
+    b.title = p.nom;
+    b.addEventListener("click", () => {
+      persoEnCours.avatar = p.id; ga.querySelectorAll(".btn-avatar").forEach((x) => x.classList.remove("choisi"));
+      b.classList.add("choisi"); apercuPerso();
+    });
+    ga.appendChild(b);
+  });
+  const gc = $("grp-couleur");
+  THEMES.forEach((col) => {
+    const b = document.createElement("button");
+    b.className = "swatch-col" + (persoEnCours.couleur === col ? " choisi" : ""); b.style.background = col;
+    b.addEventListener("click", () => { persoEnCours.couleur = col; gc.querySelectorAll(".swatch-col").forEach((x) => x.classList.remove("choisi")); b.classList.add("choisi"); });
+    gc.appendChild(b);
+  });
+
+  $("btn-creation-ok").onclick = () => {
+    onValider();
+    if (etat) { $("ecran-creation").classList.add("cache"); $("ecran-jeu").classList.remove("cache"); }
+  };
+}
+
 /* ===================== Phaser ===================== */
 
-let jeu = null, sc = null, joueur = null, joueurLayers = [], joueurOmbre = null;
-let cursors = null, wasd = null, poules = [];
+let jeu = null, sc = null;
+let joueur = null, joueurSprite = null, joueurFacing = "down";
+let cursors = null, wasd = null;
 const touches = { haut: false, bas: false, gauche: false, droite: false };
 let moveTarget = null, pendingInteract = null;
-let cibleActive = null, idPanneau = null, monte = null, ringSel = null;
+let cibleActive = null, idPanneau = null, monte = null;
+let ringSel = null;
+let decorObjs = [];
 
 function lancerPhaser() {
-  if (jeu) { construireMonde(); creerJoueur(etat.perso); return; }
+  if (jeu) { construireMonde(); return; }
   jeu = new Phaser.Game({
-    type: Phaser.AUTO, parent: "monde", backgroundColor: "#8fc45a", pixelArt: true,
+    type: Phaser.AUTO,
+    parent: "monde",
+    backgroundColor: "#6fae4f",
+    pixelArt: true,
+    roundPixels: true,
     scale: { mode: Phaser.Scale.RESIZE, width: "100%", height: "100%" },
     scene: { preload: scenePreload, create: sceneCreate, update: sceneUpdate },
   });
 }
-function scenePreload() {
-  const V = "?v=lpc2";
-  LAYER_TEX.forEach((t) => this.load.spritesheet(t, `assets/lpc/${t}.png${V}`, { frameWidth: 64, frameHeight: 64 }));
-  ["brun", "blanc", "licorne"].forEach((h) => this.load.spritesheet(h, `assets/horse/${h}.png${V}`, { frameWidth: 64, frameHeight: 64 }));
-  this.load.spritesheet("poulain", `assets/horse/poulain.png${V}`, { frameWidth: 48, frameHeight: 64 });
-  this.load.spritesheet("poule", `assets/world/poule.png${V}`, { frameWidth: 32, frameHeight: 32 });
-  this.load.image("maison", `assets/world/maison.png${V}`);
-  this.load.image("poulailler", `assets/world/poulailler.png${V}`);
-  this.load.image("plantes", `assets/world/plantes.png${V}`);
+
+function txt(x, y, s, taille) {
+  return sc.add.text(x, y, s, { fontSize: taille + "px", fontFamily: "sans-serif" }).setOrigin(0.5);
 }
-function creerAnims(tex, rows) {
-  ["down", "left", "right", "up"].forEach((dir) => {
-    const key = tex + "-" + dir;
-    if (sc.anims.exists(key)) return;
-    sc.anims.create({ key, frames: sc.anims.generateFrameNumbers(tex, { frames: rows[dir] }), frameRate: 7, repeat: -1 });
+
+/* ===================== Assets graphiques (pixel-art LPC, libres) =====================
+   Style « Liberated Pixel Cup ». Sol, clôtures, bâtiments, arbres, personnages et
+   chevaux animés. Auteurs et licences (CC-BY / CC-BY-SA) : voir assets/CREDITS.md. */
+
+function scenePreload() {
+  this.load.image("sol_herbe", "assets/sprite/tile_grass.png");
+  this.load.image("sol_terre", "assets/sprite/tile_dirt.png");
+  ["tuft0", "tuft1", "tuft2", "pine", "bush", "trough", "barn_red", "barn_brown"]
+    .forEach((k) => this.load.image(k, `assets/sprite/${k}.png`));
+  this.load.spritesheet("fence", "assets/lpc/fence_medieval.png", { frameWidth: 32, frameHeight: 32 });
+  PERSOS.forEach((p) => this.load.spritesheet(p.key, `assets/lpc/${p.key}.png`, { frameWidth: 64, frameHeight: 64 }));
+  COATS.forEach((c) => this.load.spritesheet("horse-" + c.id, `assets/lpc/horse-${c.id}_0.png`, { frameWidth: 128, frameHeight: 128 }));
+}
+
+// Animations : marche du joueur (4 directions) et marche latérale des chevaux.
+const DIRS = { up: 0, left: 1, down: 2, right: 3 }; // lignes du walkcycle LPC (9 frames/ligne)
+function creerAnims() {
+  PERSOS.forEach((p) => {
+    Object.entries(DIRS).forEach(([dir, row]) => {
+      const key = `${p.key}-${dir}`;
+      if (!sc.anims.exists(key)) sc.anims.create({
+        key, frames: sc.anims.generateFrameNumbers(p.key, { start: row * 9 + 1, end: row * 9 + 8 }),
+        frameRate: 10, repeat: -1,
+      });
+    });
+  });
+  COATS.forEach((c) => {
+    const key = "horse-" + c.id + "-walk";
+    if (!sc.anims.exists(key)) sc.anims.create({
+      key, frames: sc.anims.generateFrameNumbers("horse-" + c.id, { start: 20, end: 23 }),
+      frameRate: 6, repeat: -1,
+    });
   });
 }
-function frameRepos(rows, dir) { const a = rows[dir]; return a[Math.floor(a.length / 2)]; }
+
+// Petit cœur (humeur), dessiné une fois puis teinté selon le moral.
+function creerCoeur() {
+  if (sc.textures.exists("coeur")) return;
+  const g = sc.make.graphics({ x: 0, y: 0, add: false });
+  g.fillStyle(0xffffff, 1);
+  g.fillCircle(6, 7, 6); g.fillCircle(16, 7, 6);
+  g.fillTriangle(0, 9, 22, 9, 11, 23);
+  g.generateTexture("coeur", 22, 24); g.destroy();
+}
+
+// Clôture en ganivelle autour de l'enclos (avec un portail sur le côté écuries).
+function placerCloture() {
+  const s = 32, x0 = CORRAL.x, y0 = CORRAL.y, x1 = CORRAL.x + CORRAL.w, y1 = CORRAL.y + CORRAL.h;
+  const gateA = y0 + CORRAL.h * 0.42, gateB = y0 + CORRAL.h * 0.58;
+  const add = (x, y, frame, flipY) => {
+    const o = sc.add.image(x, y, "fence", frame).setOrigin(0.5, 0.7).setDepth(y);
+    if (flipY) o.setFlipY(true);
+  };
+  for (let x = x0 + s; x < x1; x += s) { add(x, y0, 1, false); add(x, y1, 1, false); }
+  for (let y = y0 + s; y < y1; y += s) {
+    if (!(y > gateA && y < gateB)) add(x0, y, 17, false);
+    add(x1, y, 17, false);
+  }
+  add(x0, y0, 32, false); add(x1, y0, 34, false);
+  add(x0, y1, 32, true); add(x1, y1, 34, true);
+}
+
+function dansCorral(x, y) {
+  return x > CORRAL.x - 40 && x < CORRAL.x + CORRAL.w + 40 &&
+         y > CORRAL.y - 40 && y < CORRAL.y + CORRAL.h + 40;
+}
+
+// Arbres et buissons fixes autour du centre équestre : [x, y, sprite, échelle]
+const SCENERY = [
+  [110, 180, "pine", 1.5], [185, 1060, "pine", 1.6], [1310, 90, "pine", 1.4], [1500, 1090, "pine", 1.6],
+  [640, 1090, "pine", 1.4], [1560, 320, "pine", 1.4], [470, 130, "bush", 1.2], [90, 640, "bush", 1.2],
+  [1560, 660, "bush", 1.2], [330, 910, "bush", 1.1], [700, 410, "bush", 1.0], [60, 360, "bush", 1.0],
+];
+
+function placerScenery() {
+  SCENERY.forEach(([x, y, sprite, ech]) => {
+    sc.add.image(x, y, sprite).setOrigin(0.5, 0.95).setScale(ech).setDepth(y);
+  });
+  // touffes d'herbe éparses (hors enclos) pour habiller la pelouse
+  for (let i = 0; i < 60; i++) {
+    const x = aleatoire(30, WORLD.w - 30), y = aleatoire(30, WORLD.h - 30);
+    if (dansCorral(x, y)) continue;
+    sc.add.image(x, y, choisir(["tuft0", "tuft1", "tuft2"])).setOrigin(0.5, 0.9).setScale(1.1).setDepth(0);
+  }
+}
 
 function sceneCreate() {
   sc = this;
   this.cameras.main.setBounds(0, 0, WORLD.w, WORLD.h);
-  ["brun", "blanc", "licorne"].forEach((h) => creerAnims(h, ROWS.horse));
-  creerAnims("poulain", ROWS.foal); creerAnims("poule", ROWS.poule);
-  construireMonde(); creerJoueur(etat.perso);
+  this.cameras.main.setBackgroundColor("#6fae4f");
+  creerAnims();
+  creerCoeur();
+  construireMonde();
   cursors = this.input.keyboard.createCursorKeys();
   wasd = this.input.keyboard.addKeys({ haut: "Z", bas: "S", gauche: "Q", droite: "D", up: "W", left: "A" });
   this.input.on("pointerdown", (p) => onPointer(p));
 }
 
 function construireMonde() {
-  if (sc.children) sc.children.removeAll();
-  poules = [];
-  const g = sc.add.graphics();
-  g.fillStyle(0x8fc45a, 1); g.fillRect(0, 0, WORLD.w, WORLD.h);
-  for (let i = 0; i < 90; i++) { g.fillStyle(0x84b94f, 1); g.fillRect(aleatoire(0, WORLD.w), aleatoire(0, WORLD.h), aleatoire(4, 10), 3); }
-  g.fillStyle(0xcdb185, 1); g.fillRoundedRect(CORRAL.x, CORRAL.y, CORRAL.w, CORRAL.h, 26);
-  g.lineStyle(7, 0x8a5a3b, 1); g.strokeRoundedRect(CORRAL.x, CORRAL.y, CORRAL.w, CORRAL.h, 26);
-  g.setDepth(0);
-  sc.add.text(CORRAL.x + CORRAL.w / 2, CORRAL.y - 22, "🐴 Le Corral", { fontSize: "26px", fontFamily: "sans-serif", color: "#5a3a1f", fontStyle: "bold" }).setOrigin(0.5).setDepth(1);
-  [[380, 160], [380, 880], [120, 470], [1240, 130], [1240, 870]].forEach(([x, y]) => sc.add.image(x, y, "plantes").setScale(2).setDepth(y));
-  STATIONS.forEach((s) => {
-    s.spr = sc.add.image(s.x, s.y, s.tex).setScale(s.sc).setDepth(s.y);
-    s.lab = sc.add.text(s.x, s.y + 46, s.label, { fontSize: "20px", fontFamily: "sans-serif", color: "#3a2716", fontStyle: "bold" }).setOrigin(0.5).setDepth(s.y);
-  });
-  for (let i = 0; i < 3; i++) {
-    const px = aleatoire(CORRAL.x + 60, CORRAL.x + CORRAL.w - 60), py = aleatoire(CORRAL.y + 60, CORRAL.y + CORRAL.h - 60);
-    const pl = sc.add.sprite(px, py, "poule").setScale(1.4); pl.play("poule-down"); pl.gx = px; pl.gy = py; pl.t = 0; poules.push(pl);
-  }
-  etat.chevaux.forEach(creerSpriteCheval);
-  ringSel = sc.add.ellipse(0, 0, 80, 40, 0xf4b942, 0);
-  ringSel.setStrokeStyle(4, 0xf4b942, 1); ringSel.setVisible(false);
-}
+  sc.children.removeAll();
+  decorObjs = [];
 
-function creerJoueur(presetId) {
-  const preset = PERSOS.find((p) => p.id === presetId) || PERSOS[0];
-  const px = joueur ? joueur.x : 640, py = joueur ? joueur.y : 500;
-  if (joueur) joueur.destroy(true);
-  if (joueurOmbre) joueurOmbre.destroy();
-  joueurOmbre = sc.add.ellipse(px, py + 22, 34, 14, 0x000000, 0.25);
-  joueurLayers = preset.layers.map((t) => sc.add.sprite(0, 0, t).setOrigin(0.5, 0.82));
-  joueur = sc.add.container(px, py, joueurLayers).setScale(0.95);
-  joueur.dir = "down"; joueur.walkT = 0;
-  majFramePerso(false);
+  // Sol : pelouse tuilée sur tout le monde
+  sc.add.tileSprite(0, 0, WORLD.w, WORLD.h, "sol_herbe").setOrigin(0, 0).setDepth(-20);
+
+  // Chemin de terre reliant les bâtiments à l'enclos
+  sc.add.tileSprite(150, 330, 220, 470, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
+  sc.add.tileSprite(250, CORRAL.y + CORRAL.h * 0.5 - 40, CORRAL.x - 250, 80, "sol_terre").setOrigin(0, 0).setDepth(-19);
+
+  // Enclos (herbe légèrement plus claire) + clôture
+  const pre = sc.add.graphics();
+  pre.fillStyle(0x86c25a, 0.55); pre.fillRoundedRect(CORRAL.x, CORRAL.y, CORRAL.w, CORRAL.h, 18);
+  pre.setDepth(-18);
+  placerCloture();
+
+  // Décor fixe (arbres, buissons, herbe)
+  placerScenery();
+
+  // Bâtiments
+  STATIONS.forEach((s) => {
+    const b = sc.add.image(s.x, s.y, s.sprite).setOrigin(0.5, 0.82).setScale(1.15).setDepth(s.y);
+    const l = sc.add.text(s.x, s.y + 26, s.label, { fontSize: "22px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 5 }).setOrigin(0.5).setDepth(s.y + 1);
+    s.obj = b; s.labelObj = l;
+  });
+
+  // Décorations achetées
+  placerDecors();
+
+  // Chevaux
+  etat.chevaux.forEach(creerObjCheval);
+
+  // Joueur
+  const ombre = sc.add.ellipse(0, 26, 38, 14, 0x000000, 0.22);
+  const key = persoDef(etat.perso.avatar).key;
+  joueurSprite = sc.add.sprite(0, 0, key, 18).setOrigin(0.5, 0.78).setScale(1.25);
+  joueurFacing = "down";
+  joueur = sc.add.container(560, 560, [ombre, joueurSprite]);
+  joueur.setSize(40, 40);
+  monte = null;
+
+  // anneau de sélection
+  ringSel = sc.add.ellipse(0, 0, 90, 50, 0xffd54a, 0);
+  ringSel.setStrokeStyle(4, 0xffd54a, 1); ringSel.setVisible(false); ringSel.setDepth(2);
+
   sc.cameras.main.startFollow(joueur, true, 0.12, 0.12);
 }
-function majFramePerso(bouge) {
-  const row = ROWP[joueur.dir];
-  let col = 0;
-  if (bouge) { joueur.walkT += 1; col = 1 + (Math.floor(joueur.walkT / 6) % 8); }
-  const idx = row * 9 + col;
-  joueurLayers.forEach((s) => s.setFrame(idx));
+
+function creerObjCheval(c) {
+  const coat = robeCoat(c);
+  const ombre = sc.add.ellipse(0, 18, 54, 16, 0x000000, 0.22);
+  const corps = sc.add.sprite(0, 0, "horse-" + coat).setOrigin(0.5, 0.82);
+  corps.setScale(estPoulain(c) ? 0.4 : 0.62);
+  corps.play("horse-" + coat + "-walk");
+  const coeur = sc.add.image(0, -42, "coeur").setOrigin(0.5).setScale(0.85).setTint(0x6fcf5f);
+  const nom = sc.add.text(0, 30, c.nom, { fontSize: "16px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 4 }).setOrigin(0.5);
+  const cont = sc.add.container(c.x, c.y, [ombre, corps, coeur, nom]);
+  c.obj = cont; c.corpsT = corps; c.coeur = coeur; c.nomT = nom;
 }
 
-let poulesRef;
-function texCheval(c) { return estPoulain(c) ? "poulain" : c.robe; }
-function creerSpriteCheval(c) {
-  const tex = texCheval(c);
-  c.ombre = sc.add.ellipse(c.x, c.y + 18, 50, 18, 0x000000, 0.22);
-  c.spr = sc.add.sprite(c.x, c.y, tex).setScale(estPoulain(c) ? 0.9 : 1.05);
-  c.spr.play(tex + "-down"); c.spr.anims.stop();
-  c.nomT = sc.add.text(c.x, c.y + 26, c.nom, { fontSize: "15px", fontFamily: "sans-serif", color: "#2a1c0f", fontStyle: "bold" }).setOrigin(0.5);
-  c.moodT = sc.add.text(c.x + 20, c.y - 34, "😀", { fontSize: "18px" }).setOrigin(0.5);
-}
-function majSpriteCheval(c) {
-  const tex = texCheval(c);
-  if (c.spr.texture.key !== tex) { c.spr.setTexture(tex); c.spr.setScale(estPoulain(c) ? 0.9 : 1.05); }
+function majVisuelCheval(c) {
+  if (!c.obj) return;
+  const coat = robeCoat(c);
+  c.corpsT.setTexture("horse-" + coat);
+  c.corpsT.play("horse-" + coat + "-walk");
+  c.corpsT.setScale(estPoulain(c) ? 0.4 : 0.62);
   c.nomT.setText(c.nom);
 }
 
-function dirDe(dx, dy) { if (Math.abs(dx) > Math.abs(dy)) return dx < 0 ? "left" : "right"; return dy < 0 ? "up" : "down"; }
-function animer(spr, tex, dir, bouge, rows) {
-  if (bouge) { const k = tex + "-" + dir; if (spr.anims.currentAnim?.key !== k || !spr.anims.isPlaying) spr.play(k); }
-  else { spr.anims.stop(); spr.setFrame(frameRepos(rows, dir)); }
+function placerDecors() {
+  decorObjs.forEach((o) => o.destroy()); decorObjs = [];
+  etat.decors.forEach((id, k) => {
+    const sl = SLOTS_DECOR[k % SLOTS_DECOR.length];
+    const d = DECORS.find((x) => x.id === id);
+    if (!d) return;
+    const o = sc.add.image(sl.x, sl.y, d.sprite).setOrigin(0.5, 0.95).setScale(1.2).setDepth(sl.y);
+    decorObjs.push(o);
+  });
+}
+
+// Anime le joueur selon sa direction (ou pose d'arrêt face à sa dernière direction).
+function majAnimJoueur(mvx, mvy) {
+  if (!joueurSprite) return;
+  const key = persoDef(etat.perso.avatar).key;
+  if (mvx || mvy) {
+    const dir = Math.abs(mvx) > Math.abs(mvy) ? (mvx < 0 ? "left" : "right") : (mvy < 0 ? "up" : "down");
+    joueurFacing = dir;
+    const ak = `${key}-${dir}`;
+    const cur = joueurSprite.anims.currentAnim;
+    if (!joueurSprite.anims.isPlaying || !cur || cur.key !== ak) joueurSprite.play(ak, true);
+  } else {
+    joueurSprite.anims.stop();
+    joueurSprite.setFrame(DIRS[joueurFacing] * 9);
+  }
 }
 
 /* ===================== Boucle ===================== */
 
-let dernier = 0;
-function sceneUpdate(time) {
+function sceneUpdate(time, delta) {
   if (!joueur) return;
-  const dt = Math.min((time - dernier) / 1000, 0.05); dernier = time;
-  const modale = !$("modale").classList.contains("cache");
+  const dt = Math.min(delta / 1000, 0.05);
+  const modaleOuverte = !$("modale").classList.contains("cache");
 
   let vx = 0, vy = 0;
-  if (!modale) {
+  if (!modaleOuverte) {
     if (cursors.left.isDown || wasd.gauche.isDown || wasd.left.isDown || touches.gauche) vx -= 1;
     if (cursors.right.isDown || wasd.droite.isDown || touches.droite) vx += 1;
     if (cursors.up.isDown || wasd.haut.isDown || wasd.up.isDown || touches.haut) vy -= 1;
     if (cursors.down.isDown || wasd.bas.isDown || touches.bas) vy += 1;
   }
-  const vit = monte ? 250 : 170;
-  let bouge = false;
+
+  const vit = (monte ? 360 : 230);
+  let mvx = 0, mvy = 0;
   if (vx || vy) {
     moveTarget = null; pendingInteract = null;
-    const n = Math.hypot(vx, vy);
-    joueur.x += (vx / n) * vit * dt; joueur.y += (vy / n) * vit * dt; joueur.dir = dirDe(vx, vy); bouge = true;
-  } else if (moveTarget && !modale) {
+    const n = Math.hypot(vx, vy); mvx = vx / n; mvy = vy / n;
+  } else if (moveTarget && !modaleOuverte) {
     const dx = moveTarget.x - joueur.x, dy = moveTarget.y - joueur.y, d = Math.hypot(dx, dy);
-    if (d < 6) { moveTarget = null; if (pendingInteract) { const r = pendingInteract; pendingInteract = null; interagir(r); } }
-    else { joueur.x += (dx / d) * vit * dt; joueur.y += (dy / d) * vit * dt; joueur.dir = dirDe(dx, dy); bouge = true; }
+    if (d < 8) { moveTarget = null; if (pendingInteract) { const r = pendingInteract; pendingInteract = null; interagir(r); } }
+    else { mvx = dx / d; mvy = dy / d; }
   }
-  joueur.x = clamp(joueur.x, 30, WORLD.w - 30); joueur.y = clamp(joueur.y, 30, WORLD.h - 30);
-  majFramePerso(bouge);
-  joueur.setDepth(joueur.y);
-  joueurOmbre.setPosition(joueur.x, joueur.y + 16).setDepth(joueur.y - 1);
+  if (mvx || mvy) { joueur.x += mvx * vit * dt; joueur.y += mvy * vit * dt; }
+  majAnimJoueur(mvx, mvy);
+  joueur.x = clamp(joueur.x, 40, WORLD.w - 40);
+  joueur.y = clamp(joueur.y, 40, WORLD.h - 40);
+  joueur.setDepth(joueur.y + 1000);
 
-  if (monte && monte.spr) {
-    monte.x = joueur.x; monte.y = joueur.y;
-    monte.spr.setPosition(joueur.x, joueur.y + 4).setDepth(joueur.y - 1);
-    monte.ombre.setPosition(joueur.x, joueur.y + 22).setDepth(joueur.y - 2);
-    monte.nomT.setVisible(false); monte.moodT.setVisible(false);
-    animer(monte.spr, texCheval(monte), joueur.dir, bouge, estPoulain(monte) ? ROWS.foal : ROWS.horse);
-    joueur.setDepth(joueur.y + 1);
-  }
+  // cheval monté suit le joueur
+  if (monte) { monte.obj.x = joueur.x; monte.obj.y = joueur.y + 6; monte.obj.setDepth(joueur.y + 999); monte.x = joueur.x; monte.y = joueur.y; }
 
+  // balade des chevaux + humeur
+  const now = time;
   etat.chevaux.forEach((c) => {
-    if (!c.spr || c === monte) return;
-    let bv = false;
-    if (time > c.prochainPas) { c.tx = aleatoire(CORRAL.x + 70, CORRAL.x + CORRAL.w - 70); c.ty = aleatoire(CORRAL.y + 70, CORRAL.y + CORRAL.h - 70); c.prochainPas = time + aleatoire(2500, 6000); }
-    const dx = c.tx - c.x, dy = c.ty - c.y, d = Math.hypot(dx, dy);
-    if (d > 4) { c.x += (dx / d) * 32 * dt; c.y += (dy / d) * 32 * dt; c.dir = dirDe(dx, dy); bv = true; }
-    animer(c.spr, texCheval(c), c.dir, bv, estPoulain(c) ? ROWS.foal : ROWS.horse);
-    c.spr.setPosition(c.x, c.y).setDepth(c.y);
-    c.ombre.setPosition(c.x, c.y + 18).setDepth(c.y - 1);
-    c.nomT.setPosition(c.x, c.y + 26).setDepth(c.y).setVisible(true);
+    if (c !== monte) {
+      if (now > c.prochainPas) {
+        c.tx = aleatoire(CORRAL.x + 70, CORRAL.x + CORRAL.w - 70);
+        c.ty = aleatoire(CORRAL.y + 70, CORRAL.y + CORRAL.h - 70);
+        c.prochainPas = now + aleatoire(2500, 6000);
+      }
+      const dx = c.tx - c.x, dy = c.ty - c.y, d = Math.hypot(dx, dy);
+      if (d > 3) { c.x += (dx / d) * 40 * dt; c.y += (dy / d) * 40 * dt; c.corpsT.setFlipX(dx > 0); }
+      c.obj.x = c.x; c.obj.y = c.y; c.obj.setDepth(c.y);
+    } else {
+      c.corpsT.setFlipX(joueurFacing === "right");
+    }
     const m = moyenne(c);
-    c.moodT.setText(m > 60 ? "😀" : m > 35 ? "😐" : "😢").setPosition(c.x + 20, c.y - 34).setDepth(c.y).setVisible(true);
-  });
-
-  poules.forEach((pl) => {
-    if (time > pl.t) { pl.gx = aleatoire(CORRAL.x + 50, CORRAL.x + CORRAL.w - 50); pl.gy = aleatoire(CORRAL.y + 50, CORRAL.y + CORRAL.h - 50); pl.t = time + aleatoire(2000, 5000); }
-    const dx = pl.gx - pl.x, dy = pl.gy - pl.y, d = Math.hypot(dx, dy);
-    if (d > 3) { pl.x += (dx / d) * 22 * dt; pl.y += (dy / d) * 22 * dt; }
-    pl.setDepth(pl.y);
+    c.coeur.setTint(m > 60 ? 0x6fcf5f : m > 35 ? 0xf4b942 : 0xe05656);
   });
 
   majInteraction();
 }
 
 function distJoueur(x, y) { return Math.hypot(joueur.x - x, joueur.y - y); }
+
 function majInteraction() {
   let meilleur = null, dmin = Infinity;
   if (monte) meilleur = monte;
   else {
-    STATIONS.forEach((s) => { const d = distJoueur(s.x, s.y); if (d < s.r && d < dmin) { dmin = d; meilleur = s; } });
-    etat.chevaux.forEach((c) => { if (!c.spr) return; const d = distJoueur(c.x, c.y); if (d < 80 && d < dmin) { dmin = d; meilleur = c; } });
+    STATIONS.forEach((s) => { const d = distJoueur(s.x, s.y); if (d < 110 && d < dmin) { dmin = d; meilleur = s; } });
+    etat.chevaux.forEach((c) => { const d = distJoueur(c.x, c.y); if (d < 95 && d < dmin) { dmin = d; meilleur = c; } });
   }
   cibleActive = meilleur;
   const id = meilleur ? (meilleur.robe ? "c" + meilleur.id : "s" + meilleur.type) : null;
   if (id !== idPanneau) { idPanneau = id; construirePanneau(); }
   if (meilleur && meilleur.robe) majBarres(meilleur);
-  if (meilleur && ringSel) { ringSel.setPosition(meilleur.x, meilleur.y + 14).setVisible(true).setDepth(meilleur.y - 2); }
-  else if (ringSel) ringSel.setVisible(false);
+
+  if (meilleur && ringSel) {
+    const x = meilleur.robe ? meilleur.x : meilleur.x, y = meilleur.robe ? meilleur.y : meilleur.y;
+    ringSel.setPosition(x, y + 10).setVisible(true).setDepth(y - 1);
+  } else if (ringSel) ringSel.setVisible(false);
+
   const station = meilleur && !meilleur.robe;
   $("btn-action").classList.toggle("cache", !station);
   if (station) $("btn-action").textContent = meilleur.label;
 }
 
+/* ===================== Clic ===================== */
+
 function onPointer(p) {
   if (!$("modale").classList.contains("cache")) return;
   const wx = p.worldX, wy = p.worldY;
   let cible = null, dmin = Infinity;
-  STATIONS.forEach((s) => { const d = Math.hypot(s.x - wx, s.y - wy); if (d < 80 && d < dmin) { dmin = d; cible = s; } });
+  STATIONS.forEach((s) => { const d = Math.hypot(s.x - wx, s.y - wy); if (d < 70 && d < dmin) { dmin = d; cible = s; } });
   etat.chevaux.forEach((c) => { if (c === monte) return; const d = Math.hypot(c.x - wx, c.y - wy); if (d < 55 && d < dmin) { dmin = d; cible = c; } });
   if (cible) {
-    const dx = joueur.x - cible.x, dy = joueur.y - cible.y, d = Math.hypot(dx, dy) || 1;
-    const recul = cible.robe ? 56 : 96;
-    moveTarget = { x: cible.x + (dx / d) * recul, y: cible.y + (dy / d) * recul };
+    const tx = cible.x, ty = cible.y;
+    const dx = joueur.x - tx, dy = joueur.y - ty, d = Math.hypot(dx, dy) || 1;
+    const recul = cible.robe ? 60 : 90;
+    moveTarget = { x: tx + (dx / d) * recul, y: ty + (dy / d) * recul };
     pendingInteract = cible.robe ? null : cible;
-  } else { moveTarget = { x: clamp(wx, 30, WORLD.w - 30), y: clamp(wy, 30, WORLD.h - 30) }; pendingInteract = null; }
+  } else { moveTarget = { x: clamp(wx, 40, WORLD.w - 40), y: clamp(wy, 40, WORLD.h - 40) }; pendingInteract = null; }
 }
 
 /* ===================== Panneau ===================== */
 
 function construirePanneau() {
   const p = $("panneau");
-  if (!cibleActive) { p.innerHTML = `<p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment.</p>`; return; }
+  if (!cibleActive) { p.innerHTML = `<p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment pour agir.</p>`; return; }
   if (cibleActive.robe) {
-    const c = cibleActive, m = monte === c;
+    const c = cibleActive, estMonte = monte === c;
     p.innerHTML = `
       <div class="pc-tete"><div><b>${c.nom}</b> <span class="pc-sous">${estPoulain(c) ? "🐣 Poulain (" + c.age + " j)" : "Adulte (" + c.age + " j)"}</span></div></div>
       <div class="pc-barres" id="pc-barres"></div>
@@ -409,15 +555,17 @@ function construirePanneau() {
         <button class="bouton" data-cheval="nourrir">🌾 Nourrir</button>
         <button class="bouton" data-cheval="brosser">🧽 Brosser</button>
         <button class="bouton" data-cheval="jouer">🎾 Jouer</button>
-        <button class="bouton bouton-rodeo" data-cheval="monter">${m ? "🛑 Descendre" : "🏇 Monter"}</button>
+        <button class="bouton bouton-rodeo" data-cheval="monter">${estMonte ? "🛑 Descendre" : "🏇 Monter"}</button>
         <button class="bouton bouton-secondaire" data-cheval="relooker">🎨 Relooker</button>
       </div>`;
     majBarres(c);
   } else {
-    const lib = { dormir: "🌙 Dormir (jour suivant)", boutique: "🛒 Entrer dans le magasin" }[cibleActive.type];
-    p.innerHTML = `<div class="pc-station"><button class="bouton bouton-geant" data-station="${cibleActive.type}">${lib}</button></div>`;
+    const s = cibleActive;
+    const lib = { dormir: "🌙 Dormir (jour suivant)", boutique: "🛒 Entrer dans le magasin" }[s.type];
+    p.innerHTML = `<div class="pc-station"><button class="bouton bouton-geant" data-station="${s.type}">${lib}</button></div>`;
   }
 }
+
 function majBarres(c) {
   const cont = $("pc-barres"); if (!cont) return;
   const def = [["🌾", c.faim], ["⚡", c.energie], ["🧼", c.proprete], ["😊", c.bonheur]];
@@ -435,19 +583,23 @@ function interagir(cible) {
   if (cible.type === "dormir") jourSuivant();
   else if (cible.type === "boutique") ouvrirBoutique();
 }
+
 function actionCheval(action) {
   const c = cibleActive; if (!c || !c.robe) return;
   switch (action) {
     case "nourrir":
       if (etat.foin <= 0) { message("🌾 Plus de foin ! Va au magasin."); return; }
-      etat.foin--; c.faim = borner(c.faim + 35); c.bonheur = borner(c.bonheur + 6); etat.pieces += 2; message(`${c.nom} a mangé du bon foin ! 🌾`); break;
+      etat.foin--; c.faim = borner(c.faim + 35); c.bonheur = borner(c.bonheur + 6); etat.pieces += 2;
+      bond(c); message(`${c.nom} a mangé du bon foin ! 🌾`); break;
     case "brosser":
-      c.proprete = borner(c.proprete + 40); c.bonheur = borner(c.bonheur + 10); c.energie = borner(c.energie - 5); etat.pieces += 2; message(`${c.nom} est tout beau ! ✨`); break;
+      c.proprete = borner(c.proprete + 40); c.bonheur = borner(c.bonheur + 10); c.energie = borner(c.energie - 5); etat.pieces += 2;
+      bond(c); message(`${c.nom} est tout beau et brillant ! ✨`); break;
     case "jouer":
-      if (c.energie < 15) { message(`${c.nom} est trop fatigué. 😴`); return; }
-      c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 16); c.faim = borner(c.faim - 8); etat.pieces += 3; message(`${c.nom} s'est bien amusé ! 🎾`); break;
+      if (c.energie < 15) { message(`${c.nom} est trop fatigué pour jouer. 😴`); return; }
+      c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 16); c.faim = borner(c.faim - 8); etat.pieces += 3;
+      bond(c); message(`${c.nom} s'est bien amusé ! 🎾`); break;
     case "monter":
-      if (monte === c) { monte = null; if (c.nomT) { c.nomT.setVisible(true); c.moodT.setVisible(true); } message(`Tu descends de ${c.nom}. 🙂`); }
+      if (monte === c) { monte = null; message(`Tu descends de ${c.nom}. 🙂`); }
       else if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour être monté. 🐣`); return; }
       else if (c.energie < 20) { message(`${c.nom} est trop fatigué pour te porter. 😴`); return; }
       else { monte = c; c.bonheur = borner(c.bonheur + 12); c.energie = borner(c.energie - 12); message(`En selle sur ${c.nom} ! 🏇`); }
@@ -457,15 +609,21 @@ function actionCheval(action) {
   majBarres(c); majHud();
 }
 
+function bond(c) {
+  if (c.obj && sc) sc.tweens.add({ targets: c.obj, y: c.y - 14, duration: 130, yoyo: true, ease: "Quad.easeOut" });
+}
+
 function jourSuivant() {
   etat.jour++; etat.pieces += 5;
   const negliges = [];
   etat.chevaux.forEach((c) => {
     c.age++;
     c.faim = borner(c.faim - 25); c.energie = borner(c.energie + 40); c.proprete = borner(c.proprete - 16);
-    let aj = -12; if (c.faim < 25 || c.proprete < 25) aj -= 10; if (c.faim > 60 && c.proprete > 60) aj += 8;
+    let aj = -12;
+    if (c.faim < 25 || c.proprete < 25) aj -= 10;
+    if (c.faim > 60 && c.proprete > 60) aj += 8;
     c.bonheur = borner(c.bonheur + aj);
-    if (c.spr) majSpriteCheval(c);
+    if (c.obj) majVisuelCheval(c);
     if (c.bonheur < 25 || c.faim < 20) negliges.push(c.nom);
   });
   monte = null; majHud();
@@ -481,49 +639,84 @@ function fermerModale() { $("modale").classList.add("cache"); }
 function ouvrirBoutique() {
   const placeLibre = etat.chevaux.length < etat.boxes;
   let html = `
-    <div class="ligne-boutique"><div class="desc"><b>🌾 Botte de foin</b><small>Pour nourrir tes chevaux.</small></div><button class="bouton" data-boutique="foin">${PRIX_FOIN} 💰</button></div>
-    <div class="ligne-boutique"><div class="desc"><b>🏚️ Agrandir le corral (+1 box)</b><small>${etat.chevaux.length}/${etat.boxes} box.</small></div><button class="bouton" data-boutique="box">${PRIX_BOX} 💰</button></div>
-    <h3>🐴 Adopter un cheval</h3>`;
+    <div class="ligne-boutique"><div class="desc"><b>🌾 Botte de foin</b><small>Pour nourrir tes chevaux.</small></div>
+      <button class="bouton" data-boutique="foin">${PRIX_FOIN} 💰</button></div>
+    <div class="ligne-boutique"><div class="desc"><b>🏚️ Agrandir le corral (+1 box)</b><small>${etat.chevaux.length}/${etat.boxes} box occupés.</small></div>
+      <button class="bouton" data-boutique="box">${PRIX_BOX} 💰</button></div>
+    <h3>🎨 Décorations</h3><div class="grille-decor">`;
+  DECORS.forEach((d) => {
+    const ok = etat.decors.includes(d.id);
+    html += `<button class="carte-decor ${ok ? "possede" : ""}" data-decor="${d.id}" ${ok ? "disabled" : ""}>
+      <img class="d-img" src="assets/sprite/${d.sprite}.png" alt="" /><span>${d.nom}</span><span class="d-prix">${ok ? "✅" : d.prix + " 💰"}</span></button>`;
+  });
+  html += `</div><h3>🐴 Adopter un cheval</h3>`;
   if (!placeLibre) html += `<p>⚠️ Ton corral est plein ! Agrandis-le d'abord.</p>`;
-  else html += `<p>Un nouveau cheval rejoint ton ranch (tu pourras le relooker).</p><button class="bouton bouton-geant" data-boutique="cheval">🛒 Adopter (${PRIX_CHEVAL} 💰)</button>`;
+  else html += `<p>Adopte un cheval puis personnalise-le avec <b>🎨 Relooker</b> dans le corral.</p>
+    <button class="bouton bouton-geant" data-boutique="cheval">🛒 Adopter un cheval (${PRIX_CHEVAL} 💰)</button>`;
   ouvrirModale("🛒 Magasin", html);
 }
+
 function acheter(quoi) {
   if (quoi === "foin") { if (etat.pieces < PRIX_FOIN) return message("Pas assez de 💰 !"); etat.pieces -= PRIX_FOIN; etat.foin++; message("🌾 +1 botte de foin !"); }
   else if (quoi === "box") { if (etat.pieces < PRIX_BOX) return message("Pas assez de 💰 !"); etat.pieces -= PRIX_BOX; etat.boxes++; message("🏚️ Corral agrandi !"); }
   else if (quoi === "cheval") {
     if (etat.chevaux.length >= etat.boxes) return message("Corral plein !");
     if (etat.pieces < PRIX_CHEVAL) return message("Pas assez de 💰 !");
-    etat.pieces -= PRIX_CHEVAL; const c = nouveauCheval({}); etat.chevaux.push(c); if (sc) creerSpriteCheval(c); message(`Bienvenue, ${c.nom} ! 🎉`);
+    etat.pieces -= PRIX_CHEVAL;
+    const c = nouveauCheval({}); etat.chevaux.push(c); if (sc) creerObjCheval(c);
+    message(`Bienvenue, ${c.nom} ! 🎉 Relooke-le dans le corral.`);
   }
   majHud(); ouvrirBoutique();
 }
+
+function acheterDecor(id) {
+  if (etat.decors.includes(id)) return;
+  const d = DECORS.find((x) => x.id === id); if (!d) return;
+  if (etat.pieces < d.prix) return message("Pas assez de 💰 !");
+  etat.pieces -= d.prix; etat.decors.push(id);
+  etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
+  if (sc) placerDecors();
+  message(`${d.nom} installé !`); majHud(); ouvrirBoutique();
+}
+
 function ouvrirRelooker(c) {
   ouvrirModale("🎨 Relooker " + c.nom, `
+    <div class="relook-apercu" id="rl-apercu"></div>
     <label class="rl-label">Nom :</label><input id="rl-nom" type="text" maxlength="14" value="${c.nom}" />
-    <div class="groupe-perso"><span class="grp-titre">Robe</span><div class="ligne-robes" id="rl-robe"></div></div>
+    <div class="groupe-perso"><span class="grp-titre">Robe du cheval</span><div class="ligne-avatars" id="rl-robe"></div></div>
     <button class="bouton bouton-geant" id="rl-ok">✅ Valider</button>`);
-  const cont = $("rl-robe");
-  ROBES.forEach((r) => {
+
+  const apercu = () => { $("rl-apercu").innerHTML = `<img class="vignette-grande" src="assets/sprite/coat_${robeCoat(c)}.png" alt="" />`; };
+  COATS.forEach((co) => {
     const b = document.createElement("button");
-    b.className = "btn-robe" + (c.robe === r.id ? " choisi" : ""); b.textContent = r.nom;
-    b.addEventListener("click", () => { c.robe = r.id; cont.querySelectorAll(".btn-robe").forEach((x) => x.classList.remove("choisi")); b.classList.add("choisi"); if (!estPoulain(c) && c.spr) majSpriteCheval(c); });
-    cont.appendChild(b);
+    b.className = "btn-avatar btn-vignette" + (robeCoat(c) === co.id ? " choisi" : "");
+    b.innerHTML = `<img src="assets/sprite/coat_${co.id}.png" alt="${co.nom}" />`;
+    b.title = co.nom;
+    b.addEventListener("click", () => { c.robe = co.id; $("rl-robe").querySelectorAll(".btn-avatar").forEach((x) => x.classList.remove("choisi")); b.classList.add("choisi"); apercu(); });
+    $("rl-robe").appendChild(b);
   });
   $("rl-ok").addEventListener("click", () => {
     const nom = $("rl-nom").value.trim(); if (nom) c.nom = nom;
-    if (c.spr) majSpriteCheval(c); sauvegarder(); fermerModale(); idPanneau = null; message(`${c.nom} est relooké ! 🎨`);
+    majVisuelCheval(c); sauvegarder(); fermerModale(); idPanneau = null; message(`${c.nom} est relooké ! 🎨`);
   });
+  apercu();
 }
+
 function ouvrirAide() {
   ouvrirModale("❓ Comment jouer", `
     <div class="aide-texte">
-      <p><b>Bienvenue dans ton ranch ! 🐴</b></p>
-      <p><b>🚶 Se déplacer :</b> clique/touche le sol, flèches du clavier (ou Z Q S D), ou la manette ▲◀▶▼. Tu peux cliquer directement sur un cheval ou un bâtiment.</p>
-      <p><b>🐴 Un cheval :</b> approche-toi puis 🌾 Nourrir, 🧽 Brosser, 🎾 Jouer, 🏇 Monter (promène-toi à cheval !) ou 🎨 Relooker (robe + nom). Garde ses besoins au vert ; sa frimousse 😀/😐/😢 montre son humeur.</p>
-      <p><b>🏪 Magasin :</b> foin, agrandir le corral, adopter des chevaux. <b>🏠 Maison :</b> dormir pour passer au jour suivant. <b>🧒 (en haut) :</b> changer de personnage.</p>
-      <p>💰 Tu gagnes des pièces en t'occupant de tes chevaux. 💾 Sauvegarde automatique.</p>
+      <p><b>Bienvenue dans ton centre équestre !</b></p>
+      <p><b>🚶 Se déplacer :</b> clique/touche le sol, flèches du clavier (ou Z Q S D), ou la manette ▲◀▶▼.
+      Tu peux cliquer directement sur un cheval ou un bâtiment.</p>
+      <p><b>🐴 Un cheval :</b> approche-toi puis 🌾 Nourrir, 🧽 Brosser, 🎾 Jouer, 🏇 Monter, ou 🎨 Relooker
+      (robe, nom). Garde ses besoins au vert !</p>
+      <p><b>🏇 Monter :</b> en selle, promène-toi à cheval (plus rapide). Re-clique « Descendre » pour t'arrêter.</p>
+      <p><b>🏪 Magasin :</b> foin, décos, adopter des chevaux. <b>🏡 Écurie :</b> dormir pour le jour suivant.
+      <b>🧍 (en haut) :</b> change ton personnage.</p>
+      <p>💰 Tu gagnes des sous en t'occupant de tes chevaux. 💾 Sauvegarde automatique.</p>
     </div>`);
 }
+
+/* ===================== Lancement ===================== */
 
 document.addEventListener("DOMContentLoaded", init);

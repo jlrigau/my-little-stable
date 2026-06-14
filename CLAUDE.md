@@ -1,81 +1,77 @@
-# CLAUDE.md — Contexte projet « Mon Ranch »
+# CLAUDE.md — Contexte projet « Mon Centre Équestre »
 
-> Ce fichier est chargé automatiquement par Claude Code. Il sert de **mémoire
-> partagée entre sessions**. Si tu reprends le projet dans une nouvelle session :
-> lis ce fichier, puis continue.
+> Mémoire partagée entre sessions. Si tu reprends le projet : lis ce fichier, puis continue.
 
 ## 1. Le projet
 Jeu de **simulation d'élevage de chevaux pour enfants (9-10 ans)**, en français.
-Vue de dessus, on déplace un personnage dans un ranch, on s'occupe de chevaux
-(nourrir, brosser, jouer, **monter**), on les personnalise, on agrandit le ranch.
+Vue de dessus : on déplace un personnage dans un **centre équestre / ferme**, on
+s'occupe des chevaux (nourrir, brosser, jouer, **monter**), on les personnalise, on
+agrandit l'enclos.
 
 - **Site 100 % statique** déployé sur **GitHub Pages** : https://jlrigau.github.io/my-little-stable/
-- Moteur : **Phaser 3** (chargé via CDN jsDelivr), rendu **pixel art** avec de vrais sprites.
+- Moteur : **Phaser 3** (CDN jsDelivr), rendu **pixel-art** avec de vrais sprites.
 - Sauvegarde locale (localStorage). Pas de build : on édite directement les fichiers.
 
 ## 2. Fichiers
 - `index.html` — écrans (accueil, choix du personnage, jeu) + chargement Phaser/CDN.
-- `style.css` — styles (HUD, panneau, modale, grille de personnages…).
+- `style.css` — styles (HUD, panneau, modale, vignettes…).
 - `game.js` — toute la logique + rendu Phaser.
-- `assets/` — `lpc/` (couches de personnages), `horse/` (chevaux + poulain), `world/` (ferme).
-- `CREDITS.md` — licences des assets. `.github/workflows/deploy.yml` — déploiement Pages.
-- Cache-busting : les assets sont versionnés `?v=lpcN` dans `index.html` et `game.js`.
-  **Quand tu changes des assets/JS/CSS, incrémente ce numéro** (ex. lpc2 → lpc3).
+- `assets/sprite/` — sprites recadrés prêts à l'emploi (sol, bâtiments, arbres, vignettes UI).
+- `assets/lpc/` — planches sources utilisées au runtime (chevaux, persos, clôtures).
+- `assets/CREDITS.md` — licences/attribution des assets.
+- `.github/workflows/deploy.yml` — déploiement Pages.
+- Cache-busting : assets versionnés `?v=phN` dans `index.html`. **Quand tu changes
+  JS/CSS/assets, incrémente N** (ex. ph4 → ph5).
 
 ## 3. Déploiement
-- Branche de travail **et** de déploiement = **`main`**. Pousser sur `main` déclenche
-  le workflow GitHub Actions qui publie sur Pages (source Pages = « GitHub Actions »).
+- Branche de travail **ET** de déploiement = **`main`**. Pousser sur `main` déclenche
+  le workflow GitHub Actions qui publie sur Pages.
 - Après un push, vérifier que le run `deploy.yml` est **success**.
-- Le déploiement depuis `main` est voulu par l'utilisateur (pas de PR nécessaire).
+- Déploiement depuis `main` voulu par l'utilisateur, **pas de PR** sauf demande explicite.
 
-## 4. CONTRAINTE RÉSEAU IMPORTANTE (assets)
-L'environnement d'exécution **ne peut accéder qu'à GitHub** :
-`raw.githubusercontent.com` et `codeload.github.com` = OK ; **`kenney.nl`,
-`itch.io`, `opengameart.org`, `cdn.jsdelivr.net` = 403 (bloqués)**.
-→ On ne peut télécharger des assets que s'ils sont **hébergés sur GitHub**
-(et **pas** en Git LFS : les pointeurs LFS font ~130 octets, pas la vraie image).
-L'utilisateur essaie d'**élargir la politique réseau** de l'environnement pour
-débloquer les autres banques (Kenney, etc.) → si c'est fait, re-tester avec
+## 4. Réseau de l'environnement
+Dans cette session, l'accès sortant est **plus large que GitHub seul** :
+`opengameart.org`, `cdn.jsdelivr.net`, `upload.wikimedia.org` = **OK** ;
+**`kenney.nl` et `itch.io` (Cloudflare) = bloqués**. Tester au besoin :
 `curl -s -o /dev/null -w '%{http_code}' https://kenney.nl/`.
+On peut donc télécharger depuis OpenGameArt (+ PyPI pour Pillow pour découper les sprites).
 
-## 5. Sources d'assets utilisées (toutes via GitHub)
-- **Personnages (filles/garçons)** : couches LPC du générateur
-  `LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator`
-  (`spritesheets/body|legs|torso|hair/...`, planches `walk.png` = **576x256**,
-  9 colonnes × 4 lignes ; lignes = haut/gauche/bas/droite ; colonne 0 = immobile).
-  Composées **à l'exécution** (superposition corps + bas + haut + cheveux).
-  Licence : **CC-BY-SA 3.0 / GPL 3.0** (attribution requise).
-- **Chevaux + poulain + poule** : `AntumDeluge/game-resources`
-  (`sprite/animal/horse|baby_horse|chicken/...`). Chevaux 64x64 (3×4 :
-  haut/gauche/bas/droite) ; poulain 48x64 (3×4 : N,E,S,W). LPC, CC-BY-SA 3.0/GPL.
-- **Ferme (maison, plantes, etc.)** : Sprout Lands (Cup Nooble) via
-  `Maaack/Sprout-Lands-Tilemap`. Gratuit (ne pas revendre les assets seuls).
-- ⚠️ Le pack Sprout Lands « officiel » (perquis/sprout_lands) est en **Git LFS** → inaccessible.
+## 5. Vérification visuelle possible dans cette session
+Chromium est installé (`/opt/pw-browsers`, Playwright global). On PEUT rendre le jeu
+et faire des captures : servir le dossier (`python3 -m http.server`), puis Playwright
+avec `--ignore-certificate-errors` (le proxy TLS casse la validation des certifs CDN).
+→ Toujours valider visuellement avant de pousser, et confirmer le rendu avec l'utilisateur.
 
-## 6. Historique des décisions (pour ne pas refaire les erreurs)
-Itérations successives, rejetées par l'utilisateur :
-1. Cartes 2D (emoji) → « pas assez interactif ».
-2. Monde 2D emoji déplaçable → ok mais l'utilisateur voulait de la 3D.
-3. **3D Babylon.js (cubes)** → « très moche », rejeté.
-4. **Isométrique dessiné main** → « raté », rejeté.
-5. **Phaser + emojis** → jouable mais « toujours moche ».
-6. **Phaser + vrais sprites** (état actuel) : chevaux LPC ✅ validés par l'utilisateur.
-7. Personnages **PIPOYA** (chibi) → jugés « trop manga », remplacés par **LPC**.
+## 6. État actuel du visuel (refonte « centre équestre », validée par l'utilisateur)
+Style **pixel-art LPC**, **plus aucun emoji dans le monde** :
+- **Sol** : pelouse tuilée + chemins de terre. **Enclos** : clôture en ganivelle.
+- **Bâtiments** : grange rouge (Écurie / dormir), grange brune (Magasin).
+- **Joueur** : sprite LPC animé 4 directions — `princess.png` (fille) ou `soldier.png`
+  (garçon). Walkcycle 576x256 (9 col × 4 lignes : haut/gauche/bas/droite, col 0 = idle).
+- **Chevaux** : `assets/lpc/horse-<couleur>_0.png` (5 robes : brown/black/gray/golden/white).
+  Planche 512x2560 = grille **128×128** (4 col × 20 lignes). Marche latérale = ligne 5
+  (frames 20-23), profil gauche ; flip X pour la droite.
+- **Humeur** : petit cœur teinté (vert/orange/rouge), pas de smiley.
+- **Déco achetable** : sapin/buisson/abreuvoir (sprites).
+- Personnalisation : perso (fille/garçon) + cheval (5 robes, nom). Menus à vignettes-images.
 
-Préférences utilisateur : **mignon, NON-manga, adapté aux enfants, filles ET garçons**,
-personnage + chevaux personnalisables, jouabilité fluide.
+## 7. Sources d'assets (toutes CC-BY / CC-BY-SA, attribution dans assets/CREDITS.md)
+- LPC Base Assets (sol, arbres, persos princess/soldier) — Sharm, Redshrike & al.
+- [LPC] Horses (bluecarrot16) — 5 robes animées.
+- [LPC] Farm (bluecarrot16 & al.) — granges, abreuvoir.
+- [LPC] Medieval Village Decorations — clôtures.
+Outillage : Pillow + numpy (pip) pour découper/segmenter les planches.
 
-## 7. Limite à garder en tête
-**Je (Claude) ne peux pas voir le rendu** (pas de navigateur dans l'environnement).
-→ La validation visuelle est faite par **l'utilisateur**, qui teste le site déployé
-et dit si ça va. Itérer en conséquence ; ne pas affirmer qu'un visuel est beau sans
-confirmation de sa part.
+## 8. Préférences utilisateur (à respecter)
+**Mignon, NON-manga, adapté aux enfants, filles ET garçons**, perso + chevaux
+personnalisables, jouabilité fluide. **Pas d'emoji-smiley** dans le décor.
+L'utilisateur a une mémoire des itérations passées rejetées (3D cubes, isométrique
+dessiné main, emojis) → ne pas y revenir.
 
-## 8. Pistes / TODO
-- Si le réseau est élargi : récupérer des personnages plus variés (Kenney toon, etc.).
-- Vérifier l'alignement des couches LPC (cheveux/jupe) d'après le retour utilisateur.
-- Possibles ajouts : élevage de poulains, objectifs/médailles, plus de décor, sons.
+## 9. Pistes / TODO possibles
+- Remplacer aussi les petites icônes emoji du HUD/boutons par des icônes dessinées (demandé en option).
+- Animation de galop quand on monte ; plus de chevaux dans l'enclos ; sons ; objectifs/médailles.
+- Si réseau élargi à Kenney : assets supplémentaires.
 
-## 9. Conventions
-- Tout pousser sur `main`. Messages de commit clairs, en français.
-- Ne pas créer de PR sauf demande explicite. Sauvegarde auto déjà en place.
+## 10. Conventions
+- Tout pousser sur `main`. Messages de commit clairs, en français. Sauvegarde auto en place.
