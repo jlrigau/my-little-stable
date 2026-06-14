@@ -23,7 +23,7 @@
   <!-- Jeu principal -->
   <div id="ecran-jeu" class="ecran cache">
     <header class="barre-haut">
-      <div class="titre-haras">🤠 <span id="aff-nom-haras">Mon Ranch</span></div>
+      <div class="titre-haras">🤠 <span id="aff-nom-haras">Mon Ranch</span> <small id="aff-niveau" class="aff-niveau"></small></div>
       <div class="ressources">
         <span class="ressource" title="Dollars">💰 <b id="aff-pieces">0</b></span>
         <span class="ressource" title="Bottes de foin">🌾 <b id="aff-carottes">0</b></span>
@@ -34,11 +34,15 @@
 
     <div id="message-jeu" class="message-jeu cache"></div>
 
+    <div id="bandeau-decor" class="bandeau-decor cache"></div>
+
     <main class="zone-chevaux" id="zone-chevaux"></main>
 
     <footer class="barre-bas">
       <button id="btn-boutique" class="bouton">🛒 Boutique</button>
       <button id="btn-elevage" class="bouton">🐣 Élevage</button>
+      <button id="btn-decorer" class="bouton">🎨 Décorer</button>
+      <button id="btn-objectifs" class="bouton">🏆 Objectifs</button>
       <button id="btn-jour-suivant" class="bouton bouton-jour">🌙 Jour suivant</button>
       <button id="btn-aide" class="bouton bouton-secondaire">❓ Aide</button>
     </footer>

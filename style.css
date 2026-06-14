@@ -156,6 +156,22 @@ input[type="text"] {
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
 }
 
+.aff-niveau {
+  font-size: 0.85rem;
+  opacity: 0.95;
+  font-weight: normal;
+}
+
+/* Bandeau des décorations possédées */
+.bandeau-decor {
+  background: rgba(255, 255, 255, 0.35);
+  border-bottom: 3px solid rgba(74, 47, 29, 0.25);
+  padding: 8px 16px;
+  font-size: 1.6rem;
+  letter-spacing: 6px;
+  text-align: center;
+}
+
 .ressources {
   display: flex;
   flex-wrap: wrap;
@@ -202,8 +218,28 @@ input[type="text"] {
 }
 
 .cheval-emoji {
-  font-size: 2.6rem;
+  font-size: 2.2rem;
   line-height: 1;
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 4px solid var(--brun);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Pastille de couleur de robe */
+.robe-pastille {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  vertical-align: middle;
+  margin-right: 3px;
 }
 
 .cheval-infos h3 {
@@ -393,4 +429,96 @@ input[type="text"] {
 .aide-texte li {
   margin-bottom: 6px;
   line-height: 1.4;
+}
+
+/* Formulaire d'achat / personnalisation d'un cheval */
+.formulaire-achat label {
+  display: block;
+  font-weight: bold;
+  margin: 12px 0 4px;
+}
+
+.formulaire-achat select,
+.select-large {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 3px solid var(--brun);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.select-large {
+  margin: 6px 0 14px;
+}
+
+.formulaire-achat input[type="text"] {
+  margin-bottom: 0;
+}
+
+.choix-robes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 3px solid #e0d3b5;
+  border-radius: 12px;
+  padding: 8px;
+  cursor: pointer;
+  font-weight: normal !important;
+  margin: 0 !important;
+}
+
+.swatch input {
+  accent-color: var(--vert-fonce);
+}
+
+.swatch .pastille {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  display: inline-block;
+}
+
+/* Lignes d'objectifs */
+.quete-ligne {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 3px solid #e0d3b5;
+  border-radius: 14px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.quete-ligne.faite {
+  background: #f0f8e8;
+  border-color: var(--vert);
+}
+
+.quete-ligne .desc {
+  flex: 1;
+}
+
+.quete-ligne .desc small {
+  display: block;
+  opacity: 0.75;
+}
+
+.quete-coche {
+  font-size: 1.4rem;
+}
+
+.quete-gain {
+  font-weight: bold;
+  color: var(--vert-fonce);
+  white-space: nowrap;
 }

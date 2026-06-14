@@ -16,6 +16,47 @@ const RACES = [
   { nom: "Quarter Horse", emoji: "🏇", prix: 70 },
 ];
 
+// Robes (couleurs) que peut avoir un cheval.
+const ROBES = [
+  { id: "alezan", nom: "Alezan", couleur: "#b5651d" },
+  { id: "bai", nom: "Bai", couleur: "#6e4a2f" },
+  { id: "noir", nom: "Noir", couleur: "#3f3a36" },
+  { id: "gris", nom: "Gris", couleur: "#b9b2a9" },
+  { id: "palomino", nom: "Palomino", couleur: "#e6c068" },
+  { id: "pie", nom: "Pie", couleur: "#8a6f57" },
+];
+
+// Décorations achetables pour embellir le ranch.
+const DECORS = [
+  { id: "cactus", nom: "Cactus", emoji: "🌵", prix: 15 },
+  { id: "feu", nom: "Feu de camp", emoji: "🔥", prix: 20 },
+  { id: "tonneau", nom: "Tonneau", emoji: "🛢️", prix: 18 },
+  { id: "roue", nom: "Roue de chariot", emoji: "🛞", prix: 25 },
+  { id: "etoile", nom: "Étoile de shérif", emoji: "⭐", prix: 30 },
+  { id: "guitare", nom: "Guitare", emoji: "🎸", prix: 22 },
+  { id: "mesa", nom: "Mesa", emoji: "🏜️", prix: 35 },
+  { id: "coucher", nom: "Soleil couchant", emoji: "🌅", prix: 40 },
+];
+
+// Objectifs (quêtes) : chacun donne une médaille et une récompense en dollars.
+const QUETES = [
+  { id: "deuxchevaux", titre: "Premiers compagnons", desc: "Avoir 2 chevaux", recompense: 25, test: (e) => e.chevaux.length >= 2 },
+  { id: "rodeo1", titre: "Premier rodéo gagné", desc: "Gagner 1 rodéo", recompense: 30, test: (e) => e.stats.rodeosGagnes >= 1 },
+  { id: "poulain", titre: "Premier poulain", desc: "Faire naître un poulain", recompense: 35, test: (e) => e.stats.poulainsNes >= 1 },
+  { id: "dressage50", titre: "Bon dresseur", desc: "Dresser un cheval au niveau 50", recompense: 40, test: (e) => e.chevaux.some((c) => c.entrainement >= 50) },
+  { id: "decor3", titre: "Ranch coquet", desc: "Installer 3 décorations", recompense: 30, test: (e) => e.decors.length >= 3 },
+  { id: "jour7", titre: "Une semaine au ranch", desc: "Atteindre le jour 7", recompense: 35, test: (e) => e.jour >= 7 },
+  { id: "corral5", titre: "Grand corral", desc: "Avoir 5 box dans le corral", recompense: 50, test: (e) => e.boxes >= 5 },
+  { id: "cinqchevaux", titre: "Grand éleveur", desc: "Avoir 5 chevaux", recompense: 60, test: (e) => e.chevaux.length >= 5 },
+  { id: "rodeo5", titre: "Star du rodéo", desc: "Gagner 5 rodéos", recompense: 70, test: (e) => e.stats.rodeosGagnes >= 5 },
+];
+
+// Titres de ranch selon le nombre d'objectifs accomplis.
+const TITRES_RANCH = [
+  "🌱 Ranch débutant", "🤠 Petit ranch", "⭐ Ranch prometteur",
+  "🏅 Grand ranch", "🔥 Ranch réputé", "👑 Ranch légendaire",
+];
+
 // Petit dictionnaire de noms rigolos pour générer des chevaux.
 const NOMS_CHEVAUX = [
   "Éclair", "Tornade", "Caramel", "Étoile", "Tonnerre", "Cannelle",
@@ -61,6 +102,10 @@ function $(id) {
   return document.getElementById(id);
 }
 
+function trouverRobe(id) {
+  return ROBES.find((r) => r.id === id) || ROBES[0];
+}
+
 /* ---------- Création des chevaux ---------- */
 
 let compteurId = 1;
@@ -72,6 +117,7 @@ function nouveauCheval(options = {}) {
     nom: options.nom || choisir(NOMS_CHEVAUX),
     race: race.nom,
     emoji: race.emoji,
+    robe: options.robe || choisir(ROBES).id,
     age: options.age != null ? options.age : aleatoire(5, 9), // adulte par défaut
     faim: 70,
     energie: 80,
@@ -107,6 +153,17 @@ function charger() {
   }
 }
 
+// Complète une sauvegarde ancienne avec les nouveaux champs (compatibilité).
+function migrer(sauv) {
+  if (!sauv.decors) sauv.decors = [];
+  if (!sauv.quetesFaites) sauv.quetesFaites = [];
+  if (!sauv.stats) sauv.stats = { rodeosGagnes: 0, poulainsNes: 0 };
+  sauv.chevaux.forEach((c) => {
+    if (!c.robe) c.robe = choisir(ROBES).id;
+  });
+  return sauv;
+}
+
 /* ---------- Démarrage ---------- */
 
 function nouvellePartie(nomRanch) {
@@ -117,7 +174,10 @@ function nouvellePartie(nomRanch) {
     foin: CONFIG.foinDepart,
     jour: 1,
     boxes: CONFIG.boxesDepart,
-    chevaux: [nouveauCheval({ nom: "Éclair", race: RACES[0] })],
+    chevaux: [nouveauCheval({ nom: "Éclair", race: RACES[0], robe: "palomino" })],
+    decors: [],
+    quetesFaites: [],
+    stats: { rodeosGagnes: 0, poulainsNes: 0 },
   };
   sauvegarder();
   demarrerJeu();
@@ -129,7 +189,7 @@ function continuerPartie() {
     $("msg-accueil").textContent = "Aucune partie sauvegardée. Commence une nouvelle aventure !";
     return;
   }
-  etat = sauv;
+  etat = migrer(sauv);
   compteurId = sauv.compteurId || (etat.chevaux.length + 1);
   demarrerJeu();
 }
@@ -141,6 +201,19 @@ function demarrerJeu() {
   rafraichir();
 }
 
+/* ---------- Niveau du ranch ---------- */
+
+function infoNiveau() {
+  const n = etat.quetesFaites.length;
+  const index = Math.min(n, TITRES_RANCH.length - 1);
+  return { niveau: index + 1, titre: TITRES_RANCH[index] };
+}
+
+function majNiveau() {
+  const info = infoNiveau();
+  $("aff-niveau").textContent = `· Niveau ${info.niveau} ${info.titre}`;
+}
+
 /* ---------- Affichage ---------- */
 
 function rafraichir() {
@@ -148,8 +221,28 @@ function rafraichir() {
   $("aff-carottes").textContent = etat.foin;
   $("aff-jour").textContent = etat.jour;
   $("aff-boxes").textContent = etat.chevaux.length + "/" + etat.boxes;
+  majNiveau();
+  afficherDecor();
   afficherChevaux();
+  verifierQuetes(); // peut accorder des récompenses et mettre à jour l'affichage
   sauvegarder();
+}
+
+// Affiche le bandeau des décorations possédées.
+function afficherDecor() {
+  const bandeau = $("bandeau-decor");
+  if (etat.decors.length === 0) {
+    bandeau.classList.add("cache");
+    bandeau.innerHTML = "";
+    return;
+  }
+  bandeau.classList.remove("cache");
+  bandeau.innerHTML = etat.decors
+    .map((id) => {
+      const d = DECORS.find((x) => x.id === id);
+      return d ? `<span title="${d.nom}">${d.emoji}</span>` : "";
+    })
+    .join("");
 }
 
 // Construit une barre de besoin colorée (vert / jaune / rouge).
@@ -170,6 +263,7 @@ function afficherChevaux() {
 
   etat.chevaux.forEach((c) => {
     const poulain = estPoulain(c);
+    const robe = trouverRobe(c.robe);
     const carte = document.createElement("div");
     carte.className = "carte-cheval" + (poulain ? " poulain" : "");
 
@@ -179,10 +273,13 @@ function afficherChevaux() {
 
     carte.innerHTML = `
       <div class="cheval-tete">
-        <div class="cheval-emoji">${c.emoji}</div>
+        <div class="cheval-emoji" style="border-color:${robe.couleur}">${c.emoji}</div>
         <div class="cheval-infos">
           <h3>${c.nom} ${badge}</h3>
-          <div class="race">${c.race} · 🎖️ Dressage ${c.entrainement}</div>
+          <div class="race">
+            <span class="robe-pastille" style="background:${robe.couleur}"></span>${robe.nom}
+            · ${c.race} · 🎖️ ${c.entrainement}
+          </div>
         </div>
       </div>
       ${barreBesoin("🌾", "Faim", c.faim)}
@@ -217,7 +314,30 @@ function message(texte) {
   void el.offsetWidth;
   el.style.animation = "";
   clearTimeout(timerMessage);
-  timerMessage = setTimeout(() => el.classList.add("cache"), 2600);
+  timerMessage = setTimeout(() => el.classList.add("cache"), 2800);
+}
+
+/* ---------- Objectifs / progression ---------- */
+
+// Vérifie les quêtes accomplies, donne les récompenses et met à jour l'écran.
+function verifierQuetes() {
+  const nouvelles = [];
+  QUETES.forEach((q) => {
+    if (!etat.quetesFaites.includes(q.id) && q.test(etat)) {
+      etat.quetesFaites.push(q.id);
+      etat.pieces += q.recompense;
+      nouvelles.push(q);
+    }
+  });
+  if (nouvelles.length > 0) {
+    // On met à jour directement l'affichage (sans rappeler rafraichir).
+    $("aff-pieces").textContent = etat.pieces;
+    majNiveau();
+    const txt = nouvelles
+      .map((q) => `🏅 ${q.titre} (+${q.recompense}💰)`)
+      .join(" · ");
+    message("Objectif réussi ! " + txt);
+  }
 }
 
 /* ---------- Actions sur un cheval ---------- */
@@ -261,12 +381,12 @@ function actionCheval(action, id) {
       break;
 
     case "entrainer":
-      if (c.energie < 20) {
-        message(`${c.nom} a besoin de repos avant de s'entraîner. 😴`);
-        return;
-      }
       if (estPoulain(c)) {
         message(`${c.nom} est encore un poulain, il est trop petit pour le dressage. 🐣`);
+        return;
+      }
+      if (c.energie < 20) {
+        message(`${c.nom} a besoin de repos avant de s'entraîner. 😴`);
         return;
       }
       c.entrainement = borner(c.entrainement + aleatoire(6, 12));
@@ -314,6 +434,7 @@ function lancerConcours(c) {
     gain = aleatoire(45, 70);
     texte = `🥇 ${c.nom} GAGNE le rodéo ! +${gain} 💰`;
     c.bonheur = borner(c.bonheur + 15);
+    etat.stats.rodeosGagnes++;
   } else if (score > 75) {
     gain = aleatoire(20, 40);
     texte = `🥈 ${c.nom} finit sur le podium ! +${gain} 💰`;
@@ -332,6 +453,8 @@ function lancerConcours(c) {
 function jourSuivant() {
   etat.jour++;
   const negliges = [];
+  // Les décorations rendent le ranch agréable : petit bonus de bonheur.
+  const bonusDecor = Math.min(etat.decors.length * 2, 10);
 
   etat.chevaux.forEach((c) => {
     c.age++;
@@ -340,7 +463,7 @@ function jourSuivant() {
     c.energie = borner(c.energie + 35 - b.energie + 20); // ils dorment la nuit → récupèrent de l'énergie
     c.proprete = borner(c.proprete - b.proprete);
     // Le bonheur dépend des autres besoins : un cheval affamé ou sale est triste.
-    let ajustBonheur = -b.bonheur;
+    let ajustBonheur = -b.bonheur + bonusDecor;
     if (c.faim < 25 || c.proprete < 25) ajustBonheur -= 10;
     if (c.faim > 60 && c.proprete > 60) ajustBonheur += 8;
     c.bonheur = borner(c.bonheur + ajustBonheur);
@@ -390,28 +513,42 @@ function ouvrirBoutique() {
       </div>
       <button class="bouton" data-boutique="box">${CONFIG.prixBox} 💰</button>
     </div>
-    <h3 style="margin-top:18px;">🐴 Acheter un nouveau cheval</h3>
+
+    <h3 style="margin-top:18px;">🐴 Acheter et personnaliser un cheval</h3>
   `;
 
   if (!placeLibre) {
     html += `<p>⚠️ Ton corral est plein ! Agrandis-le d'abord pour accueillir un nouveau cheval.</p>`;
-  }
-
-  RACES.forEach((r, i) => {
+  } else {
     html += `
-      <div class="ligne-boutique">
-        <div class="desc">
-          <b>${r.emoji} ${r.nom}</b>
-          <small>Un magnifique cheval adulte.</small>
+      <div class="formulaire-achat">
+        <label>Race :</label>
+        <select id="achat-race">
+          ${RACES.map((r, i) => `<option value="${i}">${r.emoji} ${r.nom} — ${r.prix} 💰</option>`).join("")}
+        </select>
+
+        <label>Nom du cheval :</label>
+        <input id="achat-nom" type="text" maxlength="14" placeholder="Choisis un nom rigolo" />
+
+        <label>Robe (couleur) :</label>
+        <div class="choix-robes">
+          ${ROBES.map((r, i) => `
+            <label class="swatch">
+              <input type="radio" name="robe" value="${r.id}" ${i === 0 ? "checked" : ""} />
+              <span class="pastille" style="background:${r.couleur}"></span>
+              ${r.nom}
+            </label>`).join("")}
         </div>
-        <button class="bouton" data-boutique="cheval" data-race="${i}" ${placeLibre ? "" : "disabled"}>${r.prix} 💰</button>
-      </div>`;
-  });
+
+        <button class="bouton bouton-geant" data-boutique="cheval">🛒 Acheter ce cheval</button>
+      </div>
+    `;
+  }
 
   ouvrirModale("🛒 Boutique du Far West", html);
 }
 
-function acheter(quoi, race) {
+function acheter(quoi) {
   if (quoi === "foin") {
     if (etat.pieces < CONFIG.prixBotteFoin) return message("Pas assez de 💰 !");
     etat.pieces -= CONFIG.prixBotteFoin;
@@ -424,14 +561,80 @@ function acheter(quoi, race) {
     message("🏚️ Ton corral s'agrandit ! +1 box.");
   } else if (quoi === "cheval") {
     if (etat.chevaux.length >= etat.boxes) return message("Corral plein !");
-    const r = RACES[Number(race)];
+    const iRace = Number($("achat-race").value);
+    const r = RACES[iRace];
     if (etat.pieces < r.prix) return message("Pas assez de 💰 !");
+    const radio = document.querySelector('input[name="robe"]:checked');
+    const robe = radio ? radio.value : ROBES[0].id;
+    const nom = $("achat-nom").value.trim() || choisir(NOMS_CHEVAUX);
     etat.pieces -= r.prix;
-    etat.chevaux.push(nouveauCheval({ race: r }));
-    message(`Bienvenue au ranch, nouveau ${r.nom} ! 🎉`);
+    etat.chevaux.push(nouveauCheval({ race: r, robe: robe, nom: nom }));
+    message(`Bienvenue au ranch, ${nom} ! 🎉`);
   }
   rafraichir();
   ouvrirBoutique(); // met à jour les prix/états dans la modale
+}
+
+/* ---------- Décorations ---------- */
+
+function ouvrirDecorer() {
+  let html = `<p>Décore ton ranch ! Chaque décoration rend tes chevaux un peu plus heureux chaque jour. 😊</p>`;
+
+  DECORS.forEach((d) => {
+    const possede = etat.decors.includes(d.id);
+    html += `
+      <div class="ligne-boutique">
+        <div class="desc">
+          <b>${d.emoji} ${d.nom}</b>
+          <small>${possede ? "Déjà installé dans ton ranch." : "Embellit ton ranch."}</small>
+        </div>
+        ${possede
+          ? `<button class="bouton bouton-secondaire" disabled>✅ Installé</button>`
+          : `<button class="bouton" data-decor="${d.id}">${d.prix} 💰</button>`}
+      </div>`;
+  });
+
+  ouvrirModale("🎨 Décorer le ranch", html);
+}
+
+function acheterDecor(id) {
+  if (etat.decors.includes(id)) return;
+  const d = DECORS.find((x) => x.id === id);
+  if (!d) return;
+  if (etat.pieces < d.prix) return message("Pas assez de 💰 !");
+  etat.pieces -= d.prix;
+  etat.decors.push(id);
+  // Petit coup de bonheur immédiat pour tous les chevaux.
+  etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
+  message(`${d.emoji} ${d.nom} installé ! Ton ranch est plus joli.`);
+  rafraichir();
+  ouvrirDecorer();
+}
+
+/* ---------- Objectifs (affichage) ---------- */
+
+function ouvrirObjectifs() {
+  const info = infoNiveau();
+  let html = `
+    <p style="font-size:1.1rem;"><b>${info.titre}</b> — Niveau ${info.niveau}</p>
+    <p>Objectifs accomplis : <b>${etat.quetesFaites.length}/${QUETES.length}</b></p>
+    <p>🥇 Rodéos gagnés : <b>${etat.stats.rodeosGagnes}</b> · 🐣 Poulains nés : <b>${etat.stats.poulainsNes}</b></p>
+  `;
+
+  QUETES.forEach((q) => {
+    const fait = etat.quetesFaites.includes(q.id);
+    html += `
+      <div class="quete-ligne ${fait ? "faite" : ""}">
+        <span class="quete-coche">${fait ? "🏅" : "⬜"}</span>
+        <div class="desc">
+          <b>${q.titre}</b>
+          <small>${q.desc}</small>
+        </div>
+        <span class="quete-gain">+${q.recompense} 💰</span>
+      </div>`;
+  });
+
+  ouvrirModale("🏆 Objectifs & médailles", html);
 }
 
 /* ---------- Élevage (faire naître un poulain) ---------- */
@@ -449,11 +652,11 @@ function ouvrirElevage() {
   } else {
     html += `
       <label>Premier parent :</label>
-      <select id="parent1" style="width:100%;padding:8px;margin:6px 0 12px;border-radius:10px;border:2px solid var(--brun);">
+      <select id="parent1" class="select-large">
         ${adultes.map((c) => `<option value="${c.id}">${c.emoji} ${c.nom} (${c.race})</option>`).join("")}
       </select>
       <label>Deuxième parent :</label>
-      <select id="parent2" style="width:100%;padding:8px;margin:6px 0 16px;border-radius:10px;border:2px solid var(--brun);">
+      <select id="parent2" class="select-large">
         ${adultes.map((c) => `<option value="${c.id}">${c.emoji} ${c.nom} (${c.race})</option>`).join("")}
       </select>
       <button class="bouton bouton-geant" data-elevage="go">🐣 Faire naître un poulain</button>
@@ -471,16 +674,18 @@ function faireNaitre() {
 
   const p1 = trouverCheval(id1);
   const p2 = trouverCheval(id2);
-  // Le poulain hérite de la race et de l'emoji d'un des parents.
+  // Le poulain hérite de la race et de la robe d'un des parents.
   const parentRace = Math.random() < 0.5 ? p1 : p2;
+  const parentRobe = Math.random() < 0.5 ? p1 : p2;
   const race = RACES.find((r) => r.nom === parentRace.race) || RACES[0];
 
-  const poulain = nouveauCheval({ race: race, age: 0 });
+  const poulain = nouveauCheval({ race: race, age: 0, robe: parentRobe.robe });
   poulain.nom = choisir(NOMS_CHEVAUX);
   // Les parents sont un peu fatigués mais très heureux.
   p1.bonheur = borner(p1.bonheur + 10);
   p2.bonheur = borner(p2.bonheur + 10);
   etat.chevaux.push(poulain);
+  etat.stats.poulainsNes++;
 
   fermerModale();
   rafraichir();
@@ -501,9 +706,11 @@ function ouvrirAide() {
         <li>😊 <b>Bonheur</b> — joue avec lui ! Un cheval heureux gagne plus de rodéos.</li>
       </ul>
       <p><b>🤠 Dresser</b> ton cheval augmente son niveau de dressage : plus il est dressé, plus il gagne au <b>🏆 rodéo</b> (et plus tu gagnes de 💰).</p>
-      <p><b>🛒 Boutique</b> : achète du foin, agrandis ton corral et achète de nouveaux chevaux.</p>
+      <p><b>🛒 Boutique</b> : achète du foin, agrandis ton corral et achète un cheval en choisissant son nom et sa robe.</p>
+      <p><b>🎨 Décorer</b> : embellis ton ranch avec des décorations qui rendent tes chevaux plus heureux.</p>
       <p><b>🐣 Élevage</b> : avec 2 chevaux adultes et heureux, fais naître un poulain !</p>
-      <p><b>🌙 Jour suivant</b> : le temps passe, les chevaux dorment, grandissent et leurs besoins baissent. À toi de bien t'en occuper !</p>
+      <p><b>🏆 Objectifs</b> : accomplis des défis pour gagner des médailles, des dollars et monter de niveau !</p>
+      <p><b>🌙 Jour suivant</b> : le temps passe, les chevaux dorment, grandissent et leurs besoins baissent.</p>
       <p>💾 Ta partie est sauvegardée automatiquement dans ton navigateur.</p>
     </div>
   `);
@@ -525,6 +732,8 @@ function init() {
   // Barre du bas
   $("btn-boutique").addEventListener("click", ouvrirBoutique);
   $("btn-elevage").addEventListener("click", ouvrirElevage);
+  $("btn-decorer").addEventListener("click", ouvrirDecorer);
+  $("btn-objectifs").addEventListener("click", ouvrirObjectifs);
   $("btn-jour-suivant").addEventListener("click", jourSuivant);
   $("btn-aide").addEventListener("click", ouvrirAide);
 
@@ -534,7 +743,7 @@ function init() {
     if (e.target.id === "modale") fermerModale();
   });
 
-  // Délégation des clics : actions chevaux, boutique, élevage.
+  // Délégation des clics : actions chevaux, boutique, décor, élevage.
   document.addEventListener("click", (e) => {
     const btn = e.target.closest("button");
     if (!btn) return;
@@ -542,7 +751,9 @@ function init() {
     if (btn.dataset.action) {
       actionCheval(btn.dataset.action, btn.dataset.id);
     } else if (btn.dataset.boutique) {
-      acheter(btn.dataset.boutique, btn.dataset.race);
+      acheter(btn.dataset.boutique);
+    } else if (btn.dataset.decor) {
+      acheterDecor(btn.dataset.decor);
     } else if (btn.dataset.elevage) {
       faireNaitre();
     }
