@@ -12,9 +12,9 @@ Il peut s'ouvrir directement dans un navigateur **ou** être déployé sur **Git
 
 ## 🎮 Comment jouer
 
-Le ranch est en **vue isométrique 2.5D**. Tu commences par **créer ton personnage**
-(peau, cheveux, habit, pantalon, chapeau), puis tu le déplaces dans le ranch pour
-t'occuper de tes chevaux.
+Le ranch est en **vue de dessus fluide** (moteur **Phaser 3**, visuel à base d'emojis).
+Tu commences par **choisir ton personnage** (avatar + couleur), puis tu le déplaces dans
+le ranch pour t'occuper de tes chevaux.
 
 - **Se déplacer** : **clic/tap** sur le sol, flèches du clavier (Z Q S D), ou la **manette ▲◀▶▼**.
   Tu peux aussi cliquer directement sur un cheval ou un bâtiment.
@@ -29,8 +29,8 @@ La partie est **sauvegardée automatiquement** dans le navigateur (localStorage)
 
 ### ✨ Fonctionnalités
 
-- 🗺️ **Monde isométrique 2.5D** dessiné sur `<canvas>` (sprites vectoriels)
-- 🎨 **Personnalisation poussée** : ton personnage **et** chaque cheval (robe, crinière, accessoire, nom)
+- 🎮 **Moteur Phaser 3** (déplacement fluide, caméra qui suit) + visuel emojis
+- 🎨 **Personnalisation** : ton personnage (avatar + couleur) **et** chaque cheval (emoji, robe, accessoire, nom)
 - 🐴 Soins : nourrir, brosser, jouer — et **monter à cheval** 🏇
 - 🛒 Magasin pour agrandir le ranch · 💰 économie simple · 💾 sauvegarde automatique
 - 📱 Jouable au clavier, à la souris **et au tactile**

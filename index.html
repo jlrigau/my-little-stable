@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>🤠 Mon Ranch du Far West</title>
-  <link rel="stylesheet" href="style.css?v=iso1" />
+  <link rel="stylesheet" href="style.css?v=ph1" />
 </head>
 <body>
-  <!-- Écran d'accueil -->
+  <!-- Accueil -->
   <div id="ecran-accueil" class="ecran">
     <div class="boite-accueil">
       <h1 class="titre-jeu">🤠 Mon Ranch</h1>
@@ -23,11 +23,9 @@
   <!-- Création du personnage -->
   <div id="ecran-creation" class="ecran cache">
     <div class="boite-creation">
-      <h2>🎨 Crée ta cow-girl / ton cow-boy</h2>
-      <div class="creation-zone">
-        <canvas id="apercu" width="180" height="240" class="apercu"></canvas>
-        <div id="creation-controles" class="creation-controles"></div>
-      </div>
+      <h2>🎨 Choisis ton personnage</h2>
+      <div id="apercu-perso" class="apercu-perso">🤠</div>
+      <div id="creation-controles" class="creation-controles"></div>
       <button id="btn-creation-ok" class="bouton bouton-geant">✅ C'est parti&nbsp;!</button>
     </div>
   </div>
@@ -49,7 +47,7 @@
     <div id="message-jeu" class="message-jeu cache"></div>
 
     <div class="zone-monde">
-      <canvas id="monde"></canvas>
+      <div id="monde"></div>
       <div id="dpad" class="dpad">
         <button class="dpad-btn haut" data-dir="haut">▲</button>
         <button class="dpad-btn gauche" data-dir="gauche">◀</button>
@@ -73,6 +71,7 @@
     </div>
   </div>
 
-  <script src="game.js?v=iso1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script src="game.js?v=ph1"></script>
 </body>
 </html>
