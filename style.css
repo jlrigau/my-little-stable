@@ -13,11 +13,11 @@
 
 * { box-sizing: border-box; font-family: "Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif; }
 html, body { height: 100%; }
-/* Fond orange de base : la zone de statut iOS reste dans la continuité (pas de blanc). */
-html { background: var(--vert-fonce); }
+/* Fond de base = haut du dégradé d'accueil (continuité avec la barre d'état iOS). */
+html { background: #ffce8f; }
 body {
   margin: 0; color: var(--texte);
-  background-color: var(--vert-fonce);
+  background-color: #ffce8f;
   background-image: linear-gradient(170deg, #ffce8f 0%, #ffb066 35%, #e8895a 70%, #c46a4a 100%);
   overflow: hidden;
 }

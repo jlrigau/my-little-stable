@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph11";
+const ASSET_VER = "ph12";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -62,6 +62,9 @@ function choisir(l) { return l[aleatoire(0, l.length - 1)]; }
 function borner(v) { return Math.max(0, Math.min(100, Math.round(v))); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function $(id) { return document.getElementById(id); }
+// Couleur de la barre d'état iOS (Safari) = couleur du haut de l'écran courant (continuité).
+function themeColor(c) { const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", c); }
+const TEINTE_ACCUEIL = "#ffce8f", TEINTE_JEU = "#b5572b";
 function couleurInt(hex) { return parseInt(hex.slice(1), 16); }
 
 // Robe -> identifiant de pelage valide (avec migration des anciennes sauvegardes en hex).
@@ -175,6 +178,7 @@ function demarrerJeu() {
   $("ecran-accueil").classList.add("cache");
   $("ecran-creation").classList.add("cache");
   $("ecran-jeu").classList.remove("cache");
+  themeColor(TEINTE_JEU);
   $("aff-nom-haras").textContent = etat.nomRanch;
   majHud();
   lancerPhaser();
@@ -204,6 +208,7 @@ function ouvrirCreation(perso, onValider) {
   $("ecran-accueil").classList.add("cache");
   $("ecran-jeu").classList.add("cache");
   $("ecran-creation").classList.remove("cache");
+  themeColor(TEINTE_ACCUEIL);
   const apercuPerso = () => { $("apercu-perso").innerHTML = `<img class="vignette-grande" src="${av("assets/sprite/" + persoDef(persoEnCours.avatar).thumb + ".png")}" alt="" />`; };
   apercuPerso();
 
@@ -228,7 +233,7 @@ function ouvrirCreation(perso, onValider) {
     const n = $("creation-nom").value.trim();
     persoEnCours.nom = n || persoEnCours.nom || persoDef(persoEnCours.avatar).nom;
     onValider();
-    if (etat) { $("ecran-creation").classList.add("cache"); $("ecran-jeu").classList.remove("cache"); }
+    if (etat) { $("ecran-creation").classList.add("cache"); $("ecran-jeu").classList.remove("cache"); themeColor(TEINTE_JEU); }
   };
 }
 
