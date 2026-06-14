@@ -1,524 +1,204 @@
-/* ===== Mon Petit Haras — feuille de style ===== */
+/* ===== 🤠 Mon Ranch du Far West — styles ===== */
 
 :root {
-  /* Palette Far West : désert orangé, terre cuite, bois, cactus */
-  --vert: #7fae5a;          /* vert cactus */
-  --vert-fonce: #b5572b;    /* terre cuite (couleur d'accent principale) */
-  --jaune: #f4b942;         /* sable doré */
-  --orange: #e8722d;        /* orange canyon */
-  --rose: #d98a5f;          /* poulain / terre claire */
-  --bleu: #4aa3b8;          /* eau de l'oasis */
-  --brun: #8a5a3b;          /* bois du corral */
-  --creme: #fdf1dd;         /* parchemin */
+  --vert: #7fae5a;
+  --vert-fonce: #b5572b;   /* terre cuite (accent) */
+  --jaune: #f4b942;
+  --orange: #e8722d;
+  --rose: #d98a5f;
+  --bleu: #4aa3b8;
+  --brun: #8a5a3b;
+  --creme: #fdf1dd;
   --texte: #4a2f1d;
   --ombre: 0 4px 0 rgba(74, 47, 29, 0.25);
 }
 
-* {
-  box-sizing: border-box;
-  font-family: "Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif;
-}
+* { box-sizing: border-box; font-family: "Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif; }
+
+html, body { height: 100%; }
 
 body {
   margin: 0;
-  min-height: 100vh;
   color: var(--texte);
-  /* Coucher de soleil sur le canyon */
   background: linear-gradient(170deg, #ffce8f 0%, #ffb066 35%, #e8895a 70%, #c46a4a 100%);
-  background-attachment: fixed;
+  overflow: hidden;
 }
 
-.ecran {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+.ecran { height: 100vh; display: flex; flex-direction: column; }
+.cache { display: none !important; }
 
-.cache {
-  display: none !important;
-}
-
-/* ===== Écran d'accueil ===== */
-#ecran-accueil {
-  align-items: center;
-  justify-content: center;
-}
-
+/* ===== Accueil ===== */
+#ecran-accueil { align-items: center; justify-content: center; }
 .boite-accueil {
-  background: var(--creme);
-  border: 6px solid var(--vert);
-  border-radius: 28px;
-  padding: 36px 28px;
-  width: min(420px, 92vw);
-  text-align: center;
-  box-shadow: var(--ombre);
+  background: var(--creme); border: 6px solid var(--vert-fonce); border-radius: 28px;
+  padding: 32px 26px; width: min(420px, 92vw); text-align: center; box-shadow: var(--ombre);
 }
-
-.titre-jeu {
-  font-size: 2.4rem;
-  margin: 0 0 6px;
-  color: var(--vert-fonce);
-  text-shadow: 2px 2px 0 #fff;
-}
-
-.sous-titre {
-  font-size: 1.1rem;
-  margin: 0 0 22px;
-}
-
-.label-nom {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: bold;
-}
-
+.titre-jeu { font-size: 2.3rem; margin: 0 0 6px; color: var(--vert-fonce); text-shadow: 2px 2px 0 #fff; }
+.sous-titre { font-size: 1.05rem; margin: 0 0 22px; }
+.label-nom { display: block; margin-bottom: 8px; font-weight: bold; }
 input[type="text"] {
-  width: 100%;
-  padding: 12px;
-  font-size: 1.1rem;
-  border: 3px solid var(--brun);
-  border-radius: 14px;
-  margin-bottom: 16px;
-  text-align: center;
+  width: 100%; padding: 12px; font-size: 1.1rem; border: 3px solid var(--brun);
+  border-radius: 14px; margin-bottom: 16px; text-align: center;
 }
-
-.msg-accueil {
-  min-height: 22px;
-  color: var(--orange);
-  font-weight: bold;
-}
+.msg-accueil { min-height: 22px; color: var(--orange); font-weight: bold; }
 
 /* ===== Boutons ===== */
 .bouton {
-  background: var(--jaune);
-  border: none;
-  border-bottom: 5px solid #d9a400;
-  border-radius: 16px;
-  padding: 12px 18px;
-  font-size: 1.05rem;
-  font-weight: bold;
-  color: var(--texte);
-  cursor: pointer;
-  transition: transform 0.08s, filter 0.1s;
-  margin: 4px;
+  background: var(--jaune); border: none; border-bottom: 5px solid #d9a400; border-radius: 16px;
+  padding: 11px 16px; font-size: 1rem; font-weight: bold; color: var(--texte);
+  cursor: pointer; transition: transform 0.08s, filter 0.1s; margin: 4px;
 }
+.bouton:hover { filter: brightness(1.06); }
+.bouton:active { transform: translateY(3px); border-bottom-width: 2px; }
+.bouton:disabled { filter: grayscale(0.6); opacity: 0.7; cursor: not-allowed; }
+.bouton-geant { display: block; width: 100%; font-size: 1.15rem; padding: 14px; margin-bottom: 10px; }
+.bouton-secondaire { background: #d7e8ff; border-bottom-color: #9bbbe0; }
+.bouton-rodeo { background: var(--orange); border-bottom-color: #c25a1f; color: #fff; }
 
-.bouton:hover {
-  filter: brightness(1.06);
-}
-
-.bouton:active {
-  transform: translateY(3px);
-  border-bottom-width: 2px;
-}
-
-.bouton:disabled {
-  filter: grayscale(0.7) brightness(0.95);
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.bouton-geant {
-  display: block;
-  width: 100%;
-  font-size: 1.3rem;
-  padding: 16px;
-  margin-bottom: 10px;
-}
-
-.bouton-secondaire {
-  background: #d7e8ff;
-  border-bottom-color: #9bbbe0;
-}
-
-.bouton-jour {
-  background: var(--bleu);
-  border-bottom-color: #2b9ccc;
-  color: #fff;
-}
-
-/* ===== Barre du haut ===== */
+/* ===== Barre du haut (HUD) ===== */
 .barre-haut {
-  background: var(--vert-fonce);
-  color: #fff;
-  padding: 10px 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  background: var(--vert-fonce); color: #fff; padding: 8px 12px; display: flex;
+  flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2); z-index: 5;
+}
+.titre-haras { font-size: 1.1rem; font-weight: bold; }
+.aff-niveau { font-size: 0.78rem; opacity: 0.95; font-weight: normal; }
+.ressources { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ressource { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 12px; font-size: 0.95rem; }
+.mini-bouton {
+  background: var(--jaune); border: none; border-radius: 10px; width: 38px; height: 34px;
+  font-size: 1.1rem; cursor: pointer; border-bottom: 3px solid #d9a400;
+}
+.mini-bouton:active { transform: translateY(2px); }
+
+/* ===== Zone du monde (canvas) ===== */
+.zone-monde {
+  flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
+  padding: 8px; min-height: 0;
+}
+#monde {
+  display: block; margin: auto; max-width: 100%; max-height: 100%;
+  aspect-ratio: 3 / 2; background: #e8c48a; border-radius: 14px;
+  box-shadow: var(--ombre); touch-action: none; cursor: pointer;
 }
 
-.titre-haras {
-  font-size: 1.3rem;
-  font-weight: bold;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
+/* Manette tactile */
+.dpad {
+  position: absolute; left: 14px; bottom: 14px; width: 150px; height: 150px;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+  gap: 4px; opacity: 0.85; touch-action: none;
 }
-
-.aff-niveau {
-  font-size: 0.85rem;
-  opacity: 0.95;
-  font-weight: normal;
+.dpad-btn {
+  background: rgba(255,255,255,0.85); border: 3px solid var(--brun); border-radius: 12px;
+  font-size: 1.3rem; color: var(--vert-fonce); cursor: pointer; touch-action: none; user-select: none;
 }
+.dpad-btn:active { background: var(--jaune); }
+.dpad-btn.haut { grid-area: 1 / 2 / 2 / 3; }
+.dpad-btn.gauche { grid-area: 2 / 1 / 3 / 2; }
+.dpad-btn.droite { grid-area: 2 / 3 / 3 / 4; }
+.dpad-btn.bas { grid-area: 3 / 2 / 4 / 3; }
 
-/* Bandeau des décorations possédées */
-.bandeau-decor {
-  background: rgba(255, 255, 255, 0.35);
-  border-bottom: 3px solid rgba(74, 47, 29, 0.25);
-  padding: 8px 16px;
-  font-size: 1.6rem;
-  letter-spacing: 6px;
-  text-align: center;
+.btn-action {
+  position: absolute; right: 16px; bottom: 26px; max-width: 45%;
+  background: var(--orange); color: #fff; border: none; border-bottom: 5px solid #c25a1f;
+  border-radius: 18px; padding: 14px 18px; font-size: 1.05rem; font-weight: bold; cursor: pointer;
+  box-shadow: var(--ombre); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.btn-action:active { transform: translateY(3px); border-bottom-width: 2px; }
 
-.ressources {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+/* ===== Panneau contextuel (bas) ===== */
+.panneau {
+  background: var(--creme); border-top: 5px solid var(--brun); padding: 10px 14px;
+  min-height: 70px; box-shadow: 0 -3px 8px rgba(0,0,0,0.18); z-index: 5;
 }
+.panneau-aide { text-align: center; margin: 14px 0; opacity: 0.8; font-weight: bold; }
 
-.ressource {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 1.05rem;
-}
-
-/* ===== Zone des chevaux ===== */
-.zone-chevaux {
-  flex: 1;
-  padding: 18px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 18px;
-  align-content: start;
-}
-
-.carte-cheval {
-  background: var(--creme);
-  border: 5px solid var(--brun);
-  border-radius: 22px;
-  padding: 16px;
-  box-shadow: var(--ombre);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.carte-cheval.poulain {
-  border-color: var(--rose);
-  background: #fff0f5;
-}
-
-.cheval-tete {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.cheval-emoji {
-  font-size: 2.2rem;
-  line-height: 1;
-  width: 58px;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  border: 4px solid var(--brun);
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* Pastille de couleur de robe */
-.robe-pastille {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.25);
-  vertical-align: middle;
-  margin-right: 3px;
-}
-
-.cheval-infos h3 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.cheval-infos .race {
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-.badge {
-  display: inline-block;
-  background: var(--rose);
-  color: #fff;
-  font-size: 0.75rem;
-  padding: 2px 8px;
-  border-radius: 10px;
-  margin-left: 4px;
-}
-
-.badge.adulte {
-  background: var(--vert);
-}
-
-/* Barres de besoins */
-.besoin {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.92rem;
-}
-
-.besoin .icone {
-  width: 22px;
-  text-align: center;
-}
-
-.barre {
-  flex: 1;
-  height: 16px;
-  background: #e7ddca;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 2px solid #cdbfa0;
-}
-
-.barre-remplissage {
-  height: 100%;
-  border-radius: 8px 0 0 8px;
-  transition: width 0.3s;
-}
-
-.r-vert { background: var(--vert); }
-.r-jaune { background: var(--jaune); }
-.r-rouge { background: #f0676a; }
-
-/* Boutons d'actions du cheval */
-.actions-cheval {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.actions-cheval .bouton {
-  margin: 0;
-  font-size: 0.95rem;
-  padding: 9px 6px;
-}
-
-.bouton-concours {
-  grid-column: span 2;
-  background: var(--orange);
-  border-bottom-color: #d97a1f;
-  color: #fff;
-}
-
-/* ===== Barre du bas ===== */
-.barre-bas {
-  background: var(--vert-fonce);
-  padding: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: center;
-  position: sticky;
-  bottom: 0;
-  box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.2);
-}
-
-/* ===== Message volant ===== */
-.message-jeu {
-  position: fixed;
-  top: 70px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #fff;
-  border: 4px solid var(--vert);
-  border-radius: 16px;
-  padding: 12px 22px;
-  font-size: 1.1rem;
-  font-weight: bold;
-  z-index: 50;
-  box-shadow: var(--ombre);
-  animation: pop 0.25s ease-out;
-}
-
-@keyframes pop {
-  from { transform: translateX(-50%) scale(0.6); opacity: 0; }
-  to { transform: translateX(-50%) scale(1); opacity: 1; }
-}
+.pc-tete { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.pc-emoji { font-size: 2rem; }
+.pc-sous { font-size: 0.85rem; opacity: 0.8; }
+.pc-barres { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-bottom: 8px; }
+.besoin { display: flex; align-items: center; gap: 6px; }
+.besoin .icone { width: 20px; text-align: center; }
+.barre { flex: 1; height: 14px; background: #e7ddca; border-radius: 8px; overflow: hidden; border: 2px solid #cdbfa0; }
+.barre-remplissage { height: 100%; transition: width 0.3s; }
+.r-vert { background: var(--vert); } .r-jaune { background: var(--jaune); } .r-rouge { background: #f0676a; }
+.pc-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.pc-actions .bouton { margin: 0; flex: 1 1 auto; min-width: 96px; }
+.pc-station { display: flex; align-items: center; gap: 12px; }
+.pc-station .bouton { flex: 1; margin: 0; }
 
 /* ===== Modale ===== */
 .modale {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 16px;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex;
+  align-items: center; justify-content: center; z-index: 100; padding: 14px;
 }
-
 .modale-contenu {
-  background: var(--creme);
-  border: 6px solid var(--vert);
-  border-radius: 24px;
-  padding: 24px;
-  width: min(560px, 95vw);
-  max-height: 88vh;
-  overflow-y: auto;
-  position: relative;
+  background: var(--creme); border: 6px solid var(--vert-fonce); border-radius: 24px;
+  padding: 22px; width: min(560px, 95vw); max-height: 88vh; overflow-y: auto; position: relative;
 }
-
-.modale-contenu h2 {
-  margin-top: 0;
-  color: var(--vert-fonce);
-}
-
+.modale-contenu h2 { margin-top: 0; color: var(--vert-fonce); }
+.modale-contenu h3 { margin: 16px 0 8px; }
 .btn-fermer {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: #f0676a;
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 38px;
-  height: 38px;
-  font-size: 1.1rem;
-  cursor: pointer;
+  position: absolute; top: 12px; right: 12px; background: #f0676a; color: #fff; border: none;
+  border-radius: 50%; width: 38px; height: 38px; font-size: 1.1rem; cursor: pointer;
 }
 
-/* Liste de la boutique / élevage */
 .ligne-boutique {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: #fff;
-  border: 3px solid #e0d3b5;
-  border-radius: 16px;
-  padding: 12px;
-  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: #fff; border: 3px solid #e0d3b5; border-radius: 16px; padding: 12px; margin-bottom: 10px;
 }
+.ligne-boutique .desc { flex: 1; }
+.ligne-boutique .desc small { display: block; opacity: 0.75; }
 
-.ligne-boutique .desc {
-  flex: 1;
+/* Grille de décorations */
+.grille-decor { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.carte-decor {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
+  background: #fff; border: 3px solid #e0d3b5; border-radius: 14px; padding: 10px 6px; font: inherit;
 }
+.carte-decor:active { transform: translateY(2px); }
+.carte-decor.possede { background: #f0f8e8; border-color: var(--vert); }
+.carte-decor .d-emoji { font-size: 1.8rem; }
+.carte-decor .d-prix { font-weight: bold; color: var(--vert-fonce); }
 
-.ligne-boutique .desc b {
-  font-size: 1.05rem;
+/* Formulaire d'achat */
+.formulaire-achat label { display: block; font-weight: bold; margin: 12px 0 4px; }
+.formulaire-achat select, .select-large {
+  width: 100%; padding: 10px; font-size: 1rem; border: 3px solid var(--brun); border-radius: 12px; background: #fff;
 }
-
-.ligne-boutique .desc small {
-  display: block;
-  opacity: 0.75;
-}
-
-.aide-texte p {
-  line-height: 1.5;
-}
-
-.aide-texte li {
-  margin-bottom: 6px;
-  line-height: 1.4;
-}
-
-/* Formulaire d'achat / personnalisation d'un cheval */
-.formulaire-achat label {
-  display: block;
-  font-weight: bold;
-  margin: 12px 0 4px;
-}
-
-.formulaire-achat select,
-.select-large {
-  width: 100%;
-  padding: 10px;
-  font-size: 1rem;
-  border: 3px solid var(--brun);
-  border-radius: 12px;
-  background: #fff;
-}
-
-.select-large {
-  margin: 6px 0 14px;
-}
-
-.formulaire-achat input[type="text"] {
-  margin-bottom: 0;
-}
-
-.choix-robes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 8px;
-}
-
+.select-large { margin: 6px 0 14px; }
+.formulaire-achat input[type="text"] { margin-bottom: 0; }
+.choix-robes { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
 .swatch {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #fff;
-  border: 3px solid #e0d3b5;
-  border-radius: 12px;
-  padding: 8px;
-  cursor: pointer;
-  font-weight: normal !important;
-  margin: 0 !important;
+  display: flex; align-items: center; gap: 6px; background: #fff; border: 3px solid #e0d3b5;
+  border-radius: 12px; padding: 8px; cursor: pointer; font-weight: normal; margin: 0;
 }
+.swatch .pastille { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.2); display: inline-block; }
 
-.swatch input {
-  accent-color: var(--vert-fonce);
-}
-
-.swatch .pastille {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  display: inline-block;
-}
-
-/* Lignes d'objectifs */
+/* Objectifs */
 .quete-ligne {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #fff;
-  border: 3px solid #e0d3b5;
-  border-radius: 14px;
-  padding: 10px;
-  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px; background: #fff; border: 3px solid #e0d3b5;
+  border-radius: 14px; padding: 10px; margin-bottom: 8px;
 }
+.quete-ligne.faite { background: #f0f8e8; border-color: var(--vert); }
+.quete-ligne .desc { flex: 1; } .quete-ligne .desc small { display: block; opacity: 0.75; }
+.quete-coche { font-size: 1.4rem; }
+.quete-gain { font-weight: bold; color: var(--vert-fonce); white-space: nowrap; }
 
-.quete-ligne.faite {
-  background: #f0f8e8;
-  border-color: var(--vert);
+/* Aide */
+.aide-texte p { line-height: 1.5; } .aide-texte li { margin-bottom: 5px; line-height: 1.4; }
+
+/* ===== Message volant ===== */
+.message-jeu {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #fff;
+  border: 4px solid var(--vert-fonce); border-radius: 16px; padding: 10px 20px; font-size: 1.05rem;
+  font-weight: bold; z-index: 50; box-shadow: var(--ombre); max-width: 92vw; text-align: center;
+  animation: pop 0.25s ease-out;
 }
+@keyframes pop { from { transform: translateX(-50%) scale(0.6); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 
-.quete-ligne .desc {
-  flex: 1;
-}
-
-.quete-ligne .desc small {
-  display: block;
-  opacity: 0.75;
-}
-
-.quete-coche {
-  font-size: 1.4rem;
-}
-
-.quete-gain {
-  font-weight: bold;
-  color: var(--vert-fonce);
-  white-space: nowrap;
+/* Sur petits écrans, manette un peu plus compacte */
+@media (max-width: 520px) {
+  .dpad { width: 124px; height: 124px; }
+  .pc-actions .bouton { min-width: 80px; font-size: 0.9rem; }
 }

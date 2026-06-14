@@ -12,29 +12,31 @@ Il peut s'ouvrir directement dans un navigateur **ou** être déployé sur **Git
 
 ## 🎮 Comment jouer
 
-1. Donne un nom à ton ranch et clique sur **« Commencer l'aventure »**.
-2. Occupe-toi de chaque cheval grâce à ses 4 besoins :
-   - 🌾 **Faim** — nourris-le avec du foin.
-   - ⚡ **Énergie** — il récupère en dormant la nuit.
-   - 🧼 **Propreté** — brosse-le.
-   - 😊 **Bonheur** — joue avec lui.
-3. **🤠 Dresse** tes chevaux pour qu'ils gagnent des **🏆 rodéos** et rapportent des 💰.
-4. À la **🛒 boutique**, achète du foin, agrandis ton corral et achète un cheval en choisissant son **nom** et sa **robe** (couleur).
-5. Avec deux chevaux adultes et heureux, fais naître un **🐣 poulain** dans l'onglet **Élevage** (il hérite de la race et de la robe de ses parents).
-6. **🎨 Décore** ton ranch : chaque décoration rend tes chevaux un peu plus heureux chaque jour.
-7. Accomplis des **🏆 objectifs** pour gagner des médailles, des dollars et faire **monter ton ranch de niveau**.
-8. Clique sur **🌙 Jour suivant** pour faire passer le temps.
+Tu diriges une **cow-girl 🤠 que tu déplaces librement** dans un ranch en vue de dessus
+(façon petit jeu de simulation/ville). Tu te promènes, tu vas voir tes chevaux et les
+bâtiments, et tu agis.
+
+- **Se déplacer** : flèches du clavier (ou Z Q S D), **clic/tap** sur le ranch, ou la **manette ▲◀▶▼** tactile.
+- **S'occuper d'un cheval** : approche-toi de lui, puis utilise les boutons du panneau
+  (🌾 Nourrir, 🧽 Brosser, 🎾 Jouer, 🤠 Dresser, 🏆 Rodéo). Garde ses 4 besoins au vert ;
+  une frimousse 😀/😐/😢 au-dessus de lui indique son humeur.
+- **🏪 Magasin** : va devant le bâtiment pour acheter du foin, des décorations, ou un cheval
+  (avec **nom** et **robe** au choix), et agrandir le corral.
+- **🛖 Élevage** : avec 2 chevaux adultes et heureux, fais naître un **poulain** qui grandit.
+- **🏠 Maison** : va **dormir** pour passer au jour suivant.
+- **🏆 Objectifs** : réussis des défis pour gagner des médailles et faire **monter ton ranch de niveau**.
 
 La partie est **sauvegardée automatiquement** dans le navigateur (localStorage).
 
 ### ✨ Fonctionnalités
 
-- 🐴 Soin complet des chevaux (faim, énergie, propreté, bonheur)
-- 🎨 **Personnalisation** : nom et robe au choix, décorations du ranch
-- 🏆 **Progression** : niveaux de ranch, objectifs et médailles à débloquer
+- 🗺️ **Monde 2D explorable** dessiné sur `<canvas>`, avec personnage déplaçable
+- 🐴 Soin des chevaux (faim, énergie, propreté, bonheur) qui se baladent dans le corral
+- 🎨 **Personnalisation** : nom et robe au choix, décorations posées dans le ranch
+- 🏆 **Progression** : niveaux de ranch, objectifs et médailles
 - 🤠 Dressage et rodéos pour gagner des dollars
-- 🐣 Élevage de poulains qui grandissent
-- 💾 Sauvegarde automatique
+- 🐣 Élevage de poulains · 💾 Sauvegarde automatique
+- 📱 Jouable au clavier, à la souris **et au tactile**
 
 ## 🚀 Jouer en local
 

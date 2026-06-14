@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>🤠 Mon Ranch du Far West</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -11,7 +11,7 @@
   <div id="ecran-accueil" class="ecran">
     <div class="boite-accueil">
       <h1 class="titre-jeu">🤠 Mon Ranch</h1>
-      <p class="sous-titre">Élève tes chevaux et fais grandir ton ranch dans le Far West&nbsp;!</p>
+      <p class="sous-titre">Promène-toi dans ton ranch du Far West et occupe-toi de tes chevaux&nbsp;!</p>
       <label class="label-nom" for="nom-haras">Comment s'appelle ton ranch&nbsp;?</label>
       <input id="nom-haras" type="text" maxlength="20" placeholder="Le Ranch du Canyon Doré" />
       <button id="btn-commencer" class="bouton bouton-geant">▶️ Commencer l'aventure</button>
@@ -27,25 +27,32 @@
       <div class="ressources">
         <span class="ressource" title="Dollars">💰 <b id="aff-pieces">0</b></span>
         <span class="ressource" title="Bottes de foin">🌾 <b id="aff-carottes">0</b></span>
-        <span class="ressource" title="Jour">📅 Jour <b id="aff-jour">1</b></span>
-        <span class="ressource" title="Box du corral" >🏚️ <b id="aff-boxes">0/0</b></span>
+        <span class="ressource" title="Jour">📅 J<b id="aff-jour">1</b></span>
+        <span class="ressource" title="Chevaux / box">🐴 <b id="aff-boxes">0/0</b></span>
+        <button id="btn-objectifs" class="mini-bouton" title="Objectifs">🏆</button>
+        <button id="btn-aide" class="mini-bouton" title="Aide">❓</button>
       </div>
     </header>
 
     <div id="message-jeu" class="message-jeu cache"></div>
 
-    <div id="bandeau-decor" class="bandeau-decor cache"></div>
+    <div class="zone-monde">
+      <canvas id="monde" width="960" height="640"></canvas>
 
-    <main class="zone-chevaux" id="zone-chevaux"></main>
+      <!-- Manette tactile -->
+      <div id="dpad" class="dpad">
+        <button class="dpad-btn haut" data-dir="haut">▲</button>
+        <button class="dpad-btn gauche" data-dir="gauche">◀</button>
+        <button class="dpad-btn droite" data-dir="droite">▶</button>
+        <button class="dpad-btn bas" data-dir="bas">▼</button>
+      </div>
+      <button id="btn-action" class="btn-action cache">Action</button>
+    </div>
 
-    <footer class="barre-bas">
-      <button id="btn-boutique" class="bouton">🛒 Boutique</button>
-      <button id="btn-elevage" class="bouton">🐣 Élevage</button>
-      <button id="btn-decorer" class="bouton">🎨 Décorer</button>
-      <button id="btn-objectifs" class="bouton">🏆 Objectifs</button>
-      <button id="btn-jour-suivant" class="bouton bouton-jour">🌙 Jour suivant</button>
-      <button id="btn-aide" class="bouton bouton-secondaire">❓ Aide</button>
-    </footer>
+    <!-- Panneau contextuel (s'occuper d'un cheval / entrer dans un bâtiment) -->
+    <div id="panneau" class="panneau">
+      <p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment pour agir.</p>
+    </div>
   </div>
 
   <!-- Fenêtre modale réutilisable -->
