@@ -156,16 +156,22 @@ input[type="text"] {
 
 /* ===== Message ===== */
 .message-jeu {
-  position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #fff;
+  position: fixed; top: calc(64px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: #fff;
   border: 4px solid var(--vert-fonce); border-radius: 16px; padding: 10px 20px; font-size: 1.05rem;
   font-weight: bold; z-index: 50; box-shadow: var(--ombre); max-width: 92vw; text-align: center;
   animation: pop 0.25s ease-out;
 }
 @keyframes pop { from { transform: translateX(-50%) scale(0.6); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 
-@media (max-width: 520px) {
-  .dpad { width: 120px; height: 120px; }
+@media (max-width: 560px) {
+  /* HUD sur 2 lignes propres : titre en haut, ressources + boutons en dessous */
+  .barre-haut { gap: 6px; padding-bottom: 6px; }
+  .titre-haras { font-size: 1rem; width: 100%; text-align: center; }
+  .ressources { width: 100%; justify-content: space-between; gap: 5px; }
+  .ressource { font-size: 0.82rem; padding: 4px 8px; }
+  .mini-bouton { width: 36px; height: 32px; font-size: 1rem; }
   .pc-actions .bouton { min-width: 80px; font-size: 0.9rem; }
+  .btn-action { bottom: calc(20px + env(safe-area-inset-bottom)); font-size: 1rem; padding: 12px 16px; }
 }
 
 /* ===== Vignettes images (pixel-art) dans les menus ===== */

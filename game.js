@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph7";
+const ASSET_VER = "ph8";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -126,10 +126,6 @@ function init() {
     if (joueurSprite) { joueurSprite.setTexture(persoDef(etat.perso.avatar).key); joueurFacing = "down"; joueurSprite.setFrame(18); }
   }));
   $("btn-aide").addEventListener("click", ouvrirAide);
-  $("btn-vitesse").addEventListener("click", () => {
-    etat.vitesse = ((etat.vitesse || 1) + 1) % VITESSES.length;
-    majHud(); message("Vitesse : " + VITESSES[etat.vitesse].nom + " " + VITESSES[etat.vitesse].icone);
-  });
 
   $("btn-fermer-modale").addEventListener("click", fermerModale);
   $("modale").addEventListener("click", (e) => { if (e.target.id === "modale") fermerModale(); });
@@ -189,9 +185,6 @@ function majHud() {
   $("aff-foin").textContent = etat.foin;
   $("aff-jour").textContent = etat.jour;
   $("aff-boxes").textContent = etat.chevaux.length + "/" + etat.boxes;
-  const v = VITESSES[(etat.vitesse || 1) % VITESSES.length];
-  const bv = $("btn-vitesse");
-  if (bv) { bv.textContent = v.icone; bv.title = "Vitesse : " + v.nom + " (touche pour changer)"; }
   sauvegarder();
 }
 let timerMessage = null;
@@ -241,12 +234,7 @@ let cursors = null, wasd = null;
 let moveTarget = null, pendingInteract = null;
 let placementDecor = null;            // déco en attente de placement (clic suivant)
 let nuitEnCours = false, nuitVoile = null;   // transition nuit (dormir)
-// Vitesses : multiplicateur appliqué à la marche ET à la monte
-const VITESSES = [
-  { mul: 0.55, icone: "🐢", nom: "Lent" },
-  { mul: 1.0, icone: "🚶", nom: "Normal" },
-  { mul: 1.7, icone: "🐇", nom: "Rapide" },
-];
+let enCourse = false, dernierTapT = 0;       // double-tap rapide => le perso court
 let cibleActive = null, idPanneau = null, monte = null;
 let ringSel = null;
 let decorObjs = [];
@@ -525,15 +513,14 @@ function sceneUpdate(time, delta) {
     if (cursors.down.isDown || wasd.bas.isDown) vy += 1;
   }
 
-  const mul = VITESSES[(etat.vitesse || 1) % VITESSES.length].mul;
-  const vit = (monte ? 360 : 215) * mul;
+  const vit = monte ? (enCourse ? 560 : 340) : (enCourse ? 370 : 200);
   let mvx = 0, mvy = 0;
   if (vx || vy) {
-    moveTarget = null; pendingInteract = null;
+    moveTarget = null; pendingInteract = null; enCourse = false;
     const n = Math.hypot(vx, vy); mvx = vx / n; mvy = vy / n;
   } else if (moveTarget && !modaleOuverte) {
     const dx = moveTarget.x - joueur.x, dy = moveTarget.y - joueur.y, d = Math.hypot(dx, dy);
-    if (d < 8) { moveTarget = null; if (pendingInteract) { const r = pendingInteract; pendingInteract = null; interagir(r); } }
+    if (d < 8) { moveTarget = null; enCourse = false; if (pendingInteract) { const r = pendingInteract; pendingInteract = null; interagir(r); } }
     else { mvx = dx / d; mvy = dy / d; }
   }
   if (mvx || mvy) { joueur.x += mvx * vit * dt; joueur.y += mvy * vit * dt; }
@@ -615,18 +602,20 @@ function onPointer(p) {
   if (!$("modale").classList.contains("cache")) return;
   const wx = p.worldX, wy = p.worldY;
 
-  // Mode placement de décoration : le clic place l'objet acheté.
+  // Mode placement de décoration : le clic place l'objet où tu veux.
   if (placementDecor) {
     const x = clamp(wx, 40, WORLD.w - 40), y = clamp(wy, 70, WORLD.h - 30);
-    if (x > CORRAL.x && x < CORRAL.x + CORRAL.w && y > CORRAL.y && y < CORRAL.y + CORRAL.h) {
-      message("Pas dans l'enclos des chevaux ! 🐴"); return;
-    }
     etat.decors.push({ id: placementDecor.id, x, y });
     etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
     const nom = placementDecor.nom; placementDecor = null;
     placerDecors(); sauvegarder(); majHud(); message(`${nom} installé ! ✨`);
     return;
   }
+  // Double-tap rapide (< 350 ms) => le personnage se met à courir.
+  const tnow = (typeof performance !== "undefined" ? performance.now() : Date.now());
+  enCourse = (tnow - dernierTapT) < 350;
+  dernierTapT = tnow;
+
   let cible = null, dmin = Infinity;
   STATIONS.forEach((s) => { const d = Math.hypot(s.x - wx, s.y - wy); if (d < 70 && d < dmin) { dmin = d; cible = s; } });
   etat.chevaux.forEach((c) => { if (c === monte) return; const d = Math.hypot(c.x - wx, c.y - wy); if (d < 55 && d < dmin) { dmin = d; cible = c; } });
@@ -697,7 +686,15 @@ function actionCheval(action) {
       c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 16); c.faim = borner(c.faim - 8); etat.pieces += 3;
       etat.actionsDepuisDodo++; bond(c); message(`${c.nom} s'est bien amusé ! 🎾`); break;
     case "monter":
-      if (monte === c) { monte = null; message(`Tu descends de ${c.nom}. 🙂`); }
+      if (monte === c) {
+        monte = null; moveTarget = null; enCourse = false;
+        // On écarte le cheval pour qu'il ne reste pas collé au joueur (sinon il capte les clics).
+        c.x = clamp(joueur.x + 135, CORRAL.x + 70, CORRAL.x + CORRAL.w - 70);
+        c.y = clamp(joueur.y, CORRAL.y + 70, CORRAL.y + CORRAL.h - 70);
+        c.tx = c.x; c.ty = c.y; c.prochainPas = 0;
+        if (c.obj) { c.obj.x = c.x; c.obj.y = c.y; }
+        message(`Tu descends de ${c.nom}. 🙂`);
+      }
       else if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour être monté. 🐣`); return; }
       else if (c.energie < 20) { message(`${c.nom} est trop fatigué pour te porter. 😴`); return; }
       else { monte = c; c.bonheur = borner(c.bonheur + 12); c.energie = borner(c.energie - 12); etat.actionsDepuisDodo++; message(`En selle sur ${c.nom} ! 🏇`); }
@@ -828,7 +825,7 @@ function ouvrirAide() {
       <p><b>🐴 Un cheval :</b> approche-toi puis 🌾 Nourrir, 🧽 Brosser, 🎾 Jouer, 🏇 Monter, ou 🎨 Relooker
       (robe, nom). Garde ses besoins au vert !</p>
       <p><b>🏇 Monter :</b> en selle, promène-toi à cheval. Re-clique « Descendre » pour t'arrêter.</p>
-      <p><b>🐇 Vitesse (en haut) :</b> touche pour changer la vitesse de marche et de cheval (Lent / Normal / Rapide).</p>
+      <p><b>🏃 Courir :</b> tape <b>deux fois rapidement</b> vers un endroit et le personnage (ou le cheval) court !</p>
       <p><b>🏪 Magasin :</b> foin, décos, adopter des chevaux. Après l'achat d'une déco, <b>touche l'endroit</b> où la poser.</p>
       <p><b>🏡 Maison :</b> dormir passe au jour suivant (occupe-toi d'abord d'un cheval). <b>🧍 (en haut) :</b> change ton personnage.</p>
       <p>💰 Tu gagnes des sous en t'occupant de tes chevaux. 💾 Sauvegarde automatique.</p>

@@ -60,7 +60,8 @@ Style **pixel-art LPC**, **plus aucun emoji dans le monde** :
   (frames 20-23), profil gauche ; flip X pour la droite. Échelle ~1.15 (plus grands que l'enfant),
   origine 0.9. Ils s'arrêtent quand le joueur est proche (<115) pour pouvoir interagir.
 - **Déplacement** : clic/tap vers un point (PAS de dpad — retiré). Clavier flèches/ZQSD en bonus.
-  **Vitesses** : bouton HUD `#btn-vitesse` (Lent/Normal/Rapide, `VITESSES`) appliqué marche ET monte.
+  **Vitesse auto** : un **double-tap rapide** (< 350 ms, `enCourse`) fait courir le perso ET le cheval
+  (pas de bouton de vitesse).
 - **Profondeur** : tout est trié par `y` (joueur inclus, plus de `+1000`) → le perso passe DERRIÈRE
   arbres/bâtiments. **Collisions** (`COLLISIONS` + `bloquerObstacles`) sur clôture + arbres + buissons
   + bâtiments + déco (empreinte plus large à cheval). Portail = trou clôture à gauche.
