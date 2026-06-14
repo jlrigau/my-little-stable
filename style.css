@@ -152,6 +152,20 @@ input[type="text"] {
 
 .aide-texte p { line-height: 1.5; }
 
+/* Grille de choix de personnage (sprites réels) */
+.char-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 8px 0 14px; justify-items: center; }
+.char-choice {
+  width: 64px; height: 64px; border: 3px solid #e0d3b5; border-radius: 14px; cursor: pointer;
+  background-repeat: no-repeat; background-position: 0 0; background-size: 192px 256px;
+  image-rendering: pixelated; padding: 0;
+}
+.char-choice.choisi { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange); }
+
+/* Boutons de robe (relooker) */
+.ligne-robes { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn-robe { background: #fff; border: 3px solid #e0d3b5; border-radius: 12px; padding: 8px 12px; cursor: pointer; font: inherit; font-weight: bold; }
+.btn-robe.choisi { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange); }
+
 /* ===== Message ===== */
 .message-jeu {
   position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #fff;
