@@ -6,6 +6,10 @@ On élève des chevaux, on en prend soin, on gagne des rodéos et on fait grandi
 C'est un **site 100 % statique** (HTML + CSS + JavaScript, sans aucune dépendance ni installation).
 Il peut s'ouvrir directement dans un navigateur **ou** être déployé sur **GitHub Pages**.
 
+## ▶️ Jouer en ligne
+
+👉 **[Jouer à Mon Ranch du Far West](https://jlrigau.github.io/my-little-stable/)** 🤠🐴
+
 ## 🎮 Comment jouer
 
 1. Donne un nom à ton ranch et clique sur **« Commencer l'aventure »**.
