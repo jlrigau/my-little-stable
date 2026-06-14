@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph6";
+const ASSET_VER = "ph7";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -74,10 +74,21 @@ function persoDef(id) { return PERSOS.find((p) => p.id === id) || PERSOS[0]; }
 /* ===================== Chevaux ===================== */
 
 let compteurId = 1;
+function nomUtilise(nom, sauf) {
+  const list = (etat && etat.chevaux) || [];
+  return list.some((c) => c !== sauf && (c.nom || "").toLowerCase() === nom.toLowerCase());
+}
+function nomLibre() {
+  const dispo = NOMS.filter((n) => !nomUtilise(n, null));
+  if (dispo.length) return choisir(dispo);
+  let base = choisir(NOMS), i = 2;
+  while (nomUtilise(base + " " + i, null)) i++;
+  return base + " " + i;
+}
 function nouveauCheval(o = {}) {
   return {
     id: compteurId++,
-    nom: o.nom || choisir(NOMS),
+    nom: o.nom || nomLibre(),
     robe: o.robe || choisir(COATS).id,
     age: o.age != null ? o.age : aleatoire(5, 9),
     faim: 70, energie: 80, proprete: 75, bonheur: 80,
@@ -115,6 +126,10 @@ function init() {
     if (joueurSprite) { joueurSprite.setTexture(persoDef(etat.perso.avatar).key); joueurFacing = "down"; joueurSprite.setFrame(18); }
   }));
   $("btn-aide").addEventListener("click", ouvrirAide);
+  $("btn-vitesse").addEventListener("click", () => {
+    etat.vitesse = ((etat.vitesse || 1) + 1) % VITESSES.length;
+    majHud(); message("Vitesse : " + VITESSES[etat.vitesse].nom + " " + VITESSES[etat.vitesse].icone);
+  });
 
   $("btn-fermer-modale").addEventListener("click", fermerModale);
   $("modale").addEventListener("click", (e) => { if (e.target.id === "modale") fermerModale(); });
@@ -134,7 +149,7 @@ function nouvellePartie(nom, perso) {
   etat = {
     nomRanch: nom, perso, pieces: 40, foin: 6, jour: 1, boxes: 4,
     chevaux: [nouveauCheval({ nom: "Éclair", robe: COATS[0].id })],
-    decors: [],
+    decors: [], vitesse: 1, actionsDepuisDodo: 0,
   };
   sauvegarder(); demarrerJeu();
 }
@@ -146,7 +161,13 @@ function continuerPartie() {
   if (!etat.perso) etat.perso = { avatar: PERSOS[0].id, couleur: THEMES[0] };
   if (!persoDef(etat.perso.avatar) || !PERSOS.some((p) => p.id === etat.perso.avatar)) etat.perso.avatar = PERSOS[0].id;
   if (!etat.decors) etat.decors = [];
-  etat.decors = etat.decors.filter((id) => DECORS.some((d) => d.id === id));
+  // Migration : ancien format = liste d'identifiants (placés sur des emplacements fixes)
+  etat.decors = etat.decors.map((d, k) => {
+    if (typeof d === "string") { const sl = SLOTS_DECOR[k % SLOTS_DECOR.length]; return { id: d, x: sl.x, y: sl.y }; }
+    return d;
+  }).filter((d) => DECORS.some((x) => x.id === d.id));
+  if (typeof etat.vitesse !== "number") etat.vitesse = 1;
+  if (typeof etat.actionsDepuisDodo !== "number") etat.actionsDepuisDodo = 0;
   etat.chevaux.forEach((c) => { c.obj = null; c.prochainPas = 0; c.robe = robeCoat(c); });
   compteurId = s.compteurId || (etat.chevaux.length + 1);
   demarrerJeu();
@@ -168,6 +189,9 @@ function majHud() {
   $("aff-foin").textContent = etat.foin;
   $("aff-jour").textContent = etat.jour;
   $("aff-boxes").textContent = etat.chevaux.length + "/" + etat.boxes;
+  const v = VITESSES[(etat.vitesse || 1) % VITESSES.length];
+  const bv = $("btn-vitesse");
+  if (bv) { bv.textContent = v.icone; bv.title = "Vitesse : " + v.nom + " (touche pour changer)"; }
   sauvegarder();
 }
 let timerMessage = null;
@@ -215,6 +239,14 @@ let jeu = null, sc = null;
 let joueur = null, joueurSprite = null, joueurOmbre = null, joueurFacing = "down";
 let cursors = null, wasd = null;
 let moveTarget = null, pendingInteract = null;
+let placementDecor = null;            // déco en attente de placement (clic suivant)
+let nuitEnCours = false, nuitVoile = null;   // transition nuit (dormir)
+// Vitesses : multiplicateur appliqué à la marche ET à la monte
+const VITESSES = [
+  { mul: 0.55, icone: "🐢", nom: "Lent" },
+  { mul: 1.0, icone: "🚶", nom: "Normal" },
+  { mul: 1.7, icone: "🐇", nom: "Rapide" },
+];
 let cibleActive = null, idPanneau = null, monte = null;
 let ringSel = null;
 let decorObjs = [];
@@ -311,7 +343,8 @@ function placerCloture() {
 
 // Empêche le joueur de traverser les obstacles (clôture, arbres, bâtiments) — AABB par axe.
 function bloquerObstacles() {
-  const hw = 15, hh = 10, px = joueur.x, py = joueur.y;
+  // À cheval, l'empreinte est plus grande (le cheval respecte les mêmes obstacles).
+  const hw = monte ? 30 : 15, hh = monte ? 18 : 10, px = joueur.x, py = joueur.y;
   COLLISIONS.forEach((m) => {
     if (px + hw > m.x && px - hw < m.x + m.w && py + hh > m.y && py - hh < m.y + m.h) {
       const penX = Math.min(px + hw - m.x, m.x + m.w - (px - hw));
@@ -410,6 +443,9 @@ function construireMonde() {
   ringSel = sc.add.ellipse(0, 0, 90, 50, 0xffd54a, 0);
   ringSel.setStrokeStyle(4, 0xffd54a, 1); ringSel.setVisible(false); ringSel.setDepth(2);
 
+  // voile de nuit (fixé à l'écran) pour la transition « dormir » — invisible au départ
+  nuitVoile = sc.add.rectangle(0, 0, 4000, 3000, 0x0a1633).setOrigin(0, 0).setScrollFactor(0).setDepth(9000).setAlpha(0);
+
   sc.cameras.main.startFollow(joueur, true, 0.12, 0.12);
 }
 
@@ -439,12 +475,15 @@ function majVisuelCheval(c) {
 
 function placerDecors() {
   decorObjs.forEach((o) => o.destroy()); decorObjs = [];
-  etat.decors.forEach((id, k) => {
-    const sl = SLOTS_DECOR[k % SLOTS_DECOR.length];
-    const d = DECORS.find((x) => x.id === id);
+  COLLISIONS = COLLISIONS.filter((m) => !m.deco);   // retire les collisions de déco précédentes
+  etat.decors.forEach((it) => {
+    const d = DECORS.find((x) => x.id === it.id);
     if (!d) return;
-    const o = sc.add.image(sl.x, sl.y, d.sprite).setOrigin(0.5, 0.95).setScale(1.2).setDepth(sl.y);
+    const o = sc.add.image(it.x, it.y, d.sprite).setOrigin(0.5, 0.95).setScale(1.2).setDepth(it.y);
     decorObjs.push(o);
+    // collision à la base (l'abreuvoir reste franchissable)
+    if (d.sprite === "pine") COLLISIONS.push({ x: it.x - 16, y: it.y - 22, w: 32, h: 24, deco: true });
+    else if (d.sprite === "bush") COLLISIONS.push({ x: it.x - 28, y: it.y - 16, w: 56, h: 20, deco: true });
   });
 }
 
@@ -452,6 +491,13 @@ function placerDecors() {
 function majAnimJoueur(mvx, mvy) {
   if (!joueurSprite) return;
   const key = persoDef(etat.perso.avatar).key;
+  // À cheval : l'enfant ne « marche » pas, il reste en pose fixe (assis).
+  if (monte) {
+    if (mvx || mvy) joueurFacing = Math.abs(mvx) > Math.abs(mvy) ? (mvx < 0 ? "left" : "right") : (mvy < 0 ? "up" : "down");
+    joueurSprite.anims.stop();
+    joueurSprite.setFrame(DIRS[joueurFacing] * 9);
+    return;
+  }
   if (mvx || mvy) {
     const dir = Math.abs(mvx) > Math.abs(mvy) ? (mvx < 0 ? "left" : "right") : (mvy < 0 ? "up" : "down");
     joueurFacing = dir;
@@ -469,7 +515,7 @@ function majAnimJoueur(mvx, mvy) {
 function sceneUpdate(time, delta) {
   if (!joueur) return;
   const dt = Math.min(delta / 1000, 0.05);
-  const modaleOuverte = !$("modale").classList.contains("cache");
+  const modaleOuverte = !$("modale").classList.contains("cache") || nuitEnCours;
 
   let vx = 0, vy = 0;
   if (!modaleOuverte) {
@@ -479,7 +525,8 @@ function sceneUpdate(time, delta) {
     if (cursors.down.isDown || wasd.bas.isDown) vy += 1;
   }
 
-  const vit = (monte ? 360 : 230);
+  const mul = VITESSES[(etat.vitesse || 1) % VITESSES.length].mul;
+  const vit = (monte ? 360 : 215) * mul;
   let mvx = 0, mvy = 0;
   if (vx || vy) {
     moveTarget = null; pendingInteract = null;
@@ -494,12 +541,12 @@ function sceneUpdate(time, delta) {
   joueur.x = clamp(joueur.x, 40, WORLD.w - 40);
   joueur.y = clamp(joueur.y, 40, WORLD.h - 40);
   bloquerObstacles();
-  joueur.setDepth(joueur.y + 1000);
+  joueur.setDepth(joueur.y);
 
   // À cheval : le cheval est au sol sous le joueur, l'enfant est assis sur son dos.
   if (monte) {
     monte.obj.x = joueur.x; monte.obj.y = joueur.y; monte.x = joueur.x; monte.y = joueur.y;
-    monte.obj.setDepth(joueur.y + 999);
+    monte.obj.setDepth(joueur.y - 1);
     monte.corpsT.setFlipX(joueurFacing === "right");
     joueurSprite.y = -58; joueurOmbre.setVisible(false);
   } else if (joueurSprite.y !== 0) {
@@ -509,6 +556,7 @@ function sceneUpdate(time, delta) {
   // balade des chevaux + humeur
   const now = time;
   etat.chevaux.forEach((c) => {
+    if (!c.obj) return;
     if (c !== monte) {
       // Le cheval s'arrête quand le joueur est proche (pour pouvoir s'en occuper).
       if (distJoueur(c.x, c.y) < 115) {
@@ -566,6 +614,19 @@ function majInteraction() {
 function onPointer(p) {
   if (!$("modale").classList.contains("cache")) return;
   const wx = p.worldX, wy = p.worldY;
+
+  // Mode placement de décoration : le clic place l'objet acheté.
+  if (placementDecor) {
+    const x = clamp(wx, 40, WORLD.w - 40), y = clamp(wy, 70, WORLD.h - 30);
+    if (x > CORRAL.x && x < CORRAL.x + CORRAL.w && y > CORRAL.y && y < CORRAL.y + CORRAL.h) {
+      message("Pas dans l'enclos des chevaux ! 🐴"); return;
+    }
+    etat.decors.push({ id: placementDecor.id, x, y });
+    etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
+    const nom = placementDecor.nom; placementDecor = null;
+    placerDecors(); sauvegarder(); majHud(); message(`${nom} installé ! ✨`);
+    return;
+  }
   let cible = null, dmin = Infinity;
   STATIONS.forEach((s) => { const d = Math.hypot(s.x - wx, s.y - wy); if (d < 70 && d < dmin) { dmin = d; cible = s; } });
   etat.chevaux.forEach((c) => { if (c === monte) return; const d = Math.hypot(c.x - wx, c.y - wy); if (d < 55 && d < dmin) { dmin = d; cible = c; } });
@@ -627,19 +688,19 @@ function actionCheval(action) {
     case "nourrir":
       if (etat.foin <= 0) { message("🌾 Plus de foin ! Va au magasin."); return; }
       etat.foin--; c.faim = borner(c.faim + 35); c.bonheur = borner(c.bonheur + 6); etat.pieces += 2;
-      bond(c); message(`${c.nom} a mangé du bon foin ! 🌾`); break;
+      etat.actionsDepuisDodo++; bond(c); message(`${c.nom} a mangé du bon foin ! 🌾`); break;
     case "brosser":
       c.proprete = borner(c.proprete + 40); c.bonheur = borner(c.bonheur + 10); c.energie = borner(c.energie - 5); etat.pieces += 2;
-      bond(c); message(`${c.nom} est tout beau et brillant ! ✨`); break;
+      etat.actionsDepuisDodo++; bond(c); message(`${c.nom} est tout beau et brillant ! ✨`); break;
     case "jouer":
       if (c.energie < 15) { message(`${c.nom} est trop fatigué pour jouer. 😴`); return; }
       c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 16); c.faim = borner(c.faim - 8); etat.pieces += 3;
-      bond(c); message(`${c.nom} s'est bien amusé ! 🎾`); break;
+      etat.actionsDepuisDodo++; bond(c); message(`${c.nom} s'est bien amusé ! 🎾`); break;
     case "monter":
       if (monte === c) { monte = null; message(`Tu descends de ${c.nom}. 🙂`); }
       else if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour être monté. 🐣`); return; }
       else if (c.energie < 20) { message(`${c.nom} est trop fatigué pour te porter. 😴`); return; }
-      else { monte = c; c.bonheur = borner(c.bonheur + 12); c.energie = borner(c.energie - 12); message(`En selle sur ${c.nom} ! 🏇`); }
+      else { monte = c; c.bonheur = borner(c.bonheur + 12); c.energie = borner(c.energie - 12); etat.actionsDepuisDodo++; message(`En selle sur ${c.nom} ! 🏇`); }
       idPanneau = null; majInteraction(); majHud(); return;
     case "relooker": ouvrirRelooker(c); return;
   }
@@ -651,7 +712,23 @@ function bond(c) {
 }
 
 function jourSuivant() {
-  etat.jour++; etat.pieces += 5;
+  if (nuitEnCours) return;
+  // Empêche d'enchaîner les nuits : il faut s'être occupé d'un cheval depuis le dernier dodo.
+  if ((etat.actionsDepuisDodo || 0) === 0) {
+    message("Tu viens de te lever ! Occupe-toi d'abord de tes chevaux. 🐴");
+    return;
+  }
+  nuitEnCours = true; moveTarget = null; message("🌙 La nuit tombe…");
+  if (nuitVoile && sc) {
+    sc.tweens.add({
+      targets: nuitVoile, alpha: 0.72, duration: 1100, hold: 700, yoyo: true,
+      onYoyo: appliquerJour, onComplete: () => { nuitEnCours = false; },
+    });
+  } else { appliquerJour(); nuitEnCours = false; }
+}
+
+function appliquerJour() {
+  etat.jour++; etat.pieces += 5; etat.actionsDepuisDodo = 0;
   const negliges = [];
   etat.chevaux.forEach((c) => {
     c.age++;
@@ -663,7 +740,10 @@ function jourSuivant() {
     if (c.obj) majVisuelCheval(c);
     if (c.bonheur < 25 || c.faim < 20) negliges.push(c.nom);
   });
-  monte = null; majHud();
+  monte = null;
+  if (joueurSprite) joueurSprite.y = 0;
+  if (joueurOmbre) joueurOmbre.setVisible(true);
+  majHud(); sauvegarder();
   if (negliges.length) message(`🌅 Jour ${etat.jour}. Occupe-toi de ${negliges.join(" et ")} !`);
   else message(`🌅 Jour ${etat.jour} : tout le monde a bien dormi. 🐴 (+5 💰)`);
 }
@@ -682,9 +762,8 @@ function ouvrirBoutique() {
       <button class="bouton" data-boutique="box">${PRIX_BOX} 💰</button></div>
     <h3>🎨 Décorations</h3><div class="grille-decor">`;
   DECORS.forEach((d) => {
-    const ok = etat.decors.includes(d.id);
-    html += `<button class="carte-decor ${ok ? "possede" : ""}" data-decor="${d.id}" ${ok ? "disabled" : ""}>
-      <img class="d-img" src="${av("assets/sprite/" + d.sprite + ".png")}" alt="" /><span>${d.nom}</span><span class="d-prix">${ok ? "✅" : d.prix + " 💰"}</span></button>`;
+    html += `<button class="carte-decor" data-decor="${d.id}">
+      <img class="d-img" src="${av("assets/sprite/" + d.sprite + ".png")}" alt="" /><span>${d.nom}</span><span class="d-prix">${d.prix} 💰</span></button>`;
   });
   html += `</div><h3>🐴 Adopter un cheval</h3>`;
   if (!placeLibre) html += `<p>⚠️ Ton corral est plein ! Agrandis-le d'abord.</p>`;
@@ -707,13 +786,12 @@ function acheter(quoi) {
 }
 
 function acheterDecor(id) {
-  if (etat.decors.includes(id)) return;
   const d = DECORS.find((x) => x.id === id); if (!d) return;
   if (etat.pieces < d.prix) return message("Pas assez de 💰 !");
-  etat.pieces -= d.prix; etat.decors.push(id);
-  etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
-  if (sc) placerDecors();
-  message(`${d.nom} installé !`); majHud(); ouvrirBoutique();
+  etat.pieces -= d.prix;
+  placementDecor = d;
+  fermerModale(); majHud();
+  message(`${d.nom} acheté ! 👉 Touche l'endroit où le placer.`);
 }
 
 function ouvrirRelooker(c) {
@@ -733,7 +811,9 @@ function ouvrirRelooker(c) {
     $("rl-robe").appendChild(b);
   });
   $("rl-ok").addEventListener("click", () => {
-    const nom = $("rl-nom").value.trim(); if (nom) c.nom = nom;
+    const nom = $("rl-nom").value.trim();
+    if (nom && nomUtilise(nom, c)) { message(`Un autre cheval s'appelle déjà ${nom} ! Choisis un autre nom.`); return; }
+    if (nom) c.nom = nom;
     majVisuelCheval(c); sauvegarder(); fermerModale(); idPanneau = null; message(`${c.nom} est relooké ! 🎨`);
   });
   apercu();
@@ -747,9 +827,10 @@ function ouvrirAide() {
       Tu peux aussi cliquer directement sur un cheval ou un bâtiment. (Au clavier : flèches ou Z Q S D.)</p>
       <p><b>🐴 Un cheval :</b> approche-toi puis 🌾 Nourrir, 🧽 Brosser, 🎾 Jouer, 🏇 Monter, ou 🎨 Relooker
       (robe, nom). Garde ses besoins au vert !</p>
-      <p><b>🏇 Monter :</b> en selle, promène-toi à cheval (plus rapide). Re-clique « Descendre » pour t'arrêter.</p>
-      <p><b>🏪 Magasin :</b> foin, décos, adopter des chevaux. <b>🏡 Écurie :</b> dormir pour le jour suivant.
-      <b>🧍 (en haut) :</b> change ton personnage.</p>
+      <p><b>🏇 Monter :</b> en selle, promène-toi à cheval. Re-clique « Descendre » pour t'arrêter.</p>
+      <p><b>🐇 Vitesse (en haut) :</b> touche pour changer la vitesse de marche et de cheval (Lent / Normal / Rapide).</p>
+      <p><b>🏪 Magasin :</b> foin, décos, adopter des chevaux. Après l'achat d'une déco, <b>touche l'endroit</b> où la poser.</p>
+      <p><b>🏡 Maison :</b> dormir passe au jour suivant (occupe-toi d'abord d'un cheval). <b>🧍 (en haut) :</b> change ton personnage.</p>
       <p>💰 Tu gagnes des sous en t'occupant de tes chevaux. 💾 Sauvegarde automatique.</p>
     </div>`);
 }

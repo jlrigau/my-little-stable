@@ -60,6 +60,15 @@ Style **pixel-art LPC**, **plus aucun emoji dans le monde** :
   (frames 20-23), profil gauche ; flip X pour la droite. Échelle ~1.15 (plus grands que l'enfant),
   origine 0.9. Ils s'arrêtent quand le joueur est proche (<115) pour pouvoir interagir.
 - **Déplacement** : clic/tap vers un point (PAS de dpad — retiré). Clavier flèches/ZQSD en bonus.
+  **Vitesses** : bouton HUD `#btn-vitesse` (Lent/Normal/Rapide, `VITESSES`) appliqué marche ET monte.
+- **Profondeur** : tout est trié par `y` (joueur inclus, plus de `+1000`) → le perso passe DERRIÈRE
+  arbres/bâtiments. **Collisions** (`COLLISIONS` + `bloquerObstacles`) sur clôture + arbres + buissons
+  + bâtiments + déco (empreinte plus large à cheval). Portail = trou clôture à gauche.
+- **À cheval** : enfant assis sur le dos (`joueurSprite.y=-58`, ombre masquée), sans anim de marche.
+- **Dormir** : transition nuit (voile `nuitVoile` qui s'assombrit puis s'éclaircit) ; interdit d'enchaîner
+  les nuits (`actionsDepuisDodo` : il faut s'occuper d'un cheval entre deux dodos).
+- **Déco** : achat au magasin puis **placement libre** au clic (positions dans `etat.decors=[{id,x,y}]`).
+- **Noms de chevaux uniques** (`nomLibre`/`nomUtilise`).
 - **Humeur** : petit cœur teinté (vert/orange/rouge), pas de smiley.
 - **Déco achetable** : sapin/buisson/abreuvoir (sprites).
 - Personnalisation : perso (fille/garçon) + cheval (5 robes, nom). Menus à vignettes-images.
