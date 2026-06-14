@@ -13,9 +13,12 @@
 
 * { box-sizing: border-box; font-family: "Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif; }
 html, body { height: 100%; }
+/* Fond orange de base : la zone de statut iOS reste dans la continuité (pas de blanc). */
+html { background: var(--vert-fonce); }
 body {
   margin: 0; color: var(--texte);
-  background: linear-gradient(170deg, #ffce8f 0%, #ffb066 35%, #e8895a 70%, #c46a4a 100%);
+  background-color: var(--vert-fonce);
+  background-image: linear-gradient(170deg, #ffce8f 0%, #ffb066 35%, #e8895a 70%, #c46a4a 100%);
   overflow: hidden;
 }
 .ecran { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
