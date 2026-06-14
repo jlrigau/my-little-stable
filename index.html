@@ -4,32 +4,44 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>🤠 Mon Ranch du Far West</title>
-  <link rel="stylesheet" href="style.css?v=3d1" />
+  <link rel="stylesheet" href="style.css?v=iso1" />
 </head>
 <body>
-  <!-- Écran de démarrage -->
+  <!-- Écran d'accueil -->
   <div id="ecran-accueil" class="ecran">
     <div class="boite-accueil">
       <h1 class="titre-jeu">🤠 Mon Ranch</h1>
-      <p class="sous-titre">Promène-toi dans ton ranch du Far West et occupe-toi de tes chevaux&nbsp;!</p>
-      <label class="label-nom" for="nom-haras">Comment s'appelle ton ranch&nbsp;?</label>
+      <p class="sous-titre">Crée ton personnage et occupe-toi de tes chevaux dans le Far West&nbsp;!</p>
+      <label class="label-nom" for="nom-haras">Le nom de ton ranch&nbsp;:</label>
       <input id="nom-haras" type="text" maxlength="20" placeholder="Le Ranch du Canyon Doré" />
-      <button id="btn-commencer" class="bouton bouton-geant">▶️ Commencer l'aventure</button>
+      <button id="btn-commencer" class="bouton bouton-geant">▶️ Nouvelle partie</button>
       <button id="btn-charger" class="bouton bouton-secondaire">📂 Continuer ma partie</button>
       <p id="msg-accueil" class="msg-accueil"></p>
     </div>
   </div>
 
-  <!-- Jeu principal -->
+  <!-- Création du personnage -->
+  <div id="ecran-creation" class="ecran cache">
+    <div class="boite-creation">
+      <h2>🎨 Crée ta cow-girl / ton cow-boy</h2>
+      <div class="creation-zone">
+        <canvas id="apercu" width="180" height="240" class="apercu"></canvas>
+        <div id="creation-controles" class="creation-controles"></div>
+      </div>
+      <button id="btn-creation-ok" class="bouton bouton-geant">✅ C'est parti&nbsp;!</button>
+    </div>
+  </div>
+
+  <!-- Jeu -->
   <div id="ecran-jeu" class="ecran cache">
     <header class="barre-haut">
-      <div class="titre-haras">🤠 <span id="aff-nom-haras">Mon Ranch</span> <small id="aff-niveau" class="aff-niveau"></small></div>
+      <div class="titre-haras">🤠 <span id="aff-nom-haras">Mon Ranch</span></div>
       <div class="ressources">
         <span class="ressource" title="Dollars">💰 <b id="aff-pieces">0</b></span>
-        <span class="ressource" title="Bottes de foin">🌾 <b id="aff-carottes">0</b></span>
+        <span class="ressource" title="Bottes de foin">🌾 <b id="aff-foin">0</b></span>
         <span class="ressource" title="Jour">📅 J<b id="aff-jour">1</b></span>
         <span class="ressource" title="Chevaux / box">🐴 <b id="aff-boxes">0/0</b></span>
-        <button id="btn-objectifs" class="mini-bouton" title="Objectifs">🏆</button>
+        <button id="btn-moi" class="mini-bouton" title="Changer mon apparence">🧍</button>
         <button id="btn-aide" class="mini-bouton" title="Aide">❓</button>
       </div>
     </header>
@@ -37,9 +49,7 @@
     <div id="message-jeu" class="message-jeu cache"></div>
 
     <div class="zone-monde">
-      <canvas id="monde" width="960" height="640"></canvas>
-
-      <!-- Manette tactile -->
+      <canvas id="monde"></canvas>
       <div id="dpad" class="dpad">
         <button class="dpad-btn haut" data-dir="haut">▲</button>
         <button class="dpad-btn gauche" data-dir="gauche">◀</button>
@@ -49,13 +59,12 @@
       <button id="btn-action" class="btn-action cache">Action</button>
     </div>
 
-    <!-- Panneau contextuel (s'occuper d'un cheval / entrer dans un bâtiment) -->
     <div id="panneau" class="panneau">
       <p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment pour agir.</p>
     </div>
   </div>
 
-  <!-- Fenêtre modale réutilisable -->
+  <!-- Modale -->
   <div id="modale" class="modale cache">
     <div class="modale-contenu">
       <button id="btn-fermer-modale" class="btn-fermer">✖</button>
@@ -64,7 +73,6 @@
     </div>
   </div>
 
-  <script src="https://cdn.babylonjs.com/babylon.js"></script>
-  <script src="game.js?v=3d1"></script>
+  <script src="game.js?v=iso1"></script>
 </body>
 </html>

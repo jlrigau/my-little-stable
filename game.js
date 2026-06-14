@@ -1,28 +1,29 @@
 /* =========================================================
-   🤠 Mon Ranch du Far West — version 3D
+   🤠 Mon Ranch du Far West — version isométrique 2.5D
    Jeu de simulation d'élevage de chevaux pour enfants (9-10 ans).
-   Monde 3D explorable rendu avec Babylon.js (chargé via CDN).
+   Rendu isométrique sur <canvas> avec sprites dessinés (vectoriels),
+   personnage et chevaux entièrement personnalisables.
    100% statique : sauvegarde dans le navigateur.
    ========================================================= */
 
 "use strict";
 
-/* ===================== Données du jeu ===================== */
+/* ===================== Palettes & données ===================== */
 
-const RACES = [
-  { nom: "Mustang", emoji: "🐎", prix: 40 },
-  { nom: "Appaloosa", emoji: "🐴", prix: 55 },
-  { nom: "Poney", emoji: "🦄", prix: 35 },
-  { nom: "Quarter Horse", emoji: "🏇", prix: 70 },
-];
+const PEAUX = ["#f7c89c", "#e7a877", "#c98a5a", "#8d5a36"];
+const CHEVEUX = ["#33271a", "#6b4a2b", "#caa14a", "#d9d4cc", "#b5512b", "#1d1d1d"];
+const HAUTS = ["#4aa3b8", "#e8722d", "#d94a6a", "#7fae5a", "#7a5bd0", "#f4b942"];
+const PANTALONS = ["#3a4a6b", "#5a3a2a", "#444444", "#2a6b4a"];
+const CHAPEAUX = ["#7a5230", "#b5572b", "#3f3a36", "#d94a6a", "#4aa3b8", "#caa14a"];
 
-const ROBES = [
-  { id: "alezan", nom: "Alezan", couleur: "#b5651d" },
-  { id: "bai", nom: "Bai", couleur: "#6e4a2f" },
-  { id: "noir", nom: "Noir", couleur: "#3f3a36" },
-  { id: "gris", nom: "Gris", couleur: "#b9b2a9" },
-  { id: "palomino", nom: "Palomino", couleur: "#e6c068" },
-  { id: "pie", nom: "Pie", couleur: "#8a6f57" },
+const ROBES = ["#caa14a", "#b5651d", "#6e4a2f", "#3f3a36", "#cfc7bd", "#8a6f57", "#ece4d6", "#7a4a2a"];
+const CRINIERES = ["#33271a", "#6b4a2b", "#caa14a", "#d9d4cc", "#1d1d1d", "#b5512b"];
+const ACCESSOIRES = [
+  { id: "aucun", emoji: "", nom: "Aucun" },
+  { id: "noeud", emoji: "🎀", nom: "Nœud" },
+  { id: "fleur", emoji: "🌸", nom: "Fleur" },
+  { id: "chapeau", emoji: "🤠", nom: "Chapeau" },
+  { id: "etoile", emoji: "⭐", nom: "Étoile" },
 ];
 
 const DECORS = [
@@ -30,777 +31,102 @@ const DECORS = [
   { id: "feu", nom: "Feu de camp", emoji: "🔥", prix: 20 },
   { id: "tonneau", nom: "Tonneau", emoji: "🛢️", prix: 18 },
   { id: "fleur", nom: "Fleurs", emoji: "🌼", prix: 16 },
-  { id: "etoile", nom: "Panneau shérif", emoji: "⭐", prix: 30 },
-  { id: "guitare", nom: "Guitare", emoji: "🎸", prix: 22 },
   { id: "arbre", nom: "Arbre", emoji: "🌳", prix: 28 },
   { id: "lampe", nom: "Lanterne", emoji: "🏮", prix: 24 },
 ];
 
-const QUETES = [
-  { id: "deuxchevaux", titre: "Premiers compagnons", desc: "Avoir 2 chevaux", recompense: 25, test: (e) => e.chevaux.length >= 2 },
-  { id: "rodeo1", titre: "Premier rodéo gagné", desc: "Gagner 1 rodéo", recompense: 30, test: (e) => e.stats.rodeosGagnes >= 1 },
-  { id: "poulain", titre: "Premier poulain", desc: "Faire naître un poulain", recompense: 35, test: (e) => e.stats.poulainsNes >= 1 },
-  { id: "dressage50", titre: "Bon dresseur", desc: "Dresser un cheval au niveau 50", recompense: 40, test: (e) => e.chevaux.some((c) => c.entrainement >= 50) },
-  { id: "decor3", titre: "Ranch coquet", desc: "Installer 3 décorations", recompense: 30, test: (e) => e.decors.length >= 3 },
-  { id: "jour7", titre: "Une semaine au ranch", desc: "Atteindre le jour 7", recompense: 35, test: (e) => e.jour >= 7 },
-  { id: "cinqchevaux", titre: "Grand éleveur", desc: "Avoir 5 chevaux", recompense: 60, test: (e) => e.chevaux.length >= 5 },
-  { id: "rodeo5", titre: "Star du rodéo", desc: "Gagner 5 rodéos", recompense: 70, test: (e) => e.stats.rodeosGagnes >= 5 },
-];
-
-const TITRES_RANCH = [
-  "🌱 Ranch débutant", "🤠 Petit ranch", "⭐ Ranch prometteur",
-  "🏅 Grand ranch", "🔥 Ranch réputé", "👑 Ranch légendaire",
-];
-
 const NOMS_CHEVAUX = [
   "Éclair", "Tornade", "Caramel", "Étoile", "Tonnerre", "Cannelle",
-  "Bandit", "Poussière", "Sherif", "Mistral", "Cactus", "Soleil",
-  "Flèche", "Pépite", "Rusty", "Comète", "Sable", "Bravo",
+  "Bandit", "Poussière", "Mistral", "Pépite", "Comète", "Bravo",
 ];
 
-const CONFIG = {
-  pieceDepart: 60, foinDepart: 6, boxesDepart: 4,
-  prixBotteFoin: 4, prixBox: 80, ageAdulte: 5,
-  baisseParJour: { faim: 25, energie: 18, proprete: 16, bonheur: 12 },
-};
+const PRIX_CHEVAL = 45;
+const PRIX_FOIN = 4;
+const PRIX_BOX = 80;
+const AGE_ADULTE = 5;
+const OUT = "#3a2a1a"; // couleur de contour des sprites
 
-/* ===================== Monde 3D (coordonnées) ===================== */
+/* ===================== Monde isométrique ===================== */
 
-const VIT = 7;                  // vitesse du joueur (m/s)
-const CORRAL = { x1: 3, x2: 27, z1: -15, z2: 15 }; // enclos des chevaux
+const TW2 = 32, TH2 = 16;       // demi-largeur / demi-hauteur d'une tuile
+const GRID = 16;
+const CORRAL = { i1: 8, i2: 15, j1: 2, j2: 13 };
 
 const STATIONS = [
-  { id: "maison", type: "dormir", x: -14, z: -10, emoji: "🏠", label: "Dormir" },
-  { id: "magasin", type: "boutique", x: -14, z: 2, emoji: "🏪", label: "Magasin" },
-  { id: "grange", type: "elevage", x: -14, z: 13, emoji: "🛖", label: "Élevage" },
+  { type: "dormir", i: 2, j: 4, emoji: "🏠", label: "Dormir", couleur: "#d98a5f" },
+  { type: "boutique", i: 2, j: 9, emoji: "🏪", label: "Magasin", couleur: "#e8b25a" },
 ];
 
 const SLOTS_DECOR = [
-  { x: -22, z: -12 }, { x: -22, z: 6 }, { x: -7, z: -15 }, { x: -2, z: 17 },
-  { x: -20, z: 19 }, { x: -26, z: -2 }, { x: 31, z: -16 }, { x: 31, z: 17 },
+  { i: 5, j: 2 }, { i: 6, j: 13 }, { i: 4, j: 6 }, { i: 1, j: 12 },
+  { i: 5, j: 9 }, { i: 1, j: 1 }, { i: 14, j: 1 }, { i: 14, j: 14 },
 ];
 
-/* ===================== État de la partie ===================== */
+/* ===================== État ===================== */
 
 let etat = null;
-const CLE_SAUVEGARDE = "mon-ranch-far-west-3d";
+const CLE = "mon-ranch-iso";
 
 /* ===================== Utilitaires ===================== */
 
 function aleatoire(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-function choisir(liste) { return liste[aleatoire(0, liste.length - 1)]; }
+function choisir(l) { return l[aleatoire(0, l.length - 1)]; }
 function borner(v) { return Math.max(0, Math.min(100, Math.round(v))); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function $(id) { return document.getElementById(id); }
-function trouverRobe(id) { return ROBES.find((r) => r.id === id) || ROBES[0]; }
 
-function positionCorral() {
-  return { x: aleatoire(CORRAL.x1 + 2, CORRAL.x2 - 2), z: aleatoire(CORRAL.z1 + 2, CORRAL.z2 - 2) };
-}
-
-/* ===================== Création des chevaux ===================== */
+/* ===================== Chevaux ===================== */
 
 let compteurId = 1;
 
-function nouveauCheval(options = {}) {
-  const race = options.race || choisir(RACES);
-  const p = positionCorral();
+function nouveauCheval(o = {}) {
+  const i = aleatoire(CORRAL.i1 + 1, CORRAL.i2 - 1);
+  const j = aleatoire(CORRAL.j1 + 1, CORRAL.j2 - 1);
   return {
     id: compteurId++,
-    nom: options.nom || choisir(NOMS_CHEVAUX),
-    race: race.nom, emoji: race.emoji,
-    robe: options.robe || choisir(ROBES).id,
-    age: options.age != null ? options.age : aleatoire(5, 9),
+    nom: o.nom || choisir(NOMS_CHEVAUX),
+    robe: o.robe || choisir(ROBES),
+    crin: o.crin || choisir(CRINIERES),
+    accessoire: o.accessoire || "aucun",
+    age: o.age != null ? o.age : aleatoire(5, 9),
     faim: 70, energie: 80, proprete: 75, bonheur: 80,
-    entrainement: options.entrainement || 0,
-    concoursFait: false,
-    wx: p.x, wz: p.z, tx: p.x, tz: p.z, prochainPas: 0,
-    mesh: null, moodMat: null,
+    gi: i, gj: j, ti: i, tj: j, prochainPas: 0, flip: false,
   };
 }
 
-function estPoulain(c) { return c.age < CONFIG.ageAdulte; }
-function moyenneBesoins(c) { return (c.faim + c.energie + c.proprete + c.bonheur) / 4; }
+function estPoulain(c) { return c.age < AGE_ADULTE; }
+function moyenne(c) { return (c.faim + c.energie + c.proprete + c.bonheur) / 4; }
 
-/* ===================== Sauvegarde / chargement ===================== */
+/* ===================== Sauvegarde ===================== */
 
 function sauvegarder() {
   etat.compteurId = compteurId;
-  try {
-    // On ne sérialise pas les objets Babylon (mesh, matériaux).
-    localStorage.setItem(CLE_SAUVEGARDE, JSON.stringify(etat, (k, v) =>
-      (k === "mesh" || k === "moodMat") ? undefined : v));
-  } catch (e) {}
+  try { localStorage.setItem(CLE, JSON.stringify(etat)); } catch (e) {}
 }
-
 function charger() {
-  try { const b = localStorage.getItem(CLE_SAUVEGARDE); return b ? JSON.parse(b) : null; }
-  catch (e) { return null; }
+  try { const b = localStorage.getItem(CLE); return b ? JSON.parse(b) : null; } catch (e) { return null; }
 }
 
-function normaliserChevaux() {
-  etat.chevaux.forEach((c) => {
-    if (!c.robe) c.robe = choisir(ROBES).id;
-    if (c.wx == null) { const p = positionCorral(); c.wx = p.x; c.wz = p.z; }
-    c.tx = c.wx; c.tz = c.wz; c.prochainPas = 0; c.mesh = null; c.moodMat = null;
-  });
+function persoParDefaut() {
+  return { peau: PEAUX[0], cheveux: CHEVEUX[1], haut: HAUTS[0], pantalon: PANTALONS[0], chapeau: CHAPEAUX[1], chapeauOn: true };
 }
 
-/* ===================== Démarrage ===================== */
+/* ===================== Flux des écrans ===================== */
 
-function nouvellePartie(nomRanch) {
-  compteurId = 1;
-  etat = {
-    nomRanch, pieces: CONFIG.pieceDepart, foin: CONFIG.foinDepart, jour: 1,
-    boxes: CONFIG.boxesDepart,
-    chevaux: [nouveauCheval({ nom: "Éclair", race: RACES[0], robe: "palomino" })],
-    decors: [], quetesFaites: [], stats: { rodeosGagnes: 0, poulainsNes: 0 },
-  };
-  sauvegarder();
-  demarrerJeu();
-}
-
-function continuerPartie() {
-  const sauv = charger();
-  if (!sauv) { $("msg-accueil").textContent = "Aucune partie sauvegardée. Commence une nouvelle aventure !"; return; }
-  etat = sauv;
-  if (!etat.decors) etat.decors = [];
-  if (!etat.quetesFaites) etat.quetesFaites = [];
-  if (!etat.stats) etat.stats = { rodeosGagnes: 0, poulainsNes: 0 };
-  normaliserChevaux();
-  compteurId = sauv.compteurId || (etat.chevaux.length + 1);
-  demarrerJeu();
-}
-
-function demarrerJeu() {
-  $("ecran-accueil").classList.add("cache");
-  $("ecran-jeu").classList.remove("cache");
-  $("aff-nom-haras").textContent = etat.nomRanch;
-  normaliserChevaux();
-  majHud();
-  if (!sceneCreee) { sceneCreee = true; initScene(); }
-}
-
-/* ===================== Niveau / HUD ===================== */
-
-function infoNiveau() {
-  const n = etat.quetesFaites.length;
-  const index = Math.min(n, TITRES_RANCH.length - 1);
-  return { niveau: index + 1, titre: TITRES_RANCH[index] };
-}
-
-function majHud() {
-  $("aff-pieces").textContent = etat.pieces;
-  $("aff-carottes").textContent = etat.foin;
-  $("aff-jour").textContent = etat.jour;
-  $("aff-boxes").textContent = etat.chevaux.length + "/" + etat.boxes;
-  const info = infoNiveau();
-  $("aff-niveau").textContent = `Niv.${info.niveau} ${info.titre}`;
-  sauvegarder();
-}
-
-/* ===================== Messages ===================== */
-
-let timerMessage = null;
-function message(texte) {
-  const el = $("message-jeu");
-  el.textContent = texte; el.classList.remove("cache");
-  el.style.animation = "none"; void el.offsetWidth; el.style.animation = "";
-  clearTimeout(timerMessage);
-  timerMessage = setTimeout(() => el.classList.add("cache"), 2800);
-}
-
-/* ===================== Scène Babylon ===================== */
-
-let sceneCreee = false;
-let engine, scene, camera, playerRoot, ringSel;
-let moveTarget = null, pendingInteract = null;
-let cibleActive = null, idPanneauAffiche = null;
-let decorMeshes = [];
-
-const touches = { haut: false, bas: false, gauche: false, droite: false };
-
-function couleur(hex) { return BABYLON.Color3.FromHexString(hex); }
-
-function materiau(nom, hex, emissif) {
-  const m = new BABYLON.StandardMaterial(nom, scene);
-  m.diffuseColor = couleur(hex);
-  m.specularColor = new BABYLON.Color3(0.05, 0.05, 0.05);
-  if (emissif) m.emissiveColor = couleur(emissif);
-  return m;
-}
-
-function initScene() {
-  const cv = $("monde");
-  engine = new BABYLON.Engine(cv, true, { preserveDrawingBuffer: true, stencil: true });
-  scene = new BABYLON.Scene(engine);
-  scene.clearColor = new BABYLON.Color4(0.99, 0.80, 0.55, 1);
-  scene.ambientColor = new BABYLON.Color3(1, 1, 1);
-  scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
-  scene.fogColor = new BABYLON.Color3(0.96, 0.74, 0.52);
-  scene.fogStart = 55; scene.fogEnd = 95;
-
-  // Caméra de suivi (3e personne), non contrôlable pour rester simple.
-  camera = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0, 17, -16), scene);
-  camera.inputs.clear();
-  camera.fov = 0.9;
-
-  const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0.3, 1, 0.2), scene);
-  hemi.intensity = 0.95;
-  hemi.groundColor = new BABYLON.Color3(0.7, 0.55, 0.4);
-  const dir = new BABYLON.DirectionalLight("dir", new BABYLON.Vector3(-0.6, -1, -0.5), scene);
-  dir.position = new BABYLON.Vector3(25, 45, 25); dir.intensity = 0.45;
-
-  // Sol désertique
-  const sol = BABYLON.MeshBuilder.CreateGround("sol", { width: 90, height: 90 }, scene);
-  sol.material = materiau("matSol", "#e8c48a");
-
-  creerCorral();
-  decorsFond();
-  STATIONS.forEach(creerMeshStation);
-  creerJoueur();
-  etat.chevaux.forEach(creerMeshCheval);
-  placerDecors();
-
-  // Anneau de sélection (sous la cible active)
-  ringSel = BABYLON.MeshBuilder.CreateTorus("ring", { diameter: 3.6, thickness: 0.22, tessellation: 28 }, scene);
-  ringSel.rotation.x = Math.PI / 2;
-  ringSel.material = materiau("matRing", "#e8722d", "#e8722d");
-  ringSel.isPickable = false; ringSel.setEnabled(false);
-
-  scene.onPointerObservable.add(onPointer);
-
-  engine.runRenderLoop(() => { if (!$("ecran-jeu").classList.contains("cache")) { tickMonde(); scene.render(); } });
-  window.addEventListener("resize", () => engine.resize());
-  engine.resize();
-}
-
-function creerCorral() {
-  const cx = (CORRAL.x1 + CORRAL.x2) / 2, cz = (CORRAL.z1 + CORRAL.z2) / 2;
-  const herbe = BABYLON.MeshBuilder.CreateGround("herbe",
-    { width: CORRAL.x2 - CORRAL.x1, height: CORRAL.z2 - CORRAL.z1 }, scene);
-  herbe.position.set(cx, 0.02, cz);
-  herbe.material = materiau("matHerbe", "#bfe089");
-
-  const matBois = materiau("matBois", "#8a5a3b");
-  const poteaux = [];
-  const pas = 2.2;
-  for (let x = CORRAL.x1; x <= CORRAL.x2; x += pas) { poteaux.push([x, CORRAL.z1]); poteaux.push([x, CORRAL.z2]); }
-  for (let z = CORRAL.z1; z <= CORRAL.z2; z += pas) { poteaux.push([CORRAL.x1, z]); poteaux.push([CORRAL.x2, z]); }
-  poteaux.forEach(([x, z], i) => {
-    const p = BABYLON.MeshBuilder.CreateBox("pot" + i, { width: 0.2, depth: 0.2, height: 1.2 }, scene);
-    p.position.set(x, 0.6, z); p.material = matBois; p.isPickable = false;
-  });
-}
-
-function billboardEmoji(emoji, x, y, z, taille) {
-  const dt = new BABYLON.DynamicTexture("dt", { width: 160, height: 160 }, scene, true);
-  dt.hasAlpha = true;
-  const ctx2 = dt.getContext();
-  ctx2.clearRect(0, 0, 160, 160);
-  ctx2.font = "120px serif"; ctx2.textAlign = "center"; ctx2.textBaseline = "middle";
-  ctx2.fillText(emoji, 80, 90);
-  dt.update();
-  const mat = new BABYLON.StandardMaterial("matbb", scene);
-  mat.diffuseTexture = dt; mat.emissiveColor = new BABYLON.Color3(1, 1, 1);
-  mat.useAlphaFromDiffuseTexture = true; mat.backFaceCulling = false;
-  mat.diffuseTexture.hasAlpha = true;
-  const pl = BABYLON.MeshBuilder.CreatePlane("bb", { size: taille }, scene);
-  pl.position.set(x, y, z); pl.material = mat;
-  pl.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
-  pl.isPickable = false;
-  return pl;
-}
-
-function decorsFond() {
-  // Quelques cactus et rochers + mesas lointaines, juste pour l'ambiance.
-  const matCactus = materiau("matCactus", "#5f9a4a");
-  const cactus = (x, z) => {
-    const t = new BABYLON.TransformNode("cac", scene);
-    const corps = BABYLON.MeshBuilder.CreateCylinder("cc", { height: 2.4, diameter: 0.7 }, scene);
-    corps.position.y = 1.2; corps.parent = t; corps.material = matCactus; corps.isPickable = false;
-    const bras = BABYLON.MeshBuilder.CreateSphere("cb", { diameter: 0.7 }, scene);
-    bras.position.set(0.45, 1.7, 0); bras.parent = t; bras.material = matCactus; bras.isPickable = false;
-    t.position.set(x, 0, z);
-  };
-  [[-24, -18], [-30, 8], [-10, 22], [33, 4], [20, -22]].forEach(([x, z]) => cactus(x, z));
-
-  const matMesa = materiau("matMesa", "#bd6a44");
-  [[-38, -30, 10], [40, 30, 12], [10, 42, 8]].forEach(([x, z, h]) => {
-    const m = BABYLON.MeshBuilder.CreateBox("mesa", { width: 14, depth: 10, height: h }, scene);
-    m.position.set(x, h / 2, z); m.material = matMesa; m.isPickable = false;
-  });
-}
-
-function creerMeshStation(s) {
-  const root = new BABYLON.TransformNode("st" + s.id, scene);
-  root.position.set(s.x, 0, s.z);
-  const mur = BABYLON.MeshBuilder.CreateBox("mur" + s.id, { width: 3, depth: 3, height: 2.6 }, scene);
-  mur.position.y = 1.3; mur.parent = root; mur.material = materiau("matMur" + s.id, "#f6e2bd");
-  mur.metadata = { type: "station", ref: s };
-  const toit = BABYLON.MeshBuilder.CreateCylinder("toit" + s.id,
-    { diameterTop: 0, diameterBottom: 4.4, height: 1.6, tessellation: 4 }, scene);
-  toit.position.y = 3.4; toit.rotation.y = Math.PI / 4; toit.parent = root;
-  toit.material = materiau("matToit" + s.id, "#b5572b");
-  toit.metadata = { type: "station", ref: s };
-  billboardEmoji(s.emoji, s.x, 5.2, s.z, 2.4);
-  s.mesh = root;
-}
-
-function creerJoueur() {
-  playerRoot = new BABYLON.TransformNode("player", scene);
-  playerRoot.position.set(-6, 0, 2);
-  const corps = BABYLON.MeshBuilder.CreateCylinder("pcorps", { height: 1.1, diameterTop: 0.55, diameterBottom: 0.75 }, scene);
-  corps.position.y = 1.0; corps.parent = playerRoot; corps.material = materiau("matCorps", "#4aa3b8"); corps.isPickable = false;
-  const tete = BABYLON.MeshBuilder.CreateSphere("ptete", { diameter: 0.6 }, scene);
-  tete.position.y = 1.85; tete.parent = playerRoot; tete.material = materiau("matTete", "#f0c9a0"); tete.isPickable = false;
-  const bord = BABYLON.MeshBuilder.CreateCylinder("pbord", { height: 0.07, diameter: 1.1 }, scene);
-  bord.position.y = 2.05; bord.parent = playerRoot; bord.material = materiau("matChapeau", "#7a5230"); bord.isPickable = false;
-  const haut = BABYLON.MeshBuilder.CreateCylinder("phaut", { height: 0.3, diameter: 0.6 }, scene);
-  haut.position.y = 2.2; haut.parent = playerRoot; haut.material = bord.material; haut.isPickable = false;
-}
-
-function creerMeshCheval(c) {
-  if (c.mesh) return;
-  const root = new BABYLON.TransformNode("h" + c.id, scene);
-  const mat = materiau("matH" + c.id, trouverRobe(c.robe).couleur);
-  const matFonce = materiau("matHf" + c.id, "#3a2c20");
-  const ajout = (mesh, m) => { mesh.parent = root; mesh.material = m || mat; mesh.metadata = { type: "horse", ref: c }; return mesh; };
-
-  ajout(BABYLON.MeshBuilder.CreateBox("corps", { width: 1.7, height: 0.9, depth: 0.75 }, scene)).position.set(0, 1.05, 0);
-  ajout(BABYLON.MeshBuilder.CreateBox("cou", { width: 0.45, height: 0.9, depth: 0.5 }, scene)).position.set(0.85, 1.55, 0);
-  const tete = ajout(BABYLON.MeshBuilder.CreateBox("tete", { width: 0.7, height: 0.5, depth: 0.45 }, scene));
-  tete.position.set(1.15, 1.9, 0);
-  // 4 pattes
-  [[0.6, 0.32], [0.6, -0.32], [-0.6, 0.32], [-0.6, -0.32]].forEach(([dx, dz], i) => {
-    ajout(BABYLON.MeshBuilder.CreateBox("patte" + i, { width: 0.22, height: 1.0, depth: 0.22 }, scene), matFonce)
-      .position.set(dx, 0.5, dz);
-  });
-  ajout(BABYLON.MeshBuilder.CreateBox("queue", { width: 0.18, height: 0.7, depth: 0.18 }, scene), matFonce)
-    .position.set(-0.95, 1.15, 0);
-
-  // Bulle d'humeur au-dessus
-  const moodMat = materiau("matMood" + c.id, "#7fae5a", "#7fae5a");
-  const mood = BABYLON.MeshBuilder.CreateSphere("mood" + c.id, { diameter: 0.45 }, scene);
-  mood.position.y = 2.6; mood.parent = root; mood.material = moodMat; mood.isPickable = false;
-
-  if (estPoulain(c)) root.scaling.setAll(0.6);
-  root.position.set(c.wx, 0, c.wz);
-  c.mesh = root; c.moodMat = moodMat;
-}
-
-function placerDecors() {
-  decorMeshes.forEach((m) => m.dispose());
-  decorMeshes = [];
-  etat.decors.forEach((id, i) => {
-    const slot = SLOTS_DECOR[i % SLOTS_DECOR.length];
-    const d = DECORS.find((x) => x.id === id);
-    if (d && slot) decorMeshes.push(billboardEmoji(d.emoji, slot.x, 1.4, slot.z, 2.6));
-  });
-}
-
-/* ===================== Boucle 3D ===================== */
-
-function faceDir(dx, dz) {
-  if (dx || dz) playerRoot.rotation.y = Math.atan2(dx, dz);
-}
-
-function tickMonde() {
-  const dt = Math.min(engine.getDeltaTime() / 1000, 0.05);
-  const pr = playerRoot.position;
-
-  // Déplacement
-  let vx = 0, vz = 0;
-  if (touches.haut) vz += 1;
-  if (touches.bas) vz -= 1;
-  if (touches.gauche) vx -= 1;
-  if (touches.droite) vx += 1;
-
-  if (vx || vz) {
-    moveTarget = null; pendingInteract = null;
-    const n = Math.hypot(vx, vz);
-    pr.x += (vx / n) * VIT * dt; pr.z += (vz / n) * VIT * dt; faceDir(vx, vz);
-  } else if (moveTarget) {
-    const dx = moveTarget.x - pr.x, dz = moveTarget.z - pr.z;
-    const d = Math.hypot(dx, dz);
-    if (d < 0.5) {
-      moveTarget = null;
-      if (pendingInteract) { const c = pendingInteract; pendingInteract = null; interagir(c); }
-    } else { pr.x += (dx / d) * VIT * dt; pr.z += (dz / d) * VIT * dt; faceDir(dx, dz); }
-  }
-  pr.x = clamp(pr.x, -34, 34); pr.z = clamp(pr.z, -34, 34);
-
-  // Chevaux : balade + humeur
-  const maintenant = performance.now();
-  etat.chevaux.forEach((c) => {
-    if (!c.mesh) return;
-    const actif = cibleActive === c;
-    if (!actif) {
-      if (maintenant > c.prochainPas) { const p = positionCorral(); c.tx = p.x; c.tz = p.z; c.prochainPas = maintenant + aleatoire(2500, 6000); }
-      const dx = c.tx - c.mesh.position.x, dz = c.tz - c.mesh.position.z;
-      const d = Math.hypot(dx, dz);
-      if (d > 0.2) {
-        c.mesh.position.x += (dx / d) * 1.6 * dt; c.mesh.position.z += (dz / d) * 1.6 * dt;
-        c.mesh.rotation.y = Math.atan2(dx, dz);
-        c.wx = c.mesh.position.x; c.wz = c.mesh.position.z;
-      }
-    }
-    const m = moyenneBesoins(c);
-    const col = m > 60 ? "#7fae5a" : m > 35 ? "#f4b942" : "#f0676a";
-    c.moodMat.diffuseColor = couleur(col); c.moodMat.emissiveColor = couleur(col);
-  });
-
-  // Caméra suit le joueur
-  camera.position.set(pr.x, pr.y + 18, pr.z - 17);
-  camera.setTarget(new BABYLON.Vector3(pr.x, 1.2, pr.z));
-
-  majInteraction();
-}
-
-function distPlayer(x, z) {
-  return Math.hypot(playerRoot.position.x - x, playerRoot.position.z - z);
-}
-
-function majInteraction() {
-  let meilleur = null, dmin = Infinity;
-  STATIONS.forEach((s) => { const d = distPlayer(s.x, s.z); if (d < 5 && d < dmin) { dmin = d; meilleur = s; } });
-  etat.chevaux.forEach((c) => { if (!c.mesh) return; const d = distPlayer(c.mesh.position.x, c.mesh.position.z); if (d < 4 && d < dmin) { dmin = d; meilleur = c; } });
-
-  cibleActive = meilleur;
-  const id = meilleur ? (meilleur.race ? "c" + meilleur.id : "s" + meilleur.id) : null;
-  if (id !== idPanneauAffiche) { idPanneauAffiche = id; construirePanneau(); }
-  if (meilleur && meilleur.race) majBarresPanneau(meilleur);
-
-  if (meilleur) {
-    const x = meilleur.race ? meilleur.mesh.position.x : meilleur.x;
-    const z = meilleur.race ? meilleur.mesh.position.z : meilleur.z;
-    ringSel.position.set(x, 0.06, z); ringSel.setEnabled(true);
-  } else ringSel.setEnabled(false);
-
-  const station = meilleur && !meilleur.race;
-  $("btn-action").classList.toggle("cache", !station);
-  if (station) $("btn-action").textContent = meilleur.emoji + " " + meilleur.label;
-}
-
-/* ===================== Entrées souris / tactile ===================== */
-
-function posDe(ref) {
-  if (ref.race) return { x: ref.mesh.position.x, z: ref.mesh.position.z };
-  return { x: ref.x, z: ref.z };
-}
-
-function approche(ref) {
-  const rp = posDe(ref);
-  const pr = playerRoot.position;
-  const dx = pr.x - rp.x, dz = pr.z - rp.z;
-  const d = Math.hypot(dx, dz) || 1;
-  const recul = ref.race ? 2.4 : 4;
-  moveTarget = { x: rp.x + (dx / d) * recul, z: rp.z + (dz / d) * recul };
-  pendingInteract = ref.race ? null : ref; // bâtiment : on l'ouvre à l'arrivée
-}
-
-function onPointer(pi) {
-  if (pi.type !== BABYLON.PointerEventTypes.POINTERTAP) return;
-  if (!$("modale").classList.contains("cache")) return;
-  const pick = scene.pick(scene.pointerX, scene.pointerY);
-  if (!pick || !pick.hit) return;
-  const md = pick.pickedMesh && pick.pickedMesh.metadata;
-  if (md && md.ref) approche(md.ref);
-  else if (pick.pickedPoint) { moveTarget = { x: pick.pickedPoint.x, z: pick.pickedPoint.z }; pendingInteract = null; }
-}
-
-/* ===================== Panneau contextuel ===================== */
-
-function construirePanneau() {
-  const p = $("panneau");
-  if (!cibleActive) {
-    p.innerHTML = `<p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment pour agir.</p>`;
-    return;
-  }
-  if (cibleActive.race) {
-    const c = cibleActive;
-    p.innerHTML = `
-      <div class="pc-tete">
-        <span class="pc-emoji">${c.emoji}</span>
-        <div>
-          <b>${c.nom}</b> <span class="pc-sous">${c.race} · 🎖️ ${c.entrainement}</span><br/>
-          <span class="pc-sous">${estPoulain(c) ? "🐣 Poulain (" + c.age + " j)" : "Adulte (" + c.age + " j)"}</span>
-        </div>
-      </div>
-      <div class="pc-barres" id="pc-barres"></div>
-      <div class="pc-actions">
-        <button class="bouton" data-cheval="nourrir">🌾 Nourrir</button>
-        <button class="bouton" data-cheval="brosser">🧽 Brosser</button>
-        <button class="bouton" data-cheval="jouer">🎾 Jouer</button>
-        <button class="bouton" data-cheval="entrainer">🤠 Dresser</button>
-        <button class="bouton bouton-rodeo" data-cheval="concours">🏆 Rodéo</button>
-      </div>`;
-    majBarresPanneau(c);
-  } else {
-    const s = cibleActive;
-    const libelle = { dormir: "🌙 Dormir (jour suivant)", boutique: "🛒 Entrer dans le magasin", elevage: "🐣 Élevage de poulains" }[s.type];
-    p.innerHTML = `<div class="pc-station"><span class="pc-emoji">${s.emoji}</span>
-      <button class="bouton bouton-geant" data-station="${s.type}">${libelle}</button></div>`;
-  }
-}
-
-function majBarresPanneau(c) {
-  const cont = $("pc-barres");
-  if (!cont) return;
-  const def = [["🌾", c.faim], ["⚡", c.energie], ["🧼", c.proprete], ["😊", c.bonheur]];
-  cont.innerHTML = def.map(([ic, v]) => {
-    const cl = v < 25 ? "r-rouge" : v < 50 ? "r-jaune" : "r-vert";
-    return `<div class="besoin"><span class="icone">${ic}</span>
-      <div class="barre"><div class="barre-remplissage ${cl}" style="width:${v}%"></div></div></div>`;
-  }).join("");
-}
-
-/* ===================== Interaction ===================== */
-
-function interagir(cible) {
-  if (!cible) return;
-  if (cible.race) return; // cheval : le panneau suffit
-  if (cible.type === "dormir") jourSuivant();
-  else if (cible.type === "boutique") ouvrirBoutique();
-  else if (cible.type === "elevage") ouvrirElevage();
-}
-
-function trouverCheval(id) { return etat.chevaux.find((c) => c.id === Number(id)); }
-
-function actionCheval(action) {
-  const c = cibleActive;
-  if (!c || !c.race) return;
-  switch (action) {
-    case "nourrir":
-      if (etat.foin <= 0) { message("🌾 Plus de foin ! Va au magasin en acheter."); return; }
-      etat.foin--; c.faim = borner(c.faim + 35); c.bonheur = borner(c.bonheur + 6);
-      message(`${c.nom} a mangé du bon foin ! 🌾`); break;
-    case "brosser":
-      c.proprete = borner(c.proprete + 40); c.bonheur = borner(c.bonheur + 10); c.energie = borner(c.energie - 6);
-      message(`${c.nom} est tout beau et brillant ! ✨`); break;
-    case "jouer":
-      if (c.energie < 15) { message(`${c.nom} est trop fatigué pour jouer. 😴`); return; }
-      c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 18); c.faim = borner(c.faim - 10);
-      message(`${c.nom} s'est bien amusé au galop ! 🎾`); break;
-    case "entrainer":
-      if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour le dressage. 🐣`); return; }
-      if (c.energie < 20) { message(`${c.nom} a besoin de repos avant de s'entraîner. 😴`); return; }
-      c.entrainement = borner(c.entrainement + aleatoire(6, 12)); c.energie = borner(c.energie - 22);
-      c.faim = borner(c.faim - 12); c.bonheur = borner(c.bonheur + 5);
-      message(`${c.nom} progresse au dressage ! 🎖️ ${c.entrainement}`); break;
-    case "concours": lancerConcours(c); break;
-  }
-  majBarresPanneau(c); majHud(); verifierQuetes();
-}
-
-function lancerConcours(c) {
-  if (estPoulain(c)) { message(`${c.nom} est trop jeune pour le rodéo. 🐣`); return; }
-  if (c.concoursFait) { message(`${c.nom} a déjà couru aujourd'hui. Reviens demain ! 🌙`); return; }
-  if (c.energie < 30) { message(`${c.nom} est trop fatigué pour le rodéo. 😴`); return; }
-  if (c.bonheur < 35) { message(`${c.nom} n'est pas d'humeur. Joue avec lui d'abord ! 😟`); return; }
-  c.concoursFait = true; c.energie = borner(c.energie - 30); c.faim = borner(c.faim - 10);
-  const score = c.entrainement + c.bonheur / 2 + aleatoire(0, 30);
-  let gain;
-  if (score > 110) { gain = aleatoire(45, 70); c.bonheur = borner(c.bonheur + 15); etat.stats.rodeosGagnes++; message(`🥇 ${c.nom} GAGNE le rodéo ! +${gain} 💰`); }
-  else if (score > 75) { gain = aleatoire(20, 40); c.bonheur = borner(c.bonheur + 8); message(`🥈 ${c.nom} monte sur le podium ! +${gain} 💰`); }
-  else { gain = aleatoire(8, 18); message(`🎗️ ${c.nom} a bien participé. +${gain} 💰`); }
-  etat.pieces += gain;
-}
-
-/* ===================== Jour suivant ===================== */
-
-function jourSuivant() {
-  etat.jour++;
-  const negliges = [];
-  const bonusDecor = Math.min(etat.decors.length * 2, 10);
-  etat.chevaux.forEach((c) => {
-    c.age++;
-    const b = CONFIG.baisseParJour;
-    c.faim = borner(c.faim - b.faim);
-    c.energie = borner(c.energie + 55 - b.energie);
-    c.proprete = borner(c.proprete - b.proprete);
-    let aj = -b.bonheur + bonusDecor;
-    if (c.faim < 25 || c.proprete < 25) aj -= 10;
-    if (c.faim > 60 && c.proprete > 60) aj += 8;
-    c.bonheur = borner(c.bonheur + aj);
-    c.concoursFait = false;
-    if (estPoulain(c) && c.mesh) { c.mesh.scaling.setAll(c.age >= CONFIG.ageAdulte ? 1 : 0.6); }
-    if (c.bonheur < 25 || c.faim < 20) negliges.push(c.nom);
-  });
-  majHud(); verifierQuetes();
-  if (negliges.length > 0) message(`🌅 Jour ${etat.jour}. Occupe-toi de ${negliges.join(" et ")} !`);
-  else message(`🌅 Jour ${etat.jour} : tes chevaux ont bien dormi. 🐴`);
-}
-
-/* ===================== Objectifs ===================== */
-
-function verifierQuetes() {
-  const nouvelles = [];
-  QUETES.forEach((q) => {
-    if (!etat.quetesFaites.includes(q.id) && q.test(etat)) {
-      etat.quetesFaites.push(q.id); etat.pieces += q.recompense; nouvelles.push(q);
-    }
-  });
-  if (nouvelles.length > 0) {
-    majHud();
-    message("🏅 Objectif réussi : " + nouvelles.map((q) => `${q.titre} (+${q.recompense}💰)`).join(" · "));
-  }
-}
-
-/* ===================== Modale ===================== */
-
-function ouvrirModale(titre, html) {
-  $("modale-titre").innerHTML = titre; $("modale-corps").innerHTML = html;
-  $("modale").classList.remove("cache");
-}
-function fermerModale() { $("modale").classList.add("cache"); }
-
-/* ===================== Boutique ===================== */
-
-function ouvrirBoutique() {
-  const placeLibre = etat.chevaux.length < etat.boxes;
-  let html = `
-    <div class="ligne-boutique">
-      <div class="desc"><b>🌾 Botte de foin</b><small>Pour nourrir tes chevaux.</small></div>
-      <button class="bouton" data-boutique="foin">${CONFIG.prixBotteFoin} 💰</button>
-    </div>
-    <div class="ligne-boutique">
-      <div class="desc"><b>🏚️ Agrandir le corral (+1 box)</b><small>${etat.chevaux.length}/${etat.boxes} box occupés.</small></div>
-      <button class="bouton" data-boutique="box">${CONFIG.prixBox} 💰</button>
-    </div>
-    <h3>🎨 Décorations pour le ranch</h3><div class="grille-decor">`;
-  DECORS.forEach((d) => {
-    const possede = etat.decors.includes(d.id);
-    html += `<button class="carte-decor ${possede ? "possede" : ""}" data-decor="${d.id}" ${possede ? "disabled" : ""}>
-      <span class="d-emoji">${d.emoji}</span><span>${d.nom}</span>
-      <span class="d-prix">${possede ? "✅" : d.prix + " 💰"}</span></button>`;
-  });
-  html += `</div><h3>🐴 Acheter et personnaliser un cheval</h3>`;
-  if (!placeLibre) html += `<p>⚠️ Ton corral est plein ! Agrandis-le d'abord.</p>`;
-  else html += `
-    <div class="formulaire-achat">
-      <label>Race :</label>
-      <select id="achat-race">${RACES.map((r, i) => `<option value="${i}">${r.emoji} ${r.nom} — ${r.prix} 💰</option>`).join("")}</select>
-      <label>Nom :</label>
-      <input id="achat-nom" type="text" maxlength="14" placeholder="Un nom rigolo" />
-      <label>Robe :</label>
-      <div class="choix-robes">${ROBES.map((r, i) => `<label class="swatch"><input type="radio" name="robe" value="${r.id}" ${i === 0 ? "checked" : ""}/><span class="pastille" style="background:${r.couleur}"></span>${r.nom}</label>`).join("")}</div>
-      <button class="bouton bouton-geant" data-boutique="cheval">🛒 Acheter ce cheval</button>
-    </div>`;
-  ouvrirModale("🛒 Magasin du Far West", html);
-}
-
-function acheter(quoi) {
-  if (quoi === "foin") {
-    if (etat.pieces < CONFIG.prixBotteFoin) return message("Pas assez de 💰 !");
-    etat.pieces -= CONFIG.prixBotteFoin; etat.foin++; message("🌾 +1 botte de foin !");
-  } else if (quoi === "box") {
-    if (etat.pieces < CONFIG.prixBox) return message("Pas assez de 💰 !");
-    etat.pieces -= CONFIG.prixBox; etat.boxes++; message("🏚️ Corral agrandi ! +1 box.");
-  } else if (quoi === "cheval") {
-    if (etat.chevaux.length >= etat.boxes) return message("Corral plein !");
-    const r = RACES[Number($("achat-race").value)];
-    if (etat.pieces < r.prix) return message("Pas assez de 💰 !");
-    const radio = document.querySelector('input[name="robe"]:checked');
-    const nom = $("achat-nom").value.trim() || choisir(NOMS_CHEVAUX);
-    etat.pieces -= r.prix;
-    const c = nouveauCheval({ race: r, robe: radio ? radio.value : ROBES[0].id, nom });
-    etat.chevaux.push(c); creerMeshCheval(c);
-    message(`Bienvenue au ranch, ${nom} ! 🎉`);
-  }
-  majHud(); verifierQuetes(); ouvrirBoutique();
-}
-
-function acheterDecor(id) {
-  if (etat.decors.includes(id)) return;
-  const d = DECORS.find((x) => x.id === id);
-  if (!d) return;
-  if (etat.pieces < d.prix) return message("Pas assez de 💰 !");
-  etat.pieces -= d.prix; etat.decors.push(id);
-  etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
-  placerDecors();
-  message(`${d.emoji} ${d.nom} installé dans le ranch !`);
-  majHud(); verifierQuetes(); ouvrirBoutique();
-}
-
-/* ===================== Élevage ===================== */
-
-function ouvrirElevage() {
-  const adultes = etat.chevaux.filter((c) => !estPoulain(c) && c.bonheur >= 50);
-  const placeLibre = etat.chevaux.length < etat.boxes;
-  let html = `<p>Choisis deux chevaux adultes et heureux (bonheur ≥ 50) pour avoir un poulain ! 🐣</p>`;
-  if (!placeLibre) html += `<p>⚠️ Corral plein. Agrandis-le au magasin.</p>`;
-  else if (adultes.length < 2) html += `<p>Il te faut <b>2 chevaux adultes heureux</b>. Prends soin d'eux puis reviens !</p>`;
-  else html += `
-    <label>Premier parent :</label>
-    <select id="parent1" class="select-large">${adultes.map((c) => `<option value="${c.id}">${c.emoji} ${c.nom}</option>`).join("")}</select>
-    <label>Deuxième parent :</label>
-    <select id="parent2" class="select-large">${adultes.map((c) => `<option value="${c.id}">${c.emoji} ${c.nom}</option>`).join("")}</select>
-    <button class="bouton bouton-geant" data-elevage="go">🐣 Faire naître un poulain</button>`;
-  ouvrirModale("🐣 Élevage de poulains", html);
-}
-
-function faireNaitre() {
-  const id1 = Number($("parent1").value), id2 = Number($("parent2").value);
-  if (id1 === id2) return message("Choisis deux chevaux différents ! 🙂");
-  if (etat.chevaux.length >= etat.boxes) return message("Corral plein !");
-  const p1 = trouverCheval(id1), p2 = trouverCheval(id2);
-  const parentRace = Math.random() < 0.5 ? p1 : p2;
-  const parentRobe = Math.random() < 0.5 ? p1 : p2;
-  const race = RACES.find((r) => r.nom === parentRace.race) || RACES[0];
-  const poulain = nouveauCheval({ race, age: 0, robe: parentRobe.robe });
-  p1.bonheur = borner(p1.bonheur + 10); p2.bonheur = borner(p2.bonheur + 10);
-  etat.chevaux.push(poulain); creerMeshCheval(poulain); etat.stats.poulainsNes++;
-  fermerModale(); majHud(); verifierQuetes();
-  message(`🎉 Un poulain est né : ${poulain.nom} ! Il grandira en ${CONFIG.ageAdulte} jours.`);
-}
-
-/* ===================== Objectifs / Aide (modales) ===================== */
-
-function ouvrirObjectifs() {
-  const info = infoNiveau();
-  let html = `
-    <p style="font-size:1.1rem;"><b>${info.titre}</b> — Niveau ${info.niveau}</p>
-    <p>Objectifs : <b>${etat.quetesFaites.length}/${QUETES.length}</b> · 🥇 Rodéos : <b>${etat.stats.rodeosGagnes}</b> · 🐣 Poulains : <b>${etat.stats.poulainsNes}</b></p>`;
-  QUETES.forEach((q) => {
-    const fait = etat.quetesFaites.includes(q.id);
-    html += `<div class="quete-ligne ${fait ? "faite" : ""}">
-      <span class="quete-coche">${fait ? "🏅" : "⬜"}</span>
-      <div class="desc"><b>${q.titre}</b><small>${q.desc}</small></div>
-      <span class="quete-gain">+${q.recompense} 💰</span></div>`;
-  });
-  ouvrirModale("🏆 Objectifs & médailles", html);
-}
-
-function ouvrirAide() {
-  ouvrirModale("❓ Comment jouer", `
-    <div class="aide-texte">
-      <p><b>Bienvenue au ranch, cow-girl ! 🤠</b> Ton ranch est en 3D : promène-toi et occupe-toi de tes chevaux.</p>
-      <p><b>🚶 Se déplacer :</b></p>
-      <ul>
-        <li><b>Clique / touche</b> un endroit du sol pour y aller (le plus simple !),</li>
-        <li>ou utilise les <b>flèches</b> du clavier (Z Q S D),</li>
-        <li>ou la <b>manette ▲◀▶▼</b> en bas à gauche.</li>
-      </ul>
-      <p>Tu peux aussi <b>cliquer directement sur un cheval ou un bâtiment</b> pour aller le voir.</p>
-      <p><b>🐴 S'occuper d'un cheval :</b> approche-toi, puis utilise les boutons en bas (🌾🧽🎾🤠🏆).
-      La <b>bulle de couleur</b> au-dessus de lui montre son humeur : verte 😀, jaune 😐, rouge 😢.</p>
-      <p><b>🏪 Magasin</b> : foin, décorations, nouveaux chevaux. <b>🛖 Élevage</b> : faire un poulain.
-      <b>🏠 Maison</b> : dormir pour passer au jour suivant.</p>
-      <p><b>🏆 Objectifs</b> (en haut) : réussis des défis pour des médailles et monter de niveau !</p>
-      <p>💾 La partie se sauvegarde toute seule.</p>
-    </div>`);
-}
-
-/* ===================== Entrées clavier / manette ===================== */
+let persoEnCours = null;
 
 function init() {
-  $("btn-commencer").addEventListener("click", () => nouvellePartie($("nom-haras").value.trim() || "Mon Ranch"));
+  $("btn-commencer").addEventListener("click", () => {
+    nomRanchTemp = $("nom-haras").value.trim() || "Mon Ranch";
+    ouvrirCreation(persoParDefaut(), () => nouvellePartie(nomRanchTemp, persoEnCours));
+  });
   $("btn-charger").addEventListener("click", continuerPartie);
   $("nom-haras").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-commencer").click(); });
   if (charger()) $("msg-accueil").textContent = "Une partie existe : clique sur « Continuer ma partie » 🐴";
 
-  $("btn-objectifs").addEventListener("click", ouvrirObjectifs);
+  $("btn-moi").addEventListener("click", () => {
+    ouvrirCreation({ ...etat.perso }, () => { etat.perso = persoEnCours; sauvegarder(); });
+  });
   $("btn-aide").addEventListener("click", ouvrirAide);
 
   $("btn-fermer-modale").addEventListener("click", fermerModale);
@@ -814,15 +140,13 @@ function init() {
     else if (btn.dataset.station) interagir({ type: btn.dataset.station });
     else if (btn.dataset.boutique) acheter(btn.dataset.boutique);
     else if (btn.dataset.decor) acheterDecor(btn.dataset.decor);
-    else if (btn.dataset.elevage) faireNaitre();
   });
 
   const map = { ArrowUp: "haut", ArrowDown: "bas", ArrowLeft: "gauche", ArrowRight: "droite",
                 z: "haut", s: "bas", q: "gauche", d: "droite", w: "haut", a: "gauche" };
   document.addEventListener("keydown", (e) => {
     if (!$("modale").classList.contains("cache")) return;
-    const dir = map[e.key];
-    if (dir) { touches[dir] = true; e.preventDefault(); }
+    const dir = map[e.key]; if (dir) { touches[dir] = true; e.preventDefault(); }
   });
   document.addEventListener("keyup", (e) => { const dir = map[e.key]; if (dir) touches[dir] = false; });
 
@@ -837,4 +161,660 @@ function init() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", init);
+let nomRanchTemp = "Mon Ranch";
+
+function nouvellePartie(nom, perso) {
+  compteurId = 1;
+  etat = {
+    nomRanch: nom, perso: perso, pieces: 40, foin: 6, jour: 1, boxes: 4,
+    chevaux: [nouveauCheval({ nom: "Éclair", robe: ROBES[0] })],
+    decors: [],
+  };
+  sauvegarder();
+  demarrerJeu();
+}
+
+function continuerPartie() {
+  const s = charger();
+  if (!s) { $("msg-accueil").textContent = "Aucune partie sauvegardée. Commence une nouvelle aventure !"; return; }
+  etat = s;
+  if (!etat.perso) etat.perso = persoParDefaut();
+  if (!etat.decors) etat.decors = [];
+  etat.chevaux.forEach((c) => { if (c.ti == null) { c.ti = c.gi; c.tj = c.gj; } c.prochainPas = 0; });
+  compteurId = s.compteurId || (etat.chevaux.length + 1);
+  demarrerJeu();
+}
+
+function demarrerJeu() {
+  $("ecran-accueil").classList.add("cache");
+  $("ecran-creation").classList.add("cache");
+  $("ecran-jeu").classList.remove("cache");
+  $("aff-nom-haras").textContent = etat.nomRanch;
+  joueur.gi = 6; joueur.gj = 7; joueur.monte = null;
+  majHud();
+  if (!boucleLancee) { boucleLancee = true; redimensionner(); window.addEventListener("resize", redimensionner); requestAnimationFrame(boucle); }
+}
+
+/* ===================== HUD / messages ===================== */
+
+function majHud() {
+  $("aff-pieces").textContent = etat.pieces;
+  $("aff-foin").textContent = etat.foin;
+  $("aff-jour").textContent = etat.jour;
+  $("aff-boxes").textContent = etat.chevaux.length + "/" + etat.boxes;
+  sauvegarder();
+}
+
+let timerMessage = null;
+function message(t) {
+  const el = $("message-jeu");
+  el.textContent = t; el.classList.remove("cache");
+  el.style.animation = "none"; void el.offsetWidth; el.style.animation = "";
+  clearTimeout(timerMessage); timerMessage = setTimeout(() => el.classList.add("cache"), 2800);
+}
+
+/* ===================== Helpers de dessin ===================== */
+
+function ellipse(c, x, y, rx, ry) { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); }
+function rrect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+function remplir(c, fill, stroke, lw) {
+  if (fill) { c.fillStyle = fill; c.fill(); }
+  if (stroke !== null) { c.strokeStyle = stroke || OUT; c.lineWidth = lw || 2; c.stroke(); }
+}
+function assombrir(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  r = Math.round(r * f); g = Math.round(g * f); b = Math.round(b * f);
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+/* ----- Sprite personnage (vue de face) ----- */
+function dessinerPerso(c, cx, cy, s, p) {
+  c.save();
+  c.translate(cx, cy); c.scale(s, s);
+  c.lineJoin = "round";
+  // ombre
+  ellipse(c, 0, 2, 16, 5); c.fillStyle = "rgba(0,0,0,0.18)"; c.fill();
+  // jambes
+  rrect(c, -7, -16, 6, 16, 3); remplir(c, p.pantalon);
+  rrect(c, 1, -16, 6, 16, 3); remplir(c, p.pantalon);
+  // bottes
+  rrect(c, -7, -5, 6, 6, 2); remplir(c, "#5a3a22");
+  rrect(c, 1, -5, 6, 6, 2); remplir(c, "#5a3a22");
+  // corps
+  rrect(c, -11, -34, 22, 21, 8); remplir(c, p.haut);
+  // bras
+  rrect(c, -15, -33, 5, 16, 2.5); remplir(c, p.haut);
+  rrect(c, 10, -33, 5, 16, 2.5); remplir(c, p.haut);
+  ellipse(c, -12.5, -17, 3, 3); remplir(c, p.peau);
+  ellipse(c, 12.5, -17, 3, 3); remplir(c, p.peau);
+  // cheveux (derrière la tête)
+  ellipse(c, 0, -45, 13, 11); remplir(c, p.cheveux);
+  // tête
+  ellipse(c, 0, -44, 11, 11); remplir(c, p.peau);
+  // frange
+  c.beginPath(); c.arc(0, -45, 11, Math.PI * 1.05, Math.PI * 1.95); c.lineTo(0, -45); c.closePath();
+  c.fillStyle = p.cheveux; c.fill();
+  // yeux + sourire
+  ellipse(c, -4, -44, 1.5, 1.8); c.fillStyle = OUT; c.fill();
+  ellipse(c, 4, -44, 1.5, 1.8); c.fillStyle = OUT; c.fill();
+  c.beginPath(); c.arc(0, -41, 3.5, 0.15 * Math.PI, 0.85 * Math.PI); c.strokeStyle = OUT; c.lineWidth = 1.4; c.stroke();
+  // chapeau
+  if (p.chapeauOn) {
+    ellipse(c, 0, -52, 18, 5.5); remplir(c, p.chapeau);
+    rrect(c, -9, -63, 18, 12, 4); remplir(c, p.chapeau);
+    rrect(c, -9, -55, 18, 3, 1.5); remplir(c, assombrir(p.chapeau, 0.7), null);
+  }
+  c.restore();
+}
+
+/* ----- Sprite cheval (vue de profil, vers la droite) ----- */
+function dessinerCheval3d(c, cx, cy, s, h, flip) {
+  c.save();
+  c.translate(cx, cy); c.scale(flip ? -s : s, s);
+  c.lineJoin = "round";
+  const robe = h.robe, crin = h.crin, jambe = assombrir(robe, 0.78);
+  // ombre
+  ellipse(c, 0, 2, 26, 7); c.fillStyle = "rgba(0,0,0,0.18)"; c.fill();
+  // pattes
+  [-16, -8, 8, 16].forEach((x) => { rrect(c, x, -18, 6, 18, 2.5); remplir(c, jambe); });
+  // queue
+  c.beginPath(); c.moveTo(-24, -34); c.quadraticCurveTo(-34, -26, -28, -10);
+  c.quadraticCurveTo(-24, -20, -22, -30); c.closePath(); remplir(c, crin);
+  // corps
+  ellipse(c, 0, -26, 26, 15); remplir(c, robe);
+  // encolure
+  c.beginPath(); c.moveTo(12, -36); c.lineTo(24, -54); c.lineTo(33, -50); c.lineTo(22, -28); c.closePath();
+  remplir(c, robe);
+  // crinière
+  c.beginPath(); c.moveTo(13, -37); c.lineTo(25, -55); c.lineTo(29, -53); c.lineTo(17, -34); c.closePath();
+  remplir(c, crin);
+  // tête
+  ellipse(c, 33, -52, 11, 8); remplir(c, robe);
+  ellipse(c, 41, -47, 5.5, 5); remplir(c, assombrir(robe, 0.9));
+  // oreille
+  c.beginPath(); c.moveTo(27, -58); c.lineTo(30, -66); c.lineTo(33, -58); c.closePath(); remplir(c, robe);
+  // œil
+  ellipse(c, 34, -53, 1.5, 1.8); c.fillStyle = OUT; c.fill();
+  c.restore();
+}
+
+/* ===================== Écran de création ===================== */
+
+function ouvrirCreation(perso, onValider) {
+  persoEnCours = perso;
+  $("ecran-accueil").classList.add("cache");
+  $("ecran-jeu").classList.add("cache");
+  $("ecran-creation").classList.remove("cache");
+
+  const cont = $("creation-controles");
+  cont.innerHTML = "";
+  const groupe = (titre, palette, champ) => {
+    const div = document.createElement("div"); div.className = "groupe-perso";
+    div.innerHTML = `<span class="grp-titre">${titre}</span>`;
+    const ligne = document.createElement("div"); ligne.className = "ligne-swatch";
+    palette.forEach((col) => {
+      const b = document.createElement("button");
+      b.className = "swatch-col" + (persoEnCours[champ] === col ? " choisi" : "");
+      b.style.background = col;
+      b.addEventListener("click", () => {
+        persoEnCours[champ] = col;
+        ligne.querySelectorAll(".swatch-col").forEach((x) => x.classList.remove("choisi"));
+        b.classList.add("choisi"); apercuPerso();
+      });
+      ligne.appendChild(b);
+    });
+    div.appendChild(ligne); cont.appendChild(div);
+  };
+  groupe("Peau", PEAUX, "peau");
+  groupe("Cheveux", CHEVEUX, "cheveux");
+  groupe("Habit", HAUTS, "haut");
+  groupe("Pantalon", PANTALONS, "pantalon");
+  groupe("Chapeau", CHAPEAUX, "chapeau");
+  // bouton chapeau on/off
+  const div = document.createElement("div"); div.className = "groupe-perso";
+  const b = document.createElement("button");
+  b.className = "bouton bouton-secondaire";
+  const maj = () => { b.textContent = persoEnCours.chapeauOn ? "🤠 Chapeau : oui" : "🚫 Chapeau : non"; };
+  maj();
+  b.addEventListener("click", () => { persoEnCours.chapeauOn = !persoEnCours.chapeauOn; maj(); apercuPerso(); });
+  div.appendChild(b); cont.appendChild(div);
+
+  apercuPerso();
+  const ok = $("btn-creation-ok");
+  ok.onclick = () => { onValider(); if (etat) { $("ecran-creation").classList.add("cache"); $("ecran-jeu").classList.remove("cache"); } };
+}
+
+function apercuPerso() {
+  const cv = $("apercu"); const c = cv.getContext("2d");
+  c.clearRect(0, 0, cv.width, cv.height);
+  c.fillStyle = "#cfe8a3"; c.fillRect(0, 0, cv.width, cv.height);
+  dessinerPerso(c, cv.width / 2, 210, 2.4, persoEnCours);
+}
+
+/* ===================== Boucle & rendu du monde ===================== */
+
+let boucleLancee = false;
+let CW = 0, CH = 0, dpr = 1;
+const touches = { haut: false, bas: false, gauche: false, droite: false };
+const joueur = { gi: 6, gj: 7, vitesse: 4.2, monte: null };
+let moveTarget = null, pendingInteract = null;
+let cibleActive = null, idPanneau = null;
+
+function redimensionner() {
+  const cv = $("monde"); const r = cv.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  CW = Math.max(1, Math.floor(r.width)); CH = Math.max(1, Math.floor(r.height));
+  cv.width = CW * dpr; cv.height = CH * dpr;
+}
+
+function isoMonde(gi, gj) { return { x: (gi - gj) * TW2, y: (gi + gj) * TH2 }; }
+
+function ecranDe(gi, gj) {
+  const cam = isoMonde(joueur.gi, joueur.gj);
+  const w = isoMonde(gi, gj);
+  return { x: CW / 2 + w.x - cam.x, y: CH / 2 + w.y - cam.y - 24 };
+}
+
+function ecranVersGrille(sx, sy) {
+  const cam = isoMonde(joueur.gi, joueur.gj);
+  const wx = sx - CW / 2 + cam.x;
+  const wy = sy - CH / 2 + cam.y + 24;
+  const a = wx / TW2, b = wy / TH2;
+  return { gi: (a + b) / 2, gj: (b - a) / 2 };
+}
+
+function boucle() {
+  if (!$("ecran-jeu").classList.contains("cache")) { tick(); dessiner(); }
+  requestAnimationFrame(boucle);
+}
+
+let dernier = performance.now();
+function tick() {
+  const now = performance.now();
+  const dt = Math.min((now - dernier) / 1000, 0.05); dernier = now;
+
+  let vi = 0, vj = 0;
+  if (touches.haut) { vi -= 1; vj -= 1; }
+  if (touches.bas) { vi += 1; vj += 1; }
+  if (touches.gauche) { vi -= 1; vj += 1; }
+  if (touches.droite) { vi += 1; vj -= 1; }
+
+  const vit = joueur.monte ? joueur.vitesse * 1.7 : joueur.vitesse;
+  if (vi || vj) {
+    moveTarget = null; pendingInteract = null;
+    const n = Math.hypot(vi, vj);
+    joueur.gi += (vi / n) * vit * dt; joueur.gj += (vj / n) * vit * dt;
+    joueur.flip = (vi - vj) < 0;
+  } else if (moveTarget) {
+    const di = moveTarget.gi - joueur.gi, dj = moveTarget.gj - joueur.gj;
+    const d = Math.hypot(di, dj);
+    if (d < 0.15) {
+      moveTarget = null;
+      if (pendingInteract) { const r = pendingInteract; pendingInteract = null; interagir(r); }
+    } else { joueur.gi += (di / d) * vit * dt; joueur.gj += (dj / d) * vit * dt; joueur.flip = (di - dj) < 0; }
+  }
+  joueur.gi = clamp(joueur.gi, 0, GRID); joueur.gj = clamp(joueur.gj, 0, GRID);
+
+  // cheval monté suit le joueur
+  if (joueur.monte) { joueur.monte.gi = joueur.gi; joueur.monte.gj = joueur.gj; }
+
+  // balade des chevaux
+  etat.chevaux.forEach((c) => {
+    if (c === joueur.monte) return;
+    if (now > c.prochainPas) {
+      c.ti = aleatoire(CORRAL.i1 + 1, CORRAL.i2 - 1);
+      c.tj = aleatoire(CORRAL.j1 + 1, CORRAL.j2 - 1);
+      c.prochainPas = now + aleatoire(2500, 6000);
+    }
+    const di = c.ti - c.gi, dj = c.tj - c.gj, d = Math.hypot(di, dj);
+    if (d > 0.05) { c.gi += (di / d) * 0.7 * dt; c.gj += (dj / d) * 0.7 * dt; c.flip = (di - dj) < 0; }
+  });
+
+  majInteraction();
+}
+
+function distJoueur(gi, gj) { return Math.hypot(joueur.gi - gi, joueur.gj - gj); }
+
+function majInteraction() {
+  let meilleur = null, dmin = Infinity;
+  if (!joueur.monte) {
+    STATIONS.forEach((s) => { const d = distJoueur(s.i, s.j); if (d < 1.6 && d < dmin) { dmin = d; meilleur = s; } });
+    etat.chevaux.forEach((c) => { const d = distJoueur(c.gi, c.gj); if (d < 1.4 && d < dmin) { dmin = d; meilleur = c; } });
+  } else {
+    meilleur = joueur.monte; // si on est monté, on agit sur le cheval monté
+  }
+
+  cibleActive = meilleur;
+  const id = meilleur ? (meilleur.robe ? "c" + meilleur.id : "s" + meilleur.type) : null;
+  if (id !== idPanneau) { idPanneau = id; construirePanneau(); }
+  if (meilleur && meilleur.robe) majBarres(meilleur);
+
+  const station = meilleur && !meilleur.robe;
+  $("btn-action").classList.toggle("cache", !station);
+  if (station) $("btn-action").textContent = meilleur.emoji + " " + meilleur.label;
+}
+
+function dessiner() {
+  const cv = $("monde"); const c = cv.getContext("2d");
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // ciel / sol de base
+  const g = c.createLinearGradient(0, 0, 0, CH);
+  g.addColorStop(0, "#ffd9a3"); g.addColorStop(1, "#e8a35a");
+  c.fillStyle = g; c.fillRect(0, 0, CW, CH);
+
+  // tuiles du sol
+  for (let i = 0; i <= GRID; i++) {
+    for (let j = 0; j <= GRID; j++) {
+      const p = ecranDe(i, j);
+      if (p.x < -TW2 || p.x > CW + TW2 || p.y < -TH2 || p.y > CH + TH2 + 30) continue;
+      const dansCorral = i >= CORRAL.i1 && i <= CORRAL.i2 && j >= CORRAL.j1 && j <= CORRAL.j2;
+      let col = dansCorral ? ((i + j) % 2 ? "#bfe089" : "#b3d97e") : ((i + j) % 2 ? "#ecc98e" : "#e6c084");
+      c.beginPath();
+      c.moveTo(p.x, p.y - TH2); c.lineTo(p.x + TW2, p.y); c.lineTo(p.x, p.y + TH2); c.lineTo(p.x - TW2, p.y); c.closePath();
+      c.fillStyle = col; c.fill();
+      c.strokeStyle = "rgba(0,0,0,0.06)"; c.lineWidth = 1; c.stroke();
+    }
+  }
+  // clôture du corral
+  dessinerCloture(c);
+
+  // entités (bâtiments, déco, chevaux, joueur) triées par profondeur
+  const ents = [];
+  STATIONS.forEach((s) => ents.push({ gi: s.i, gj: s.j, z: s.i + s.j, type: "station", ref: s }));
+  etat.decors.forEach((id, k) => { const sl = SLOTS_DECOR[k % SLOTS_DECOR.length]; ents.push({ gi: sl.i, gj: sl.j, z: sl.i + sl.j, type: "decor", ref: id }); });
+  etat.chevaux.forEach((ch) => { if (ch !== joueur.monte) ents.push({ gi: ch.gi, gj: ch.gj, z: ch.gi + ch.gj, type: "cheval", ref: ch }); });
+  ents.push({ gi: joueur.gi, gj: joueur.gj, z: joueur.gi + joueur.gj + 0.5, type: "joueur" });
+  ents.sort((a, b) => a.z - b.z);
+
+  ents.forEach((e) => {
+    const p = ecranDe(e.gi, e.gj);
+    if (e.type === "station") dessinerStation(c, p, e.ref);
+    else if (e.type === "decor") { const d = DECORS.find((x) => x.id === e.ref); if (d) emojiAt(c, d.emoji, p.x, p.y - 6, 30); }
+    else if (e.type === "cheval") dessinerEntiteCheval(c, p, e.ref);
+    else if (e.type === "joueur") dessinerEntiteJoueur(c, p);
+  });
+
+  // surbrillance de la cible
+  if (cibleActive) {
+    const gi = cibleActive.robe ? cibleActive.gi : cibleActive.i;
+    const gj = cibleActive.robe ? cibleActive.gj : cibleActive.j;
+    const p = ecranDe(gi, gj);
+    c.save(); c.translate(p.x, p.y + 2);
+    c.beginPath(); c.ellipse(0, 0, 30, 14, 0, 0, Math.PI * 2);
+    c.strokeStyle = "#e8722d"; c.lineWidth = 3; c.setLineDash([5, 5]);
+    c.lineDashOffset = -(performance.now() / 60) % 10; c.stroke(); c.restore();
+  }
+}
+
+function emojiAt(c, emoji, x, y, taille) {
+  c.font = taille + "px serif"; c.textAlign = "center"; c.textBaseline = "alphabetic";
+  c.fillText(emoji, x, y);
+}
+
+function dessinerCloture(c) {
+  const pts = [];
+  for (let i = CORRAL.i1; i <= CORRAL.i2; i++) { pts.push([i, CORRAL.j1]); pts.push([i, CORRAL.j2]); }
+  for (let j = CORRAL.j1; j <= CORRAL.j2; j++) { pts.push([CORRAL.i1, j]); pts.push([CORRAL.i2, j]); }
+  pts.forEach(([i, j]) => {
+    const p = ecranDe(i, j);
+    c.fillStyle = "#8a5a3b"; c.fillRect(p.x - 1.5, p.y - 12, 3, 14);
+    c.fillStyle = "#a06a44"; c.fillRect(p.x - 1.5, p.y - 12, 3, 3);
+  });
+}
+
+function dessinerStation(c, p, s) {
+  // bâtiment isométrique simple (cube + toit)
+  const w = 34, h = 30;
+  c.save(); c.translate(p.x, p.y);
+  // faces
+  c.beginPath(); c.moveTo(-w, -10); c.lineTo(0, -10 - 18); c.lineTo(0, -10 - 18 + h); c.lineTo(-w, -10 + h); c.closePath();
+  c.fillStyle = assombrir(s.couleur, 0.8); c.fill(); c.strokeStyle = OUT; c.lineWidth = 2; c.stroke();
+  c.beginPath(); c.moveTo(w, -10); c.lineTo(0, -10 - 18); c.lineTo(0, -10 - 18 + h); c.lineTo(w, -10 + h); c.closePath();
+  c.fillStyle = s.couleur; c.fill(); c.stroke();
+  // toit
+  c.beginPath(); c.moveTo(0, -10 - 18 - 16); c.lineTo(w + 4, -8); c.lineTo(0, -10 - 18 + 2); c.lineTo(-w - 4, -8); c.closePath();
+  c.fillStyle = "#b5572b"; c.fill(); c.stroke();
+  c.restore();
+  emojiAt(c, s.emoji, p.x, p.y + 6, 24);
+  c.fillStyle = OUT; c.font = "bold 13px sans-serif"; c.textAlign = "center";
+  c.fillText(s.label, p.x, p.y + 26);
+}
+
+function dessinerEntiteCheval(c, p, ch) {
+  dessinerCheval3d(c, p.x, p.y, estPoulain(ch) ? 0.62 : 0.92, ch, ch.flip);
+  // accessoire
+  const acc = ACCESSOIRES.find((a) => a.id === ch.accessoire);
+  if (acc && acc.emoji) emojiAt(c, acc.emoji, p.x + (ch.flip ? -26 : 26) * 0.9, p.y - 48 * 0.9, 18);
+  // humeur + nom
+  const m = moyenne(ch);
+  emojiAt(c, m > 60 ? "😀" : m > 35 ? "😐" : "😢", p.x, p.y - 62, 16);
+  c.fillStyle = OUT; c.font = "bold 12px sans-serif"; c.textAlign = "center";
+  c.fillText(ch.nom, p.x, p.y + 16);
+}
+
+function dessinerEntiteJoueur(c, p) {
+  if (joueur.monte) {
+    dessinerCheval3d(c, p.x, p.y, 0.95, joueur.monte, joueur.flip);
+    dessinerPerso(c, p.x + (joueur.flip ? 6 : -6), p.y - 30, 0.85, etat.perso);
+  } else {
+    dessinerPerso(c, p.x, p.y, 1.0, etat.perso);
+  }
+}
+
+/* ===================== Clic / tap ===================== */
+
+function gererClic(ev) {
+  if (!$("modale").classList.contains("cache")) return;
+  const cv = $("monde"); const r = cv.getBoundingClientRect();
+  const sx = ev.clientX - r.left, sy = ev.clientY - r.top;
+
+  // a-t-on cliqué un cheval ou un bâtiment ? (proche à l'écran)
+  let cible = null, dmin = Infinity;
+  STATIONS.forEach((s) => { const p = ecranDe(s.i, s.j); const d = Math.hypot(p.x - sx, p.y - sy); if (d < 40 && d < dmin) { dmin = d; cible = s; } });
+  etat.chevaux.forEach((ch) => { if (ch === joueur.monte) return; const p = ecranDe(ch.gi, ch.gj); const d = Math.hypot(p.x - sx, p.y - sy); if (d < 36 && d < dmin) { dmin = d; cible = ch; } });
+
+  if (cible) {
+    const tgi = cible.robe ? cible.gi : cible.i;
+    const tgj = cible.robe ? cible.gj : cible.j;
+    // se placer à côté de la cible
+    const di = joueur.gi - tgi, dj = joueur.gj - tgj, d = Math.hypot(di, dj) || 1;
+    const recul = cible.robe ? 1.1 : 1.5;
+    moveTarget = { gi: tgi + (di / d) * recul, gj: tgj + (dj / d) * recul };
+    pendingInteract = cible.robe ? null : cible;
+  } else {
+    const g = ecranVersGrille(sx, sy);
+    moveTarget = { gi: clamp(g.gi, 0, GRID), gj: clamp(g.gj, 0, GRID) };
+    pendingInteract = null;
+  }
+}
+
+/* ===================== Panneau ===================== */
+
+function construirePanneau() {
+  const p = $("panneau");
+  if (!cibleActive) { p.innerHTML = `<p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment pour agir.</p>`; return; }
+  if (cibleActive.robe) {
+    const c = cibleActive;
+    const monte = joueur.monte === c;
+    p.innerHTML = `
+      <div class="pc-tete">
+        <div>
+          <b>${c.nom}</b> <span class="pc-sous">${estPoulain(c) ? "🐣 Poulain (" + c.age + " j)" : "Adulte (" + c.age + " j)"}</span>
+        </div>
+      </div>
+      <div class="pc-barres" id="pc-barres"></div>
+      <div class="pc-actions">
+        <button class="bouton" data-cheval="nourrir">🌾 Nourrir</button>
+        <button class="bouton" data-cheval="brosser">🧽 Brosser</button>
+        <button class="bouton" data-cheval="jouer">🎾 Jouer</button>
+        <button class="bouton bouton-rodeo" data-cheval="monter">${monte ? "🛑 Descendre" : "🏇 Monter"}</button>
+        <button class="bouton bouton-secondaire" data-cheval="relooker">🎨 Relooker</button>
+      </div>`;
+    majBarres(c);
+  } else {
+    const s = cibleActive;
+    const lib = { dormir: "🌙 Dormir (jour suivant)", boutique: "🛒 Entrer dans le magasin" }[s.type];
+    p.innerHTML = `<div class="pc-station"><span class="pc-emoji">${s.emoji}</span>
+      <button class="bouton bouton-geant" data-station="${s.type}">${lib}</button></div>`;
+  }
+}
+
+function majBarres(c) {
+  const cont = $("pc-barres"); if (!cont) return;
+  const def = [["🌾", c.faim], ["⚡", c.energie], ["🧼", c.proprete], ["😊", c.bonheur]];
+  cont.innerHTML = def.map(([ic, v]) => {
+    const cl = v < 25 ? "r-rouge" : v < 50 ? "r-jaune" : "r-vert";
+    return `<div class="besoin"><span class="icone">${ic}</span>
+      <div class="barre"><div class="barre-remplissage ${cl}" style="width:${v}%"></div></div></div>`;
+  }).join("");
+}
+
+/* ===================== Interactions ===================== */
+
+function interagir(cible) {
+  if (!cible) return;
+  if (cible.robe) return;
+  if (cible.type === "dormir") jourSuivant();
+  else if (cible.type === "boutique") ouvrirBoutique();
+}
+
+function actionCheval(action) {
+  const c = cibleActive; if (!c || !c.robe) return;
+  switch (action) {
+    case "nourrir":
+      if (etat.foin <= 0) { message("🌾 Plus de foin ! Va au magasin."); return; }
+      etat.foin--; c.faim = borner(c.faim + 35); c.bonheur = borner(c.bonheur + 6);
+      gagner(2); message(`${c.nom} a mangé du bon foin ! 🌾`); break;
+    case "brosser":
+      c.proprete = borner(c.proprete + 40); c.bonheur = borner(c.bonheur + 10); c.energie = borner(c.energie - 5);
+      gagner(2); message(`${c.nom} est tout beau et brillant ! ✨`); break;
+    case "jouer":
+      if (c.energie < 15) { message(`${c.nom} est trop fatigué pour jouer. 😴`); return; }
+      c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 16); c.faim = borner(c.faim - 8);
+      gagner(3); message(`${c.nom} s'est bien amusé ! 🎾`); break;
+    case "monter":
+      if (joueur.monte === c) { joueur.monte = null; message(`Tu descends de ${c.nom}. 🙂`); }
+      else if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour être monté. 🐣`); return; }
+      else if (c.energie < 20) { message(`${c.nom} est trop fatigué pour te porter. 😴`); return; }
+      else { joueur.monte = c; c.bonheur = borner(c.bonheur + 12); c.energie = borner(c.energie - 12); message(`En selle sur ${c.nom} ! 🏇 Promène-toi !`); }
+      idPanneau = null; majInteraction(); majHud(); return;
+    case "relooker": ouvrirRelooker(c); return;
+  }
+  majBarres(c); majHud();
+}
+
+function gagner(n) { etat.pieces += n; }
+
+/* ===================== Jour suivant ===================== */
+
+function jourSuivant() {
+  etat.jour++;
+  etat.pieces += 5; // petite rente quotidienne
+  const negliges = [];
+  etat.chevaux.forEach((c) => {
+    c.age++;
+    c.faim = borner(c.faim - 25);
+    c.energie = borner(c.energie + 40);
+    c.proprete = borner(c.proprete - 16);
+    let aj = -12;
+    if (c.faim < 25 || c.proprete < 25) aj -= 10;
+    if (c.faim > 60 && c.proprete > 60) aj += 8;
+    c.bonheur = borner(c.bonheur + aj);
+    if (c.bonheur < 25 || c.faim < 20) negliges.push(c.nom);
+  });
+  joueur.monte = null;
+  majHud();
+  if (negliges.length) message(`🌅 Jour ${etat.jour}. Occupe-toi de ${negliges.join(" et ")} !`);
+  else message(`🌅 Jour ${etat.jour} : tout le monde a bien dormi. 🐴 (+5 💰)`);
+}
+
+/* ===================== Modale, magasin, relooking ===================== */
+
+function ouvrirModale(t, html) { $("modale-titre").innerHTML = t; $("modale-corps").innerHTML = html; $("modale").classList.remove("cache"); }
+function fermerModale() { $("modale").classList.add("cache"); }
+
+function ouvrirBoutique() {
+  const placeLibre = etat.chevaux.length < etat.boxes;
+  let html = `
+    <div class="ligne-boutique">
+      <div class="desc"><b>🌾 Botte de foin</b><small>Pour nourrir tes chevaux.</small></div>
+      <button class="bouton" data-boutique="foin">${PRIX_FOIN} 💰</button>
+    </div>
+    <div class="ligne-boutique">
+      <div class="desc"><b>🏚️ Agrandir le corral (+1 box)</b><small>${etat.chevaux.length}/${etat.boxes} box occupés.</small></div>
+      <button class="bouton" data-boutique="box">${PRIX_BOX} 💰</button>
+    </div>
+    <h3>🎨 Décorations</h3><div class="grille-decor">`;
+  DECORS.forEach((d) => {
+    const ok = etat.decors.includes(d.id);
+    html += `<button class="carte-decor ${ok ? "possede" : ""}" data-decor="${d.id}" ${ok ? "disabled" : ""}>
+      <span class="d-emoji">${d.emoji}</span><span>${d.nom}</span><span class="d-prix">${ok ? "✅" : d.prix + " 💰"}</span></button>`;
+  });
+  html += `</div><h3>🐴 Adopter un nouveau cheval (${PRIX_CHEVAL} 💰)</h3>`;
+  if (!placeLibre) html += `<p>⚠️ Ton corral est plein ! Agrandis-le d'abord.</p>`;
+  else html += `<p>Achète un cheval, puis personnalise-le avec le bouton <b>🎨 Relooker</b> une fois dans le corral.</p>
+    <button class="bouton bouton-geant" data-boutique="cheval">🛒 Adopter un cheval (${PRIX_CHEVAL} 💰)</button>`;
+  ouvrirModale("🛒 Magasin du Far West", html);
+}
+
+function acheter(quoi) {
+  if (quoi === "foin") {
+    if (etat.pieces < PRIX_FOIN) return message("Pas assez de 💰 !");
+    etat.pieces -= PRIX_FOIN; etat.foin++; message("🌾 +1 botte de foin !");
+  } else if (quoi === "box") {
+    if (etat.pieces < PRIX_BOX) return message("Pas assez de 💰 !");
+    etat.pieces -= PRIX_BOX; etat.boxes++; message("🏚️ Corral agrandi ! +1 box.");
+  } else if (quoi === "cheval") {
+    if (etat.chevaux.length >= etat.boxes) return message("Corral plein !");
+    if (etat.pieces < PRIX_CHEVAL) return message("Pas assez de 💰 !");
+    etat.pieces -= PRIX_CHEVAL;
+    const c = nouveauCheval({});
+    etat.chevaux.push(c);
+    message(`Bienvenue, ${c.nom} ! 🎉 Va le relooker dans le corral.`);
+  }
+  majHud(); ouvrirBoutique();
+}
+
+function acheterDecor(id) {
+  if (etat.decors.includes(id)) return;
+  const d = DECORS.find((x) => x.id === id); if (!d) return;
+  if (etat.pieces < d.prix) return message("Pas assez de 💰 !");
+  etat.pieces -= d.prix; etat.decors.push(id);
+  etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
+  message(`${d.emoji} ${d.nom} installé !`); majHud(); ouvrirBoutique();
+}
+
+function ouvrirRelooker(c) {
+  let html = `<div class="relook-apercu"><canvas id="apercu-cheval" width="200" height="150"></canvas></div>
+    <label class="rl-label">Nom :</label>
+    <input id="rl-nom" type="text" maxlength="14" value="${c.nom}" />
+    <div class="groupe-perso"><span class="grp-titre">Robe</span><div class="ligne-swatch" id="rl-robe"></div></div>
+    <div class="groupe-perso"><span class="grp-titre">Crinière</span><div class="ligne-swatch" id="rl-crin"></div></div>
+    <div class="groupe-perso"><span class="grp-titre">Accessoire</span><div class="ligne-swatch" id="rl-acc"></div></div>
+    <button class="bouton bouton-geant" id="rl-ok">✅ Valider</button>`;
+  ouvrirModale("🎨 Relooker " + c.nom, html);
+
+  const dessine = () => {
+    const cv = $("apercu-cheval"); const x = cv.getContext("2d");
+    x.clearRect(0, 0, cv.width, cv.height); x.fillStyle = "#cfe8a3"; x.fillRect(0, 0, cv.width, cv.height);
+    dessinerCheval3d(x, cv.width / 2 - 10, 120, 1.4, c, false);
+    const acc = ACCESSOIRES.find((a) => a.id === c.accessoire);
+    if (acc && acc.emoji) emojiAt(x, acc.emoji, cv.width / 2 + 26, 50, 22);
+  };
+  const swatches = (contId, palette, champ) => {
+    const cont = $(contId);
+    palette.forEach((col) => {
+      const b = document.createElement("button");
+      b.className = "swatch-col" + (c[champ] === col ? " choisi" : ""); b.style.background = col;
+      b.addEventListener("click", () => { c[champ] = col; cont.querySelectorAll(".swatch-col").forEach((x) => x.classList.remove("choisi")); b.classList.add("choisi"); dessine(); });
+      cont.appendChild(b);
+    });
+  };
+  swatches("rl-robe", ROBES, "robe");
+  swatches("rl-crin", CRINIERES, "crin");
+  const accCont = $("rl-acc");
+  ACCESSOIRES.forEach((a) => {
+    const b = document.createElement("button");
+    b.className = "swatch-acc" + (c.accessoire === a.id ? " choisi" : "");
+    b.textContent = a.emoji || "∅"; b.title = a.nom;
+    b.addEventListener("click", () => { c.accessoire = a.id; accCont.querySelectorAll(".swatch-acc").forEach((x) => x.classList.remove("choisi")); b.classList.add("choisi"); dessine(); });
+    accCont.appendChild(b);
+  });
+  $("rl-ok").addEventListener("click", () => {
+    const nom = $("rl-nom").value.trim(); if (nom) c.nom = nom;
+    sauvegarder(); fermerModale(); idPanneau = null; message(`${c.nom} est relooké ! 🎨`);
+  });
+  dessine();
+}
+
+/* ===================== Aide ===================== */
+
+function ouvrirAide() {
+  ouvrirModale("❓ Comment jouer", `
+    <div class="aide-texte">
+      <p><b>Bienvenue au ranch ! 🤠</b></p>
+      <p><b>🚶 Se déplacer :</b> clique/touche le sol, ou flèches du clavier, ou la manette ▲◀▶▼.</p>
+      <p>Clique directement sur un <b>cheval</b> ou un <b>bâtiment</b> pour aller le voir.</p>
+      <p><b>🐴 Un cheval :</b> approche-toi puis choisis 🌾 Nourrir, 🧽 Brosser, 🎾 Jouer, 🏇 Monter, ou 🎨 Relooker (robe, crinière, accessoire, nom).</p>
+      <p><b>🏇 Monter :</b> une fois en selle, promène-toi à cheval (plus rapide). Re-clique « Descendre » pour mettre pied à terre.</p>
+      <p><b>🏪 Magasin :</b> foin, décorations, et adopter de nouveaux chevaux. <b>🏠 Maison :</b> dormir pour passer au jour suivant.</p>
+      <p><b>🧍 (en haut) :</b> change ton apparence quand tu veux.</p>
+      <p>Garde les 4 besoins au vert, et gagne des 💰 en t'occupant bien de tes chevaux. 💾 Sauvegarde automatique.</p>
+    </div>`);
+}
+
+/* ===================== Lancement ===================== */
+
+document.addEventListener("DOMContentLoaded", () => {
+  init();
+  $("monde").addEventListener("pointerdown", gererClic);
+});
