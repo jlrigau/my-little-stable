@@ -79,9 +79,11 @@ input[type="text"] {
 
 /* ===== HUD ===== */
 .barre-haut {
-  background: var(--vert-fonce); color: #fff; padding: 8px 12px; display: flex;
+  background: var(--vert-fonce); color: #fff; display: flex;
   flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
   box-shadow: 0 3px 8px rgba(0,0,0,0.2); z-index: 5;
+  /* Respecte l'encoche / barre d'état iOS pour que le menu reste accessible */
+  padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left));
 }
 .titre-haras { font-size: 1.1rem; font-weight: bold; }
 .ressources { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -115,7 +117,7 @@ input[type="text"] {
 .btn-action:active { transform: translateY(3px); border-bottom-width: 2px; }
 
 /* ===== Panneau ===== */
-.panneau { background: var(--creme); border-top: 5px solid var(--brun); padding: 10px 14px; min-height: 70px; box-shadow: 0 -3px 8px rgba(0,0,0,0.18); z-index: 5; }
+.panneau { background: var(--creme); border-top: 5px solid var(--brun); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); min-height: 70px; box-shadow: 0 -3px 8px rgba(0,0,0,0.18); z-index: 5; }
 .panneau-aide { text-align: center; margin: 14px 0; opacity: 0.8; font-weight: bold; }
 .pc-tete { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .pc-sous { font-size: 0.85rem; opacity: 0.8; }

@@ -7,6 +7,10 @@
 
 "use strict";
 
+// Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
+const ASSET_VER = "ph6";
+function av(p) { return p + "?v=" + ASSET_VER; }
+
 /* ===================== Données ===================== */
 
 // Personnages joueurs : enfants (sprites LPC composés). thumb = vignette menus.
@@ -37,15 +41,15 @@ const PRIX_CHEVAL = 45, PRIX_FOIN = 4, PRIX_BOX = 80, AGE_ADULTE = 5;
 
 /* ===================== Monde ===================== */
 
-const WORLD = { w: 1600, h: 1180 };
-const CORRAL = { x: 800, y: 150, w: 730, h: 880 };
+const WORLD = { w: 2000, h: 1320 };
+const CORRAL = { x: 800, y: 250, w: 820, h: 820 };
 const STATIONS = [
-  { type: "dormir", x: 250, y: 340, sprite: "cabane_ardoise", label: "Maison" },
-  { type: "boutique", x: 250, y: 760, sprite: "cabane_chaume", label: "Magasin" },
+  { type: "dormir", x: 250, y: 380, sprite: "cabane_ardoise", label: "Maison" },
+  { type: "boutique", x: 250, y: 860, sprite: "cabane_chaume", label: "Magasin" },
 ];
 const SLOTS_DECOR = [
-  { x: 520, y: 180 }, { x: 600, y: 1000 }, { x: 380, y: 520 }, { x: 150, y: 1000 },
-  { x: 540, y: 760 }, { x: 120, y: 140 }, { x: 1540, y: 120 }, { x: 1540, y: 1040 },
+  { x: 560, y: 200 }, { x: 560, y: 1180 }, { x: 470, y: 600 }, { x: 120, y: 1180 },
+  { x: 1820, y: 220 }, { x: 1820, y: 1120 }, { x: 1700, y: 660 }, { x: 120, y: 200 },
 ];
 
 /* ===================== État ===================== */
@@ -181,30 +185,22 @@ function ouvrirCreation(perso, onValider) {
   $("ecran-accueil").classList.add("cache");
   $("ecran-jeu").classList.add("cache");
   $("ecran-creation").classList.remove("cache");
-  const apercuPerso = () => { $("apercu-perso").innerHTML = `<img class="vignette-grande" src="assets/sprite/${persoDef(persoEnCours.avatar).thumb}.png" alt="" />`; };
+  const apercuPerso = () => { $("apercu-perso").innerHTML = `<img class="vignette-grande" src="${av("assets/sprite/" + persoDef(persoEnCours.avatar).thumb + ".png")}" alt="" />`; };
   apercuPerso();
 
   const cont = $("creation-controles");
-  cont.innerHTML = `<span class="grp-titre">Personnage</span><div class="ligne-avatars" id="grp-avatar"></div>
-    <span class="grp-titre">Couleur préférée</span><div class="ligne-swatch" id="grp-couleur"></div>`;
+  cont.innerHTML = `<span class="grp-titre">Choisis ton personnage</span><div class="ligne-avatars" id="grp-avatar"></div>`;
   const ga = $("grp-avatar");
   PERSOS.forEach((p) => {
     const b = document.createElement("button");
     b.className = "btn-avatar btn-vignette" + (persoEnCours.avatar === p.id ? " choisi" : "");
-    b.innerHTML = `<img src="assets/sprite/${p.thumb}.png" alt="${p.nom}" />`;
+    b.innerHTML = `<img src="${av("assets/sprite/" + p.thumb + ".png")}" alt="${p.nom}" />`;
     b.title = p.nom;
     b.addEventListener("click", () => {
       persoEnCours.avatar = p.id; ga.querySelectorAll(".btn-avatar").forEach((x) => x.classList.remove("choisi"));
       b.classList.add("choisi"); apercuPerso();
     });
     ga.appendChild(b);
-  });
-  const gc = $("grp-couleur");
-  THEMES.forEach((col) => {
-    const b = document.createElement("button");
-    b.className = "swatch-col" + (persoEnCours.couleur === col ? " choisi" : ""); b.style.background = col;
-    b.addEventListener("click", () => { persoEnCours.couleur = col; gc.querySelectorAll(".swatch-col").forEach((x) => x.classList.remove("choisi")); b.classList.add("choisi"); });
-    gc.appendChild(b);
   });
 
   $("btn-creation-ok").onclick = () => {
@@ -216,13 +212,13 @@ function ouvrirCreation(perso, onValider) {
 /* ===================== Phaser ===================== */
 
 let jeu = null, sc = null;
-let joueur = null, joueurSprite = null, joueurFacing = "down";
+let joueur = null, joueurSprite = null, joueurOmbre = null, joueurFacing = "down";
 let cursors = null, wasd = null;
 let moveTarget = null, pendingInteract = null;
 let cibleActive = null, idPanneau = null, monte = null;
 let ringSel = null;
 let decorObjs = [];
-let MURS = [];
+let COLLISIONS = [];
 
 function lancerPhaser() {
   if (jeu) { construireMonde(); return; }
@@ -246,13 +242,13 @@ function txt(x, y, s, taille) {
    chevaux animés. Auteurs et licences (CC-BY / CC-BY-SA) : voir assets/CREDITS.md. */
 
 function scenePreload() {
-  this.load.image("sol_herbe", "assets/sprite/tile_grass.png");
-  this.load.image("sol_terre", "assets/sprite/tile_dirt.png");
+  this.load.image("sol_herbe", av("assets/sprite/tile_grass.png"));
+  this.load.image("sol_terre", av("assets/sprite/tile_dirt.png"));
   ["pine", "bush", "trough", "cabane_ardoise", "cabane_chaume"]
-    .forEach((k) => this.load.image(k, `assets/sprite/${k}.png`));
-  this.load.spritesheet("fence", "assets/lpc/fence_medieval.png", { frameWidth: 32, frameHeight: 32 });
-  PERSOS.forEach((p) => this.load.spritesheet(p.key, `assets/lpc/${p.key}.png`, { frameWidth: 64, frameHeight: 64 }));
-  COATS.forEach((c) => this.load.spritesheet("horse-" + c.id, `assets/lpc/horse-${c.id}_0.png`, { frameWidth: 128, frameHeight: 128 }));
+    .forEach((k) => this.load.image(k, av(`assets/sprite/${k}.png`)));
+  this.load.spritesheet("fence", av("assets/lpc/fence_medieval.png"), { frameWidth: 32, frameHeight: 32 });
+  PERSOS.forEach((p) => this.load.spritesheet(p.key, av(`assets/lpc/${p.key}.png`), { frameWidth: 64, frameHeight: 64 }));
+  COATS.forEach((c) => this.load.spritesheet("horse-" + c.id, av(`assets/lpc/horse-${c.id}_0.png`), { frameWidth: 128, frameHeight: 128 }));
 }
 
 // Animations : marche du joueur (4 directions) et marche latérale des chevaux.
@@ -302,21 +298,21 @@ function placerCloture() {
   add(x0, y0, 32, false); add(x1, y0, 34, false);
   add(x0, y1, 32, true); add(x1, y1, 34, true);
 
-  // Murs de collision (le portail gauche reste ouvert)
+  // Murs de collision de la clôture (le portail gauche reste ouvert)
   const t = 14;
-  MURS = [
+  COLLISIONS.push(
     { x: x0, y: y0 - t / 2, w: CORRAL.w, h: t },          // haut
     { x: x0, y: y1 - t / 2, w: CORRAL.w, h: t },          // bas
     { x: x1 - t / 2, y: y0, w: t, h: CORRAL.h },          // droite
     { x: x0 - t / 2, y: y0, w: t, h: gateA - y0 },        // gauche (au-dessus du portail)
     { x: x0 - t / 2, y: gateB, w: t, h: y1 - gateB },     // gauche (sous le portail)
-  ];
+  );
 }
 
-// Empêche le joueur de traverser la clôture (résolution AABB par axe).
-function bloquerCloture() {
-  const hw = 16, hh = 12, px = joueur.x, py = joueur.y;
-  MURS.forEach((m) => {
+// Empêche le joueur de traverser les obstacles (clôture, arbres, bâtiments) — AABB par axe.
+function bloquerObstacles() {
+  const hw = 15, hh = 10, px = joueur.x, py = joueur.y;
+  COLLISIONS.forEach((m) => {
     if (px + hw > m.x && px - hw < m.x + m.w && py + hh > m.y && py - hh < m.y + m.h) {
       const penX = Math.min(px + hw - m.x, m.x + m.w - (px - hw));
       const penY = Math.min(py + hh - m.y, m.y + m.h - (py - hh));
@@ -331,16 +327,25 @@ function dansCorral(x, y) {
          y > CORRAL.y - 40 && y < CORRAL.y + CORRAL.h + 40;
 }
 
-// Arbres et buissons fixes autour du centre équestre : [x, y, sprite, échelle]
+// Arbres et buissons fixes — placés HORS de l'anneau praticable autour de l'enclos.
+// [x, y, sprite, échelle]
 const SCENERY = [
-  [110, 180, "pine", 1.5], [185, 1060, "pine", 1.6], [1310, 90, "pine", 1.4], [1500, 1090, "pine", 1.6],
-  [640, 1090, "pine", 1.4], [1560, 320, "pine", 1.4], [470, 130, "bush", 1.2], [90, 640, "bush", 1.2],
-  [1560, 660, "bush", 1.2], [330, 910, "bush", 1.1], [700, 410, "bush", 1.0], [60, 360, "bush", 1.0],
+  // côté gauche
+  [110, 320, "pine", 1.7], [180, 1130, "pine", 1.8], [90, 700, "bush", 1.4],
+  [120, 1190, "bush", 1.3], [520, 130, "pine", 1.6], [620, 1240, "bush", 1.3],
+  // côté droit (au-delà de l'anneau, x > 1740)
+  [1850, 330, "pine", 1.8], [1900, 840, "pine", 1.7], [1820, 1190, "bush", 1.4],
+  [1890, 560, "bush", 1.4], [1830, 1060, "pine", 1.7], [1900, 150, "pine", 1.6],
+  // coins
+  [110, 140, "bush", 1.3], [1740, 1250, "bush", 1.3],
 ];
 
 function placerScenery() {
   SCENERY.forEach(([x, y, sprite, ech]) => {
     sc.add.image(x, y, sprite).setOrigin(0.5, 0.95).setScale(ech).setDepth(y);
+    // empreinte de collision à la base (tronc / pied du buisson)
+    if (sprite === "pine") COLLISIONS.push({ x: x - 15, y: y - 22, w: 30, h: 24 });
+    else COLLISIONS.push({ x: x - 26 * ech, y: y - 16, w: 52 * ech, h: 20 });
   });
 }
 
@@ -359,13 +364,15 @@ function sceneCreate() {
 function construireMonde() {
   sc.children.removeAll();
   decorObjs = [];
+  COLLISIONS = [];
 
   // Sol : pelouse tuilée sur tout le monde
   sc.add.tileSprite(0, 0, WORLD.w, WORLD.h, "sol_herbe").setOrigin(0, 0).setDepth(-20);
 
-  // Chemin de terre reliant les bâtiments à l'enclos
-  sc.add.tileSprite(150, 330, 220, 470, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
-  sc.add.tileSprite(250, CORRAL.y + CORRAL.h * 0.5 - 40, CORRAL.x - 250, 80, "sol_terre").setOrigin(0, 0).setDepth(-19);
+  // Chemin de terre : vertical devant les bâtiments + horizontal vers le portail de l'enclos
+  const gateY = CORRAL.y + CORRAL.h * 0.5;
+  sc.add.tileSprite(160, 380, 200, 520, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
+  sc.add.tileSprite(260, gateY - 45, CORRAL.x - 260, 90, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
 
   // Enclos (herbe légèrement plus claire) + clôture
   const pre = sc.add.graphics();
@@ -373,14 +380,15 @@ function construireMonde() {
   pre.setDepth(-18);
   placerCloture();
 
-  // Décor fixe (arbres, buissons, herbe)
+  // Décor fixe (arbres, buissons)
   placerScenery();
 
-  // Bâtiments
+  // Bâtiments (+ empreinte de collision à la base)
   STATIONS.forEach((s) => {
     const b = sc.add.image(s.x, s.y, s.sprite).setOrigin(0.5, 0.88).setScale(1.2).setDepth(s.y);
     const l = sc.add.text(s.x, s.y + 30, s.label, { fontSize: "22px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 5 }).setOrigin(0.5).setDepth(s.y + 1);
     s.obj = b; s.labelObj = l;
+    COLLISIONS.push({ x: s.x - 70, y: s.y - 60, w: 140, h: 75 });
   });
 
   // Décorations achetées
@@ -390,11 +398,11 @@ function construireMonde() {
   etat.chevaux.forEach(creerObjCheval);
 
   // Joueur (enfant)
-  const ombre = sc.add.ellipse(0, 0, 30, 11, 0x000000, 0.25);
+  joueurOmbre = sc.add.ellipse(0, 0, 30, 11, 0x000000, 0.25);
   const key = persoDef(etat.perso.avatar).key;
-  joueurSprite = sc.add.sprite(0, 0, key, 18).setOrigin(0.5, 0.92).setScale(1.7);
+  joueurSprite = sc.add.sprite(0, 0, key, 18).setOrigin(0.5, 0.97).setScale(1.7);
   joueurFacing = "down";
-  joueur = sc.add.container(560, 560, [ombre, joueurSprite]);
+  joueur = sc.add.container(560, CORRAL.y + CORRAL.h * 0.5, [joueurOmbre, joueurSprite]);
   joueur.setSize(40, 40);
   monte = null;
 
@@ -405,13 +413,13 @@ function construireMonde() {
   sc.cameras.main.startFollow(joueur, true, 0.12, 0.12);
 }
 
-function echelleCheval(c) { return estPoulain(c) ? 0.8 : 1.15; }
-function coeurY(c) { return estPoulain(c) ? -74 : -104; }
+function echelleCheval(c) { return estPoulain(c) ? 1.3 : 2.0; }
+function coeurY(c) { return -(61 * echelleCheval(c) + 14); }
 
 function creerObjCheval(c) {
   const coat = robeCoat(c), ech = echelleCheval(c);
-  const ombre = sc.add.ellipse(0, 0, 64 * ech, 18 * ech, 0x000000, 0.25);
-  const corps = sc.add.sprite(0, 0, "horse-" + coat).setOrigin(0.5, 0.9).setScale(ech);
+  const ombre = sc.add.ellipse(0, 0, 58 * ech, 16 * ech, 0x000000, 0.25);
+  const corps = sc.add.sprite(0, 0, "horse-" + coat).setOrigin(0.46, 0.734).setScale(ech);
   corps.play("horse-" + coat + "-walk");
   const coeur = sc.add.image(0, coeurY(c), "coeur").setOrigin(0.5).setScale(0.95).setTint(0x6fcf5f);
   const nom = sc.add.text(0, 22, c.nom, { fontSize: "16px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 4 }).setOrigin(0.5);
@@ -485,11 +493,18 @@ function sceneUpdate(time, delta) {
   majAnimJoueur(mvx, mvy);
   joueur.x = clamp(joueur.x, 40, WORLD.w - 40);
   joueur.y = clamp(joueur.y, 40, WORLD.h - 40);
-  bloquerCloture();
+  bloquerObstacles();
   joueur.setDepth(joueur.y + 1000);
 
-  // cheval monté suit le joueur
-  if (monte) { monte.obj.x = joueur.x; monte.obj.y = joueur.y + 6; monte.obj.setDepth(joueur.y + 999); monte.x = joueur.x; monte.y = joueur.y; }
+  // À cheval : le cheval est au sol sous le joueur, l'enfant est assis sur son dos.
+  if (monte) {
+    monte.obj.x = joueur.x; monte.obj.y = joueur.y; monte.x = joueur.x; monte.y = joueur.y;
+    monte.obj.setDepth(joueur.y + 999);
+    monte.corpsT.setFlipX(joueurFacing === "right");
+    joueurSprite.y = -58; joueurOmbre.setVisible(false);
+  } else if (joueurSprite.y !== 0) {
+    joueurSprite.y = 0; joueurOmbre.setVisible(true);
+  }
 
   // balade des chevaux + humeur
   const now = time;
@@ -669,7 +684,7 @@ function ouvrirBoutique() {
   DECORS.forEach((d) => {
     const ok = etat.decors.includes(d.id);
     html += `<button class="carte-decor ${ok ? "possede" : ""}" data-decor="${d.id}" ${ok ? "disabled" : ""}>
-      <img class="d-img" src="assets/sprite/${d.sprite}.png" alt="" /><span>${d.nom}</span><span class="d-prix">${ok ? "✅" : d.prix + " 💰"}</span></button>`;
+      <img class="d-img" src="${av("assets/sprite/" + d.sprite + ".png")}" alt="" /><span>${d.nom}</span><span class="d-prix">${ok ? "✅" : d.prix + " 💰"}</span></button>`;
   });
   html += `</div><h3>🐴 Adopter un cheval</h3>`;
   if (!placeLibre) html += `<p>⚠️ Ton corral est plein ! Agrandis-le d'abord.</p>`;
@@ -708,11 +723,11 @@ function ouvrirRelooker(c) {
     <div class="groupe-perso"><span class="grp-titre">Robe du cheval</span><div class="ligne-avatars" id="rl-robe"></div></div>
     <button class="bouton bouton-geant" id="rl-ok">✅ Valider</button>`);
 
-  const apercu = () => { $("rl-apercu").innerHTML = `<img class="vignette-grande" src="assets/sprite/coat_${robeCoat(c)}.png" alt="" />`; };
+  const apercu = () => { $("rl-apercu").innerHTML = `<img class="vignette-grande" src="${av("assets/sprite/coat_" + robeCoat(c) + ".png")}" alt="" />`; };
   COATS.forEach((co) => {
     const b = document.createElement("button");
     b.className = "btn-avatar btn-vignette" + (robeCoat(c) === co.id ? " choisi" : "");
-    b.innerHTML = `<img src="assets/sprite/coat_${co.id}.png" alt="${co.nom}" />`;
+    b.innerHTML = `<img src="${av("assets/sprite/coat_" + co.id + ".png")}" alt="${co.nom}" />`;
     b.title = co.nom;
     b.addEventListener("click", () => { c.robe = co.id; $("rl-robe").querySelectorAll(".btn-avatar").forEach((x) => x.classList.remove("choisi")); b.classList.add("choisi"); apercu(); });
     $("rl-robe").appendChild(b);

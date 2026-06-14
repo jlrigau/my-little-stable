@@ -20,8 +20,12 @@ agrandit l'enclos.
 - `assets/lpc/` — planches sources utilisées au runtime (chevaux, persos, clôtures).
 - `assets/CREDITS.md` — licences/attribution des assets.
 - `.github/workflows/deploy.yml` — déploiement Pages.
-- Cache-busting : assets versionnés `?v=phN` dans `index.html`. **Quand tu changes
-  JS/CSS/assets, incrémente N** (ex. ph4 → ph5).
+- Cache-busting : `?v=phN` sur `style.css`/`game.js` dans `index.html`, ET constante
+  `ASSET_VER` en haut de `game.js` (via `av()`) pour TOUTES les images (sinon Safari
+  garde les anciennes si on réutilise un nom de fichier). **Quand tu changes JS/CSS/images,
+  incrémente le numéro aux DEUX endroits** (ex. ph6 → ph7).
+- iPhone : `viewport-fit=cover` + `env(safe-area-inset-*)` sur `.barre-haut` et `.panneau`
+  pour ne pas passer sous l'encoche / barre d'état iOS.
 
 ## 3. Déploiement
 - Branche de travail **ET** de déploiement = **`main`**. Pousser sur `main` déclenche
