@@ -44,13 +44,18 @@ avec `--ignore-certificate-errors` (le proxy TLS casse la validation des certifs
 
 ## 6. État actuel du visuel (refonte « centre équestre », validée par l'utilisateur)
 Style **pixel-art LPC**, **plus aucun emoji dans le monde** :
-- **Sol** : pelouse tuilée + chemins de terre. **Enclos** : clôture en ganivelle.
-- **Bâtiments** : grange rouge (Écurie / dormir), grange brune (Magasin).
-- **Joueur** : sprite LPC animé 4 directions — `princess.png` (fille) ou `soldier.png`
-  (garçon). Walkcycle 576x256 (9 col × 4 lignes : haut/gauche/bas/droite, col 0 = idle).
+- **Sol** : pelouse tuilée + chemins de terre. **Enclos** : clôture en ganivelle
+  AVEC collision (le joueur ne traverse pas, sauf portail gauche) → `MURS` + `bloquerCloture()`.
+- **Bâtiments** : cabanes en rondins LPC pré-assemblées — `cabane_ardoise` (Maison/dormir),
+  `cabane_chaume` (Magasin). (Les granges modulaires LPC s'assemblaient mal → abandonnées.)
+- **Joueur** : ENFANTS LPC pré-composés (corps + habits + cheveux) → `assets/lpc/kid_fille.png`
+  et `kid_garcon.png`. Walkcycle 576x256 (9 col × 4 lignes : haut/gauche/bas/droite, col 0 = idle).
+  Origine ~0.92 (pieds au sol, pas de flottement), échelle ~1.7.
 - **Chevaux** : `assets/lpc/horse-<couleur>_0.png` (5 robes : brown/black/gray/golden/white).
   Planche 512x2560 = grille **128×128** (4 col × 20 lignes). Marche latérale = ligne 5
-  (frames 20-23), profil gauche ; flip X pour la droite.
+  (frames 20-23), profil gauche ; flip X pour la droite. Échelle ~1.15 (plus grands que l'enfant),
+  origine 0.9. Ils s'arrêtent quand le joueur est proche (<115) pour pouvoir interagir.
+- **Déplacement** : clic/tap vers un point (PAS de dpad — retiré). Clavier flèches/ZQSD en bonus.
 - **Humeur** : petit cœur teinté (vert/orange/rouge), pas de smiley.
 - **Déco achetable** : sapin/buisson/abreuvoir (sprites).
 - Personnalisation : perso (fille/garçon) + cheval (5 robes, nom). Menus à vignettes-images.

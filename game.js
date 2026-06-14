@@ -9,10 +9,10 @@
 
 /* ===================== Données ===================== */
 
-// Personnages joueurs (sprites LPC). thumb = vignette pour les menus.
+// Personnages joueurs : enfants (sprites LPC composés). thumb = vignette menus.
 const PERSOS = [
-  { id: "fille", nom: "Cavalière", key: "princess", thumb: "avatar_fille" },
-  { id: "garcon", nom: "Cavalier", key: "soldier", thumb: "avatar_garcon" },
+  { id: "fille", nom: "Cavalière", key: "kid_fille", thumb: "avatar_fille" },
+  { id: "garcon", nom: "Cavalier", key: "kid_garcon", thumb: "avatar_garcon" },
 ];
 const THEMES = ["#4aa3b8", "#e8722d", "#d94a6a", "#7fae5a", "#7a5bd0", "#f4b942"];
 
@@ -40,8 +40,8 @@ const PRIX_CHEVAL = 45, PRIX_FOIN = 4, PRIX_BOX = 80, AGE_ADULTE = 5;
 const WORLD = { w: 1600, h: 1180 };
 const CORRAL = { x: 800, y: 150, w: 730, h: 880 };
 const STATIONS = [
-  { type: "dormir", x: 250, y: 340, sprite: "barn_red", label: "Écurie" },
-  { type: "boutique", x: 250, y: 760, sprite: "barn_brown", label: "Magasin" },
+  { type: "dormir", x: 250, y: 340, sprite: "cabane_ardoise", label: "Maison" },
+  { type: "boutique", x: 250, y: 760, sprite: "cabane_chaume", label: "Magasin" },
 ];
 const SLOTS_DECOR = [
   { x: 520, y: 180 }, { x: 600, y: 1000 }, { x: 380, y: 520 }, { x: 150, y: 1000 },
@@ -122,14 +122,6 @@ function init() {
     else if (btn.dataset.station) interagir({ type: btn.dataset.station });
     else if (btn.dataset.boutique) acheter(btn.dataset.boutique);
     else if (btn.dataset.decor) acheterDecor(btn.dataset.decor);
-  });
-
-  document.querySelectorAll(".dpad-btn").forEach((b) => {
-    const dir = b.dataset.dir;
-    const on = (e) => { e.preventDefault(); touches[dir] = true; };
-    const off = (e) => { e.preventDefault(); touches[dir] = false; };
-    b.addEventListener("pointerdown", on); b.addEventListener("pointerup", off);
-    b.addEventListener("pointerleave", off); b.addEventListener("pointercancel", off);
   });
 }
 
@@ -226,11 +218,11 @@ function ouvrirCreation(perso, onValider) {
 let jeu = null, sc = null;
 let joueur = null, joueurSprite = null, joueurFacing = "down";
 let cursors = null, wasd = null;
-const touches = { haut: false, bas: false, gauche: false, droite: false };
 let moveTarget = null, pendingInteract = null;
 let cibleActive = null, idPanneau = null, monte = null;
 let ringSel = null;
 let decorObjs = [];
+let MURS = [];
 
 function lancerPhaser() {
   if (jeu) { construireMonde(); return; }
@@ -256,7 +248,7 @@ function txt(x, y, s, taille) {
 function scenePreload() {
   this.load.image("sol_herbe", "assets/sprite/tile_grass.png");
   this.load.image("sol_terre", "assets/sprite/tile_dirt.png");
-  ["tuft0", "tuft1", "tuft2", "pine", "bush", "trough", "barn_red", "barn_brown"]
+  ["pine", "bush", "trough", "cabane_ardoise", "cabane_chaume"]
     .forEach((k) => this.load.image(k, `assets/sprite/${k}.png`));
   this.load.spritesheet("fence", "assets/lpc/fence_medieval.png", { frameWidth: 32, frameHeight: 32 });
   PERSOS.forEach((p) => this.load.spritesheet(p.key, `assets/lpc/${p.key}.png`, { frameWidth: 64, frameHeight: 64 }));
@@ -309,6 +301,29 @@ function placerCloture() {
   }
   add(x0, y0, 32, false); add(x1, y0, 34, false);
   add(x0, y1, 32, true); add(x1, y1, 34, true);
+
+  // Murs de collision (le portail gauche reste ouvert)
+  const t = 14;
+  MURS = [
+    { x: x0, y: y0 - t / 2, w: CORRAL.w, h: t },          // haut
+    { x: x0, y: y1 - t / 2, w: CORRAL.w, h: t },          // bas
+    { x: x1 - t / 2, y: y0, w: t, h: CORRAL.h },          // droite
+    { x: x0 - t / 2, y: y0, w: t, h: gateA - y0 },        // gauche (au-dessus du portail)
+    { x: x0 - t / 2, y: gateB, w: t, h: y1 - gateB },     // gauche (sous le portail)
+  ];
+}
+
+// Empêche le joueur de traverser la clôture (résolution AABB par axe).
+function bloquerCloture() {
+  const hw = 16, hh = 12, px = joueur.x, py = joueur.y;
+  MURS.forEach((m) => {
+    if (px + hw > m.x && px - hw < m.x + m.w && py + hh > m.y && py - hh < m.y + m.h) {
+      const penX = Math.min(px + hw - m.x, m.x + m.w - (px - hw));
+      const penY = Math.min(py + hh - m.y, m.y + m.h - (py - hh));
+      if (penX < penY) joueur.x += (joueur.x < m.x + m.w / 2 ? -penX : penX);
+      else joueur.y += (joueur.y < m.y + m.h / 2 ? -penY : penY);
+    }
+  });
 }
 
 function dansCorral(x, y) {
@@ -327,12 +342,6 @@ function placerScenery() {
   SCENERY.forEach(([x, y, sprite, ech]) => {
     sc.add.image(x, y, sprite).setOrigin(0.5, 0.95).setScale(ech).setDepth(y);
   });
-  // touffes d'herbe éparses (hors enclos) pour habiller la pelouse
-  for (let i = 0; i < 60; i++) {
-    const x = aleatoire(30, WORLD.w - 30), y = aleatoire(30, WORLD.h - 30);
-    if (dansCorral(x, y)) continue;
-    sc.add.image(x, y, choisir(["tuft0", "tuft1", "tuft2"])).setOrigin(0.5, 0.9).setScale(1.1).setDepth(0);
-  }
 }
 
 function sceneCreate() {
@@ -369,8 +378,8 @@ function construireMonde() {
 
   // Bâtiments
   STATIONS.forEach((s) => {
-    const b = sc.add.image(s.x, s.y, s.sprite).setOrigin(0.5, 0.82).setScale(1.15).setDepth(s.y);
-    const l = sc.add.text(s.x, s.y + 26, s.label, { fontSize: "22px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 5 }).setOrigin(0.5).setDepth(s.y + 1);
+    const b = sc.add.image(s.x, s.y, s.sprite).setOrigin(0.5, 0.88).setScale(1.2).setDepth(s.y);
+    const l = sc.add.text(s.x, s.y + 30, s.label, { fontSize: "22px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 5 }).setOrigin(0.5).setDepth(s.y + 1);
     s.obj = b; s.labelObj = l;
   });
 
@@ -380,10 +389,10 @@ function construireMonde() {
   // Chevaux
   etat.chevaux.forEach(creerObjCheval);
 
-  // Joueur
-  const ombre = sc.add.ellipse(0, 26, 38, 14, 0x000000, 0.22);
+  // Joueur (enfant)
+  const ombre = sc.add.ellipse(0, 0, 30, 11, 0x000000, 0.25);
   const key = persoDef(etat.perso.avatar).key;
-  joueurSprite = sc.add.sprite(0, 0, key, 18).setOrigin(0.5, 0.78).setScale(1.25);
+  joueurSprite = sc.add.sprite(0, 0, key, 18).setOrigin(0.5, 0.92).setScale(1.7);
   joueurFacing = "down";
   joueur = sc.add.container(560, 560, [ombre, joueurSprite]);
   joueur.setSize(40, 40);
@@ -396,24 +405,27 @@ function construireMonde() {
   sc.cameras.main.startFollow(joueur, true, 0.12, 0.12);
 }
 
+function echelleCheval(c) { return estPoulain(c) ? 0.8 : 1.15; }
+function coeurY(c) { return estPoulain(c) ? -74 : -104; }
+
 function creerObjCheval(c) {
-  const coat = robeCoat(c);
-  const ombre = sc.add.ellipse(0, 18, 54, 16, 0x000000, 0.22);
-  const corps = sc.add.sprite(0, 0, "horse-" + coat).setOrigin(0.5, 0.82);
-  corps.setScale(estPoulain(c) ? 0.4 : 0.62);
+  const coat = robeCoat(c), ech = echelleCheval(c);
+  const ombre = sc.add.ellipse(0, 0, 64 * ech, 18 * ech, 0x000000, 0.25);
+  const corps = sc.add.sprite(0, 0, "horse-" + coat).setOrigin(0.5, 0.9).setScale(ech);
   corps.play("horse-" + coat + "-walk");
-  const coeur = sc.add.image(0, -42, "coeur").setOrigin(0.5).setScale(0.85).setTint(0x6fcf5f);
-  const nom = sc.add.text(0, 30, c.nom, { fontSize: "16px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 4 }).setOrigin(0.5);
+  const coeur = sc.add.image(0, coeurY(c), "coeur").setOrigin(0.5).setScale(0.95).setTint(0x6fcf5f);
+  const nom = sc.add.text(0, 22, c.nom, { fontSize: "16px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 4 }).setOrigin(0.5);
   const cont = sc.add.container(c.x, c.y, [ombre, corps, coeur, nom]);
   c.obj = cont; c.corpsT = corps; c.coeur = coeur; c.nomT = nom;
 }
 
 function majVisuelCheval(c) {
   if (!c.obj) return;
-  const coat = robeCoat(c);
+  const coat = robeCoat(c), ech = echelleCheval(c);
   c.corpsT.setTexture("horse-" + coat);
   c.corpsT.play("horse-" + coat + "-walk");
-  c.corpsT.setScale(estPoulain(c) ? 0.4 : 0.62);
+  c.corpsT.setScale(ech);
+  c.coeur.y = coeurY(c);
   c.nomT.setText(c.nom);
 }
 
@@ -453,10 +465,10 @@ function sceneUpdate(time, delta) {
 
   let vx = 0, vy = 0;
   if (!modaleOuverte) {
-    if (cursors.left.isDown || wasd.gauche.isDown || wasd.left.isDown || touches.gauche) vx -= 1;
-    if (cursors.right.isDown || wasd.droite.isDown || touches.droite) vx += 1;
-    if (cursors.up.isDown || wasd.haut.isDown || wasd.up.isDown || touches.haut) vy -= 1;
-    if (cursors.down.isDown || wasd.bas.isDown || touches.bas) vy += 1;
+    if (cursors.left.isDown || wasd.gauche.isDown || wasd.left.isDown) vx -= 1;
+    if (cursors.right.isDown || wasd.droite.isDown) vx += 1;
+    if (cursors.up.isDown || wasd.haut.isDown || wasd.up.isDown) vy -= 1;
+    if (cursors.down.isDown || wasd.bas.isDown) vy += 1;
   }
 
   const vit = (monte ? 360 : 230);
@@ -473,6 +485,7 @@ function sceneUpdate(time, delta) {
   majAnimJoueur(mvx, mvy);
   joueur.x = clamp(joueur.x, 40, WORLD.w - 40);
   joueur.y = clamp(joueur.y, 40, WORLD.h - 40);
+  bloquerCloture();
   joueur.setDepth(joueur.y + 1000);
 
   // cheval monté suit le joueur
@@ -482,6 +495,15 @@ function sceneUpdate(time, delta) {
   const now = time;
   etat.chevaux.forEach((c) => {
     if (c !== monte) {
+      // Le cheval s'arrête quand le joueur est proche (pour pouvoir s'en occuper).
+      if (distJoueur(c.x, c.y) < 115) {
+        c.prochainPas = now + 800;
+        c.corpsT.setFlipX(joueur.x > c.x);
+        c.obj.x = c.x; c.obj.y = c.y; c.obj.setDepth(c.y);
+        const mp = moyenne(c);
+        c.coeur.setTint(mp > 60 ? 0x6fcf5f : mp > 35 ? 0xf4b942 : 0xe05656);
+        return;
+      }
       if (now > c.prochainPas) {
         c.tx = aleatoire(CORRAL.x + 70, CORRAL.x + CORRAL.w - 70);
         c.ty = aleatoire(CORRAL.y + 70, CORRAL.y + CORRAL.h - 70);
@@ -706,8 +728,8 @@ function ouvrirAide() {
   ouvrirModale("❓ Comment jouer", `
     <div class="aide-texte">
       <p><b>Bienvenue dans ton centre équestre !</b></p>
-      <p><b>🚶 Se déplacer :</b> clique/touche le sol, flèches du clavier (ou Z Q S D), ou la manette ▲◀▶▼.
-      Tu peux cliquer directement sur un cheval ou un bâtiment.</p>
+      <p><b>🚶 Se déplacer :</b> clique ou touche l'endroit où aller (le personnage s'y rend tout seul).
+      Tu peux aussi cliquer directement sur un cheval ou un bâtiment. (Au clavier : flèches ou Z Q S D.)</p>
       <p><b>🐴 Un cheval :</b> approche-toi puis 🌾 Nourrir, 🧽 Brosser, 🎾 Jouer, 🏇 Monter, ou 🎨 Relooker
       (robe, nom). Garde ses besoins au vert !</p>
       <p><b>🏇 Monter :</b> en selle, promène-toi à cheval (plus rapide). Re-clique « Descendre » pour t'arrêter.</p>
