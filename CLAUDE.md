@@ -68,8 +68,11 @@ Style **pixel-art LPC**, **plus aucun emoji dans le monde** :
 - **À cheval** : enfant assis sur le dos (`joueurSprite.y=-58`, ombre masquée), sans anim de marche.
 - **Dormir** : transition nuit (voile `nuitVoile` qui s'assombrit puis s'éclaircit) ; interdit d'enchaîner
   les nuits (`actionsDepuisDodo` : il faut s'occuper d'un cheval entre deux dodos).
-- **Déco** : achat au magasin puis **placement libre** au clic (positions dans `etat.decors=[{id,x,y}]`).
-- **Noms de chevaux uniques** (`nomLibre`/`nomUtilise`).
+- **Déco** : achat au magasin → **fantôme** semi-transparent qui suit le joueur (`ghostDecor`),
+  on se déplace où on veut puis bouton **« ✅ Poser ici »** (`poserDecor`) ; positions dans
+  `etat.decors=[{id,x,y}]`. Caméra suit le joueur → c'est pour ça qu'on place « à ses pieds ».
+- **Noms de chevaux uniques** (`nomLibre`/`nomUtilise`). **Prénom du joueur** : `etat.perso.nom`
+  (saisi à la création, label `joueurNom` au-dessus du perso).
 - **Humeur** : petit cœur teinté (vert/orange/rouge), pas de smiley.
 - **Déco achetable** : sapin/buisson/abreuvoir (sprites).
 - Personnalisation : perso (fille/garçon) + cheval (5 robes, nom). Menus à vignettes-images.

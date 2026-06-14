@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph10";
+const ASSET_VER = "ph11";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -124,19 +124,21 @@ function init() {
   $("btn-moi").addEventListener("click", () => ouvrirCreation({ ...etat.perso }, () => {
     etat.perso = persoEnCours; sauvegarder();
     if (joueurSprite) { joueurSprite.setTexture(persoDef(etat.perso.avatar).key); joueurFacing = "down"; joueurSprite.setFrame(18); }
+    if (joueurNom) joueurNom.setText(etat.perso.nom || "");
   }));
   $("btn-aide").addEventListener("click", ouvrirAide);
 
   $("btn-fermer-modale").addEventListener("click", fermerModale);
   $("modale").addEventListener("click", (e) => { if (e.target.id === "modale") fermerModale(); });
 
-  $("btn-action").addEventListener("click", () => interagir(cibleActive));
+  $("btn-action").addEventListener("click", () => { if (placementDecor) poserDecor(); else interagir(cibleActive); });
   document.addEventListener("click", (e) => {
     const btn = e.target.closest("button"); if (!btn) return;
     if (btn.dataset.cheval) actionCheval(btn.dataset.cheval);
     else if (btn.dataset.station) interagir({ type: btn.dataset.station });
     else if (btn.dataset.boutique) acheter(btn.dataset.boutique);
     else if (btn.dataset.decor) acheterDecor(btn.dataset.decor);
+    else if (btn.dataset.annulerPlace) annulerPlacement();
   });
 }
 
@@ -206,7 +208,9 @@ function ouvrirCreation(perso, onValider) {
   apercuPerso();
 
   const cont = $("creation-controles");
-  cont.innerHTML = `<span class="grp-titre">Choisis ton personnage</span><div class="ligne-avatars" id="grp-avatar"></div>`;
+  cont.innerHTML = `<span class="grp-titre">Ton prénom</span>
+    <input id="creation-nom" type="text" maxlength="14" placeholder="Ton prénom" value="${(persoEnCours.nom || "").replace(/"/g, "&quot;")}" />
+    <span class="grp-titre">Fille ou garçon&nbsp;?</span><div class="ligne-avatars" id="grp-avatar"></div>`;
   const ga = $("grp-avatar");
   PERSOS.forEach((p) => {
     const b = document.createElement("button");
@@ -221,6 +225,8 @@ function ouvrirCreation(perso, onValider) {
   });
 
   $("btn-creation-ok").onclick = () => {
+    const n = $("creation-nom").value.trim();
+    persoEnCours.nom = n || persoEnCours.nom || persoDef(persoEnCours.avatar).nom;
     onValider();
     if (etat) { $("ecran-creation").classList.add("cache"); $("ecran-jeu").classList.remove("cache"); }
   };
@@ -229,10 +235,10 @@ function ouvrirCreation(perso, onValider) {
 /* ===================== Phaser ===================== */
 
 let jeu = null, sc = null;
-let joueur = null, joueurSprite = null, joueurOmbre = null, joueurFacing = "down";
+let joueur = null, joueurSprite = null, joueurOmbre = null, joueurNom = null, joueurFacing = "down";
 let cursors = null, wasd = null;
 let moveTarget = null, pendingInteract = null;
-let placementDecor = null;            // déco en attente de placement (clic suivant)
+let placementDecor = null, ghostDecor = null; // déco en cours de placement (fantôme qui suit le joueur)
 let nuitEnCours = false, nuitVoile = null;   // transition nuit (dormir)
 let enCourse = false, dernierTapT = 0;       // double-tap rapide => le perso court
 let cibleActive = null, idPanneau = null, monte = null;
@@ -397,6 +403,7 @@ function construireMonde() {
   sc.children.removeAll();
   decorObjs = [];
   COLLISIONS = [];
+  placementDecor = null; ghostDecor = null;
 
   // Sol : pelouse tuilée sur tout le monde
   sc.add.tileSprite(0, 0, WORLD.w, WORLD.h, "sol_herbe").setOrigin(0, 0).setDepth(-20);
@@ -434,7 +441,8 @@ function construireMonde() {
   const key = persoDef(etat.perso.avatar).key;
   joueurSprite = sc.add.sprite(0, 0, key, 18).setOrigin(0.5, 0.97).setScale(1.7);
   joueurFacing = "down";
-  joueur = sc.add.container(560, CORRAL.y + CORRAL.h * 0.5, [joueurOmbre, joueurSprite]);
+  joueurNom = sc.add.text(0, -80, etat.perso.nom || "", { fontSize: "15px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 4 }).setOrigin(0.5);
+  joueur = sc.add.container(560, CORRAL.y + CORRAL.h * 0.5, [joueurOmbre, joueurSprite, joueurNom]);
   joueur.setSize(40, 40);
   monte = null;
 
@@ -541,14 +549,19 @@ function sceneUpdate(time, delta) {
   bloquerObstacles();
   joueur.setDepth(joueur.y);
 
+  // Déco en cours de placement : le fantôme suit le joueur (aperçu de l'emplacement).
+  if (placementDecor && ghostDecor) { ghostDecor.x = joueur.x; ghostDecor.y = joueur.y; ghostDecor.setDepth(joueur.y + 0.5); }
+
   // À cheval : le cheval est au sol sous le joueur, l'enfant est assis sur son dos.
   if (monte) {
     monte.obj.x = joueur.x; monte.obj.y = joueur.y; monte.x = joueur.x; monte.y = joueur.y;
     monte.obj.setDepth(joueur.y - 1);
     monte.corpsT.setFlipX(joueurFacing === "right");
     joueurSprite.y = -58; joueurOmbre.setVisible(false);
-  } else if (joueurSprite.y !== 0) {
-    joueurSprite.y = 0; joueurOmbre.setVisible(true);
+    if (joueurNom) joueurNom.y = -138;
+  } else {
+    if (joueurSprite.y !== 0) { joueurSprite.y = 0; joueurOmbre.setVisible(true); }
+    if (joueurNom && joueurNom.y !== -80) joueurNom.y = -80;
   }
 
   // balade des chevaux + humeur
@@ -586,6 +599,15 @@ function sceneUpdate(time, delta) {
 function distJoueur(x, y) { return Math.hypot(joueur.x - x, joueur.y - y); }
 
 function majInteraction() {
+  // Mode placement de déco : on cache la sélection, on propose « Poser ici ».
+  if (placementDecor) {
+    cibleActive = null;
+    if (ringSel) ringSel.setVisible(false);
+    if (idPanneau !== "place") { idPanneau = "place"; construirePanneau(); }
+    $("btn-action").classList.remove("cache");
+    $("btn-action").textContent = "✅ Poser ici";
+    return;
+  }
   let meilleur = null, dmin = Infinity;
   if (monte) meilleur = monte;
   else {
@@ -613,15 +635,6 @@ function onPointer(p) {
   if (!$("modale").classList.contains("cache")) return;
   const wx = p.worldX, wy = p.worldY;
 
-  // Mode placement de décoration : le clic place l'objet où tu veux.
-  if (placementDecor) {
-    const x = clamp(wx, 40, WORLD.w - 40), y = clamp(wy, 70, WORLD.h - 30);
-    etat.decors.push({ id: placementDecor.id, x, y });
-    etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
-    const nom = placementDecor.nom; placementDecor = null;
-    placerDecors(); sauvegarder(); majHud(); message(`${nom} installé ! ✨`);
-    return;
-  }
   // Double-tap rapide (< 350 ms) => le personnage se met à courir.
   const tnow = (typeof performance !== "undefined" ? performance.now() : Date.now());
   enCourse = (tnow - dernierTapT) < 350;
@@ -643,6 +656,12 @@ function onPointer(p) {
 
 function construirePanneau() {
   const p = $("panneau");
+  if (placementDecor) {
+    p.innerHTML = `<div class="pc-station">
+      <p class="panneau-aide">Promène-toi où tu veux, puis touche <b>« ✅ Poser ici »</b> pour installer ${placementDecor.nom}.</p>
+      <button class="bouton bouton-secondaire" data-annuler-place="1">❌ Annuler</button></div>`;
+    return;
+  }
   if (!cibleActive) { p.innerHTML = `<p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment pour agir.</p>`; return; }
   if (cibleActive.robe) {
     const c = cibleActive, estMonte = monte === c;
@@ -798,8 +817,34 @@ function acheterDecor(id) {
   if (etat.pieces < d.prix) return message("Pas assez de 💰 !");
   etat.pieces -= d.prix;
   placementDecor = d;
-  fermerModale(); majHud();
-  message(`${d.nom} acheté ! 👉 Touche l'endroit où le placer.`);
+  fermerModale();
+  if (sc) {
+    if (ghostDecor) ghostDecor.destroy();
+    ghostDecor = sc.add.image(joueur.x, joueur.y, d.sprite).setOrigin(0.5, 0.95).setScale(1.2).setAlpha(0.55).setDepth(99999);
+  }
+  majHud(); idPanneau = null; majInteraction();
+  message(`${d.nom} acheté ! Promène-toi et touche « ✅ Poser ici ».`);
+}
+
+// Pose la déco en cours à l'endroit où se trouve le joueur.
+function poserDecor() {
+  if (!placementDecor) return;
+  const x = clamp(joueur.x, 40, WORLD.w - 40), y = clamp(joueur.y, 70, WORLD.h - 30);
+  etat.decors.push({ id: placementDecor.id, x, y });
+  etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
+  const nom = placementDecor.nom; placementDecor = null;
+  if (ghostDecor) { ghostDecor.destroy(); ghostDecor = null; }
+  placerDecors(); sauvegarder(); majHud(); idPanneau = null; majInteraction();
+  message(`${nom} installé ! ✨`);
+}
+
+function annulerPlacement() {
+  if (!placementDecor) return;
+  etat.pieces += placementDecor.prix;   // remboursé
+  placementDecor = null;
+  if (ghostDecor) { ghostDecor.destroy(); ghostDecor = null; }
+  majHud(); idPanneau = null; majInteraction();
+  message("Placement annulé, tu es remboursé. 💰");
 }
 
 function ouvrirRelooker(c) {
@@ -837,7 +882,7 @@ function ouvrirAide() {
       (robe, nom). Garde ses besoins au vert !</p>
       <p><b>🏇 Monter :</b> en selle, promène-toi à cheval. Re-clique « Descendre » pour t'arrêter.</p>
       <p><b>🏃 Courir :</b> tape <b>deux fois rapidement</b> vers un endroit et le personnage (ou le cheval) court !</p>
-      <p><b>🏪 Magasin :</b> foin, décos, adopter des chevaux. Après l'achat d'une déco, <b>touche l'endroit</b> où la poser.</p>
+      <p><b>🏪 Magasin :</b> foin, décos, adopter des chevaux. Après l'achat d'une déco, promène-toi où tu veux puis touche <b>« ✅ Poser ici »</b>.</p>
       <p><b>🏡 Maison :</b> dormir passe au jour suivant (occupe-toi d'abord d'un cheval). <b>🧍 (en haut) :</b> change ton personnage.</p>
       <p>💰 Tu gagnes des sous en t'occupant de tes chevaux. 💾 Sauvegarde automatique.</p>
     </div>`);
