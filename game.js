@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph8";
+const ASSET_VER = "ph9";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -242,15 +242,26 @@ let COLLISIONS = [];
 
 function lancerPhaser() {
   if (jeu) { construireMonde(); return; }
+  const monde = $("monde");
   jeu = new Phaser.Game({
     type: Phaser.AUTO,
     parent: "monde",
     backgroundColor: "#6fae4f",
     pixelArt: true,
     roundPixels: true,
-    scale: { mode: Phaser.Scale.RESIZE, width: "100%", height: "100%" },
+    scale: {
+      mode: Phaser.Scale.NONE,
+      width: monde.clientWidth || window.innerWidth,
+      height: monde.clientHeight || window.innerHeight,
+    },
     scene: { preload: scenePreload, create: sceneCreate, update: sceneUpdate },
   });
+  // Le canvas doit suivre EXACTEMENT la taille de son conteneur (le panneau du bas
+  // change de hauteur → sinon des bandes de fond apparaissent en haut/bas).
+  const ajuster = () => { if (jeu && jeu.scale) jeu.scale.resize(monde.clientWidth, monde.clientHeight); };
+  if (window.ResizeObserver) new ResizeObserver(ajuster).observe(monde);
+  window.addEventListener("resize", ajuster);
+  window.addEventListener("orientationchange", () => setTimeout(ajuster, 200));
 }
 
 function txt(x, y, s, taille) {

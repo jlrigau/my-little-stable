@@ -18,8 +18,10 @@ body {
   background: linear-gradient(170deg, #ffce8f 0%, #ffb066 35%, #e8895a 70%, #c46a4a 100%);
   overflow: hidden;
 }
-.ecran { height: 100vh; display: flex; flex-direction: column; }
+.ecran { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
 .cache { display: none !important; }
+/* Écran de jeu : fond couleur HUD pour couvrir la zone de sécurité iOS (haut) */
+#ecran-jeu { background: var(--vert-fonce); }
 
 /* ===== Accueil & création ===== */
 #ecran-accueil, #ecran-creation { align-items: center; justify-content: center; }
@@ -117,7 +119,7 @@ input[type="text"] {
 .btn-action:active { transform: translateY(3px); border-bottom-width: 2px; }
 
 /* ===== Panneau ===== */
-.panneau { background: var(--creme); border-top: 5px solid var(--brun); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); min-height: 70px; box-shadow: 0 -3px 8px rgba(0,0,0,0.18); z-index: 5; }
+.panneau { background: var(--creme); border-top: 5px solid var(--brun); padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); min-height: 70px; max-height: 46vh; overflow-y: auto; box-shadow: 0 -3px 8px rgba(0,0,0,0.18); z-index: 5; }
 .panneau-aide { text-align: center; margin: 14px 0; opacity: 0.8; font-weight: bold; }
 .pc-tete { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .pc-sous { font-size: 0.85rem; opacity: 0.8; }
