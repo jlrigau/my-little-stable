@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph29";
+const ASSET_VER = "ph30";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -41,12 +41,17 @@ const PRIX_CHEVAL = 45, PRIX_FOIN = 4, PRIX_BOX = 80, AGE_ADULTE = 5;
 
 /* ===================== Monde ===================== */
 
-const WORLD = { w: 2600, h: 1320 };
+const WORLD = { w: 2600, h: 1900 };
 const CORRAL = { x: 800, y: 250, w: 820, h: 820 };
-// Parcours d'obstacles : arène en terre à droite de l'enclos + position des haies.
-const PARCOURS = { x: 1860, y: 500, w: 680, h: 360 };
+// Arène de saut (concours) à droite de l'enclos, avec clôture autour.
+const PARCOURS = { x: 1840, y: 470, w: 720, h: 400 };
 const HAIES = [
-  { x: 2000, y: 680 }, { x: 2170, y: 680 }, { x: 2340, y: 680 }, { x: 2490, y: 680 },
+  { x: 2000, y: 670 }, { x: 2180, y: 670 }, { x: 2360, y: 670 }, { x: 2490, y: 670 },
+];
+// Cross en forêt (en bas) : sentier bordé d'arbres + troncs couchés à sauter.
+const CROSS = { x: 940, y: 1330, w: 1480, h: 360, trailY: 1500 };
+const RONDINS = [
+  { x: 1200, y: 1500 }, { x: 1480, y: 1500 }, { x: 1760, y: 1500 }, { x: 2040, y: 1500 }, { x: 2300, y: 1500 },
 ];
 const STATIONS = [
   { type: "dormir", x: 250, y: 380, sprite: "cabane_ardoise", label: "Maison" },
@@ -318,7 +323,7 @@ function txt(x, y, s, taille) {
 function scenePreload() {
   this.load.image("sol_herbe", av("assets/sprite/tile_grass.png"));
   this.load.image("sol_terre", av("assets/sprite/tile_dirt.png"));
-  ["pine", "bush", "trough", "cabane_ardoise", "cabane_chaume", "haie"]
+  ["pine", "bush", "trough", "cabane_ardoise", "cabane_chaume", "haie", "rondins"]
     .forEach((k) => this.load.image(k, av(`assets/sprite/${k}.png`)));
   this.load.spritesheet("fence", av("assets/lpc/fence_medieval.png"), { frameWidth: 32, frameHeight: 32 });
   PERSOS.forEach((p) => this.load.spritesheet(p.key, av(`assets/lpc/${p.key}.png`), { frameWidth: 64, frameHeight: 64 }));
@@ -384,14 +389,54 @@ function placerCloture() {
   );
 }
 
-// Arène du parcours d'obstacles (sol en terre + haies à sauter).
+function labelMonde(x, y, txt, depth) {
+  sc.add.text(x, y, txt, { fontSize: "24px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 5 }).setOrigin(0.5, 1).setDepth(depth);
+}
+function arbreCollision(x, y, ech) {
+  sc.add.image(x, y, "pine").setOrigin(0.5, 0.95).setScale(ech).setDepth(y);
+  COLLISIONS.push({ x: x - 15, y: y - 22, w: 30, h: 24 });
+}
+// Clôture en ganivelle autour d'un rectangle, avec un portail sur le côté gauche.
+function bordureCloture(r) {
+  const s = 32, x0 = r.x, y0 = r.y, x1 = r.x + r.w, y1 = r.y + r.h;
+  const gA = y0 + r.h * 0.40, gB = y0 + r.h * 0.60;
+  const add = (x, y, fr, fy) => { const o = sc.add.image(x, y, "fence", fr).setOrigin(0.5, 0.7).setDepth(y); if (fy) o.setFlipY(true); };
+  for (let x = x0 + s; x < x1; x += s) { add(x, y0, 1, false); add(x, y1, 1, false); }
+  for (let y = y0 + s; y < y1; y += s) { add(x1, y, 17, false); if (!(y > gA && y < gB)) add(x0, y, 17, false); }
+  add(x0, y0, 32, false); add(x1, y0, 34, false); add(x0, y1, 32, true); add(x1, y1, 34, true);
+  const t = 14;
+  COLLISIONS.push(
+    { x: x0, y: y0 - t / 2, w: r.w, h: t }, { x: x0, y: y1 - t / 2, w: r.w, h: t },
+    { x: x1 - t / 2, y: y0, w: t, h: r.h },
+    { x: x0 - t / 2, y: y0, w: t, h: gA - y0 }, { x: x0 - t / 2, y: gB, w: t, h: y1 - gB },
+  );
+}
+
+// Les deux parcours : arène de saut (concours) + cross en forêt.
 function placerParcours() {
+  // ----- Arène de saut (sol en terre + clôture + haies) -----
   const p = PARCOURS;
   sc.add.tileSprite(p.x, p.y, p.w, p.h, "sol_terre").setOrigin(0, 0).setDepth(-19);
-  sc.add.text(p.x + p.w / 2, p.y - 6, "🏇 Parcours d'obstacles", { fontSize: "24px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 5 }).setOrigin(0.5, 1).setDepth(p.y);
+  labelMonde(p.x + p.w / 2, p.y - 6, "🏇 Arène de saut", p.y);
+  bordureCloture(p);
   HAIES.forEach((h) => {
     sc.add.image(h.x, h.y, "haie").setOrigin(0.5, 0.92).setScale(1.0).setDepth(h.y);
     COLLISIONS.push({ x: h.x - 33, y: h.y - 18, w: 66, h: 30, haie: true });
+  });
+
+  // ----- Cross en forêt (sentier bordé d'arbres + troncs à sauter) -----
+  const c = CROSS, ty = c.trailY;
+  sc.add.tileSprite(c.x + 80, ty - 28, c.w - 120, 56, "sol_terre").setOrigin(0, 0).setDepth(-19);
+  labelMonde(c.x + c.w / 2, c.y - 4, "🌲 Cross en forêt", 99990);   // au-dessus des arbres
+  // murs d'arbres au-dessus et en dessous du sentier (la forêt qui borde le cross)
+  for (let x = c.x + 80; x <= c.x + c.w - 40; x += 82) {
+    arbreCollision(x, ty - 86, 1.5);
+    arbreCollision(x, ty + 96, 1.5);
+  }
+  // troncs couchés EN TRAVERS du sentier (à franchir en sautant)
+  RONDINS.forEach((r) => {
+    sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.05).setDepth(r.y + 40);
+    COLLISIONS.push({ x: r.x - 17, y: r.y - 50, w: 34, h: 100, haie: true });
   });
 }
 
@@ -419,12 +464,10 @@ function dansCorral(x, y) {
 const SCENERY = [
   // côté gauche
   [110, 320, "pine", 1.7], [180, 1130, "pine", 1.8], [90, 700, "bush", 1.4],
-  [120, 1190, "bush", 1.3], [520, 130, "pine", 1.6], [620, 1240, "bush", 1.3],
-  [110, 140, "bush", 1.3],
-  // autour de l'arène (en dehors du couloir de saut)
-  [1770, 300, "pine", 1.6], [1800, 1050, "pine", 1.6], [2250, 290, "bush", 1.4],
-  [2000, 1130, "bush", 1.3], [2460, 1130, "bush", 1.3], [2560, 200, "pine", 1.5],
-  [2560, 520, "pine", 1.6], [2560, 980, "pine", 1.6],
+  [520, 130, "pine", 1.6], [110, 140, "bush", 1.3], [120, 1000, "bush", 1.3],
+  // coins du grand monde
+  [130, 1780, "pine", 1.7], [700, 1820, "bush", 1.3], [2540, 250, "pine", 1.6],
+  [2545, 1800, "pine", 1.7], [2560, 1100, "pine", 1.6],
 ];
 
 function placerScenery() {
