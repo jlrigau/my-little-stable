@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph25";
+const ASSET_VER = "ph26";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -142,6 +142,7 @@ function init() {
     else if (btn.dataset.station) interagir({ type: btn.dataset.station });
     else if (btn.dataset.boutique) acheter(btn.dataset.boutique);
     else if (btn.dataset.decor) acheterDecor(btn.dataset.decor);
+    else if (btn.dataset.poser) poserDecor();
     else if (btn.dataset.annulerPlace) annulerPlacement();
   });
 }
@@ -258,6 +259,7 @@ let moveTarget = null, pendingInteract = null;
 let placementDecor = null, ghostDecor = null, ghostCote = 1; // déco en cours de placement (fantôme à côté du joueur)
 let nuitEnCours = false;   // transition nuit (dormir) — voile plein écran en HTML/CSS
 let enCourse = false, dernierTapT = 0;       // double-tap rapide => le perso court
+let fatigueAcc = 0;                          // accumulateur de fatigue du cheval monté
 let cibleActive = null, idPanneau = null, monte = null;
 let ringSel = null;
 let decorObjs = [];
@@ -593,6 +595,14 @@ function sceneUpdate(time, delta) {
     monte.corpsT.setFlipX(joueurFacing === "right");
     joueurSprite.y = -58; joueurOmbre.setVisible(false);
     if (joueurNom) joueurNom.y = -138;
+    // Le cheval se fatigue quand on le monte (plus vite au galop / en mouvement).
+    const taux = (mvx || mvy) ? (enCourse ? 7 : 4) : 1.2;
+    fatigueAcc += taux * dt;
+    if (fatigueAcc >= 1) {
+      const d = Math.floor(fatigueAcc); fatigueAcc -= d;
+      monte.energie = borner(monte.energie - d);
+      if (monte.energie <= 0) descendreCheval(monte, true);
+    }
   } else {
     if (joueurSprite.y !== 0) { joueurSprite.y = 0; joueurOmbre.setVisible(true); }
     if (joueurNom && joueurNom.y !== -80) joueurNom.y = -80;
@@ -638,8 +648,7 @@ function majInteraction() {
     cibleActive = null;
     if (ringSel) ringSel.setVisible(false);
     if (idPanneau !== "place") { idPanneau = "place"; construirePanneau(); }
-    $("btn-action").classList.remove("cache");
-    $("btn-action").textContent = "✅ Poser ici";
+    $("btn-action").classList.add("cache");
     return;
   }
   let meilleur = null, dmin = Infinity;
@@ -692,8 +701,11 @@ function construirePanneau() {
   const p = $("panneau");
   if (placementDecor) {
     p.innerHTML = `<div class="pc-station">
-      <p class="panneau-aide">Promène-toi où tu veux, puis touche <b>« ✅ Poser ici »</b> pour installer ${placementDecor.nom}.</p>
-      <button class="bouton bouton-secondaire" data-annuler-place="1">❌ Annuler</button></div>`;
+      <p class="panneau-aide">Promène-toi où tu veux, puis pose ${placementDecor.nom}.</p>
+      <div class="pc-actions">
+        <button class="bouton bouton-rodeo" data-poser="1">✅ Poser ici</button>
+        <button class="bouton bouton-secondaire" data-annuler-place="1">❌ Annuler</button>
+      </div></div>`;
     return;
   }
   if (!cibleActive) { p.innerHTML = `<p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment pour agir.</p>`; return; }
@@ -750,22 +762,28 @@ function actionCheval(action) {
       c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 16); c.faim = borner(c.faim - 8); etat.pieces += 3;
       etat.actionsDepuisDodo++; bond(c); message(`${c.nom} s'est bien amusé ! 🎾`); break;
     case "monter":
-      if (monte === c) {
-        monte = null; moveTarget = null; enCourse = false;
-        // On écarte le cheval pour qu'il ne reste pas collé au joueur (sinon il capte les clics).
-        c.x = clamp(joueur.x + 135, CORRAL.x + 70, CORRAL.x + CORRAL.w - 70);
-        c.y = clamp(joueur.y, CORRAL.y + 70, CORRAL.y + CORRAL.h - 70);
-        c.tx = c.x; c.ty = c.y; c.prochainPas = 0;
-        if (c.obj) { c.obj.x = c.x; c.obj.y = c.y; }
-        message(`Tu descends de ${c.nom}. 🙂`);
-      }
-      else if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour être monté. 🐣`); return; }
-      else if (c.energie < 20) { message(`${c.nom} est trop fatigué pour te porter. 😴`); return; }
-      else { monte = c; c.bonheur = borner(c.bonheur + 12); c.energie = borner(c.energie - 12); etat.actionsDepuisDodo++; message(`En selle sur ${c.nom} ! 🏇`); }
+      if (monte === c) { descendreCheval(c, false); return; }
+      if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour être monté. 🐣`); return; }
+      if (c.energie < 20) { message(`${c.nom} est trop fatigué pour te porter. 😴`); return; }
+      monte = c; c.bonheur = borner(c.bonheur + 12); c.energie = borner(c.energie - 6); etat.actionsDepuisDodo++; fatigueAcc = 0;
+      message(`En selle sur ${c.nom} ! 🏇`);
       idPanneau = null; majInteraction(); majHud(); return;
     case "relooker": ouvrirRelooker(c); return;
   }
   majBarres(c); majHud();
+}
+
+// Descend du cheval (et l'écarte du joueur). epuise = descente forcée car énergie à 0.
+function descendreCheval(c, epuise) {
+  monte = null; moveTarget = null; enCourse = false; fatigueAcc = 0;
+  if (joueurSprite) joueurSprite.y = 0;
+  if (joueurOmbre) joueurOmbre.setVisible(true);
+  c.x = clamp(joueur.x + 135, CORRAL.x + 70, CORRAL.x + CORRAL.w - 70);
+  c.y = clamp(joueur.y, CORRAL.y + 70, CORRAL.y + CORRAL.h - 70);
+  c.tx = c.x; c.ty = c.y; c.prochainPas = 0;
+  if (c.obj) { c.obj.x = c.x; c.obj.y = c.y; }
+  idPanneau = null; majInteraction(); majHud();
+  message(epuise ? `${c.nom} est épuisé, laisse-le se reposer ! 😴` : `Tu descends de ${c.nom}. 🙂`);
 }
 
 function bond(c) {
