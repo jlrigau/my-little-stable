@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph22";
+const ASSET_VER = "ph23";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -281,10 +281,21 @@ function lancerPhaser() {
   });
   // Le canvas doit suivre EXACTEMENT la taille de son conteneur (le panneau du bas
   // change de hauteur → sinon des bandes de fond apparaissent en haut/bas).
-  const ajuster = () => { if (jeu && jeu.scale) jeu.scale.resize(monde.clientWidth, monde.clientHeight); };
+  const ajuster = () => {
+    if (jeu && jeu.scale) { jeu.scale.resize(monde.clientWidth, monde.clientHeight); ajusterZoom(); }
+  };
   if (window.ResizeObserver) new ResizeObserver(ajuster).observe(monde);
   window.addEventListener("resize", ajuster);
   window.addEventListener("orientationchange", () => setTimeout(ajuster, 200));
+}
+
+// Dézoome la caméra pour montrer une bonne portion de la carte (plus jouable),
+// en s'adaptant à la taille de l'écran.
+function ajusterZoom() {
+  if (!sc) return;
+  const w = sc.scale.width, h = sc.scale.height;
+  const z = clamp(Math.min(w / 1000, h / 1050), 0.42, 0.85);
+  sc.cameras.main.setZoom(z);
 }
 
 function txt(x, y, s, taille) {
@@ -471,6 +482,7 @@ function construireMonde() {
   nuitVoile = sc.add.rectangle(0, 0, 4000, 3000, 0x0a1633).setOrigin(0, 0).setScrollFactor(0).setDepth(9000).setAlpha(0);
 
   sc.cameras.main.startFollow(joueur, true, 0.12, 0.12);
+  ajusterZoom();
 }
 
 function echelleCheval(c) { return estPoulain(c) ? 1.3 : 2.0; }
