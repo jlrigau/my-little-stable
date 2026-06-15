@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph37";
+const ASSET_VER = "ph38";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -57,12 +57,13 @@ const LOOP_SEG = [
   { x: 90, y: 90, w: 156, h: WORLD.h - 180 },        // côté GAUCHE (virage en forêt)
   { x: WORLD.w - 246, y: 90, w: 156, h: WORLD.h - 180 }, // côté DROIT (virage en forêt)
 ];
-// Ouvertures (corridors de sable) reliant l'intérieur à la boucle.
+// Ouvertures = longs couloirs de sable reliant l'intérieur à la boucle (placés à des
+// endroits DÉGAGÉS : ni derrière l'enclos, ni derrière l'arène).
 const OUVERTURES = [
-  { x: WORLD.w / 2 - 100, y: 230, w: 200, h: 180 },          // haut
-  { x: WORLD.w / 2 - 100, y: WORLD.h - 410, w: 200, h: 180 }, // bas
-  { x: 230, y: WORLD.h / 2 - 100, w: 180, h: 200 },          // gauche (vers l'enclos)
-  { x: WORLD.w - 410, y: WORLD.h / 2 - 100, w: 180, h: 200 }, // droite
+  { x: 560, y: 200, w: 200, h: 360 },                 // HAUT (à gauche de l'enclos)
+  { x: 1120, y: WORLD.h - 580, w: 220, h: 360 },      // BAS (sous l'enclos)
+  { x: 200, y: 1280, w: 380, h: 200 },                // GAUCHE (bas-gauche)
+  { x: WORLD.w - 580, y: 1280, w: 380, h: 200 },      // DROITE (sous l'arène)
 ];
 // Rondins à sauter : uniquement sur les grands côtés horizontaux (haut/bas), centrés sur le chemin.
 const RONDINS = [
@@ -447,12 +448,12 @@ function placerParcours() {
   labelMonde(WORLD.w / 2, 300, "Grand cross en forêt", 99990);
   // 2) forêt sur toute la bande périphérique (sauf le chemin et les ouvertures).
   //    Collision seulement près du chemin (les arbres profonds sont décoratifs) → perf.
-  for (let gy = 20; gy <= WORLD.h; gy += 68) {
-    for (let gx = 20; gx <= WORLD.w; gx += 68) {
+  for (let gy = 16; gy <= WORLD.h; gy += 54) {
+    for (let gx = 16; gx <= WORLD.w; gx += 54) {
       if (!dansBande(gx, gy)) continue;
-      const x = gx + aleatoire(-12, 12), y = gy + aleatoire(-10, 10);
-      if (surBoucle(x, y, 66) || surOuverture(x, y, 30)) continue;   // dégage bien le chemin
-      const bordure = surBoucle(x, y, 116) || surOuverture(x, y, 80); // arbre qui borde le chemin → collision
+      const x = gx + aleatoire(-11, 11), y = gy + aleatoire(-9, 9);
+      if (surBoucle(x, y, 46) || surOuverture(x, y, 24)) continue;   // dégage le chemin (forêt proche)
+      const bordure = surBoucle(x, y, 100) || surOuverture(x, y, 64); // arbre qui borde le chemin → collision
       if ((gx + gy * 3) % 4 === 0) {
         sc.add.image(x, y, "bush").setOrigin(0.5, 0.95).setScale(aleatoire(12, 15) / 10).setDepth(y);
         if (bordure) COLLISIONS.push({ x: x - 22, y: y - 13, w: 44, h: 16 });
@@ -495,7 +496,8 @@ function dansCorral(x, y) {
 // Décor fixe d'intérieur (la forêt périphérique est gérée par placerParcours).
 // [x, y, sprite, échelle]
 const SCENERY = [
-  [700, 1350, "bush", 1.3], [1700, 1400, "pine", 1.6], [2200, 1350, "bush", 1.3],
+  [700, 1240, "bush", 1.4], [950, 1260, "pine", 1.7], [1480, 1240, "pine", 1.7],
+  [1720, 1260, "bush", 1.4], [1980, 1240, "pine", 1.7], [2240, 1260, "bush", 1.4], [2440, 1250, "pine", 1.7],
 ];
 
 function placerScenery() {
