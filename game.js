@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph35";
+const ASSET_VER = "ph36";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -50,24 +50,24 @@ const HAIES = [
   { x: 1880, y: 900 }, { x: 2110, y: 900 }, { x: 2340, y: 900 },
 ];
 // GRAND CROSS : boucle de sable qui fait tout le tour de la map, dans une forêt.
-const BAND = 320;                                   // épaisseur de la forêt périphérique
+const BAND = 360;                                   // épaisseur de la forêt périphérique
 const LOOP_SEG = [
-  { x: 110, y: 110, w: WORLD.w - 220, h: 120 },     // grand côté HAUT (avec rondins)
-  { x: 110, y: WORLD.h - 230, w: WORLD.w - 220, h: 120 }, // grand côté BAS (avec rondins)
-  { x: 110, y: 110, w: 120, h: WORLD.h - 220 },     // côté GAUCHE (virage en forêt)
-  { x: WORLD.w - 230, y: 110, w: 120, h: WORLD.h - 220 }, // côté DROIT (virage en forêt)
+  { x: 90, y: 90, w: WORLD.w - 180, h: 156 },        // grand côté HAUT (centre y=168, avec rondins)
+  { x: 90, y: WORLD.h - 246, w: WORLD.w - 180, h: 156 }, // grand côté BAS (centre y=WORLD.h-168)
+  { x: 90, y: 90, w: 156, h: WORLD.h - 180 },        // côté GAUCHE (virage en forêt)
+  { x: WORLD.w - 246, y: 90, w: 156, h: WORLD.h - 180 }, // côté DROIT (virage en forêt)
 ];
-// Ouvertures (corridors d'herbe) reliant l'intérieur à la boucle.
+// Ouvertures (corridors de sable) reliant l'intérieur à la boucle.
 const OUVERTURES = [
-  { x: WORLD.w / 2 - 90, y: 220, w: 180, h: 150 },          // haut
-  { x: WORLD.w / 2 - 90, y: WORLD.h - 370, w: 180, h: 150 }, // bas
-  { x: 220, y: WORLD.h / 2 - 90, w: 150, h: 180 },          // gauche (vers l'enclos)
-  { x: WORLD.w - 370, y: WORLD.h / 2 - 90, w: 150, h: 180 }, // droite
+  { x: WORLD.w / 2 - 100, y: 230, w: 200, h: 180 },          // haut
+  { x: WORLD.w / 2 - 100, y: WORLD.h - 410, w: 200, h: 180 }, // bas
+  { x: 230, y: WORLD.h / 2 - 100, w: 180, h: 200 },          // gauche (vers l'enclos)
+  { x: WORLD.w - 410, y: WORLD.h / 2 - 100, w: 180, h: 200 }, // droite
 ];
-// Rondins à sauter : uniquement sur les grands côtés horizontaux (haut/bas).
+// Rondins à sauter : uniquement sur les grands côtés horizontaux (haut/bas), centrés sur le chemin.
 const RONDINS = [
-  { x: 520, y: 170 }, { x: 820, y: 170 }, { x: 1120, y: 170 }, { x: 1700, y: 170 }, { x: 2000, y: 170 }, { x: 2300, y: 170 },
-  { x: 520, y: WORLD.h - 170 }, { x: 820, y: WORLD.h - 170 }, { x: 1120, y: WORLD.h - 170 }, { x: 1700, y: WORLD.h - 170 }, { x: 2000, y: WORLD.h - 170 }, { x: 2300, y: WORLD.h - 170 },
+  { x: 520, y: 168 }, { x: 820, y: 168 }, { x: 1120, y: 168 }, { x: 1700, y: 168 }, { x: 2000, y: 168 }, { x: 2300, y: 168 },
+  { x: 520, y: WORLD.h - 168 }, { x: 820, y: WORLD.h - 168 }, { x: 1120, y: WORLD.h - 168 }, { x: 1700, y: WORLD.h - 168 }, { x: 2000, y: WORLD.h - 168 }, { x: 2300, y: WORLD.h - 168 },
 ];
 const STATIONS = [
   { type: "dormir", x: 450, y: 540, sprite: "cabane_ardoise", label: "Maison" },
@@ -324,7 +324,7 @@ function lancerPhaser() {
 function ajusterZoom() {
   if (!sc) return;
   const w = sc.scale.width, h = sc.scale.height;
-  const z = clamp(Math.min(w / 1000, h / 1050), 0.42, 0.85);
+  const z = clamp(Math.min(w / 780, h / 820), 0.5, 0.9);
   sc.cameras.main.setZoom(z);
 }
 
@@ -380,7 +380,7 @@ function creerCoeur() {
 // Clôture en ganivelle autour de l'enclos (avec un portail sur le côté écuries).
 function placerCloture() {
   const s = 32, x0 = CORRAL.x, y0 = CORRAL.y, x1 = CORRAL.x + CORRAL.w, y1 = CORRAL.y + CORRAL.h;
-  const gateA = y0 + CORRAL.h * 0.42, gateB = y0 + CORRAL.h * 0.58;
+  const gateA = y0 + CORRAL.h * 0.34, gateB = y0 + CORRAL.h * 0.66;
   const add = (x, y, frame, flipY) => {
     const o = sc.add.image(x, y, "fence", frame).setOrigin(0.5, 0.7).setDepth(y);
     if (flipY) o.setFlipY(true);
@@ -433,7 +433,7 @@ function placerParcours() {
   // ----- Arène de saut (sol en terre + clôture + haies) -----
   const p = PARCOURS;
   sc.add.tileSprite(p.x, p.y, p.w, p.h, "sol_terre").setOrigin(0, 0).setDepth(-19);
-  labelMonde(p.x + p.w / 2, p.y - 6, "🏇 Arène de saut", p.y);
+  labelMonde(p.x + p.w / 2, p.y - 36, "Arène de saut", 99990);
   bordureCloture(p);
   HAIES.forEach((h) => {
     sc.add.image(h.x, h.y, "haie").setOrigin(0.5, 0.92).setScale(1.0).setDepth(h.y);
@@ -441,17 +441,18 @@ function placerParcours() {
   });
 
   // ----- Grand cross : boucle de sable autour de la map, dans une forêt -----
-  // 1) le chemin de sable (la boucle)
+  // 1) le chemin de sable (la boucle) + les ouvertures (tout en sable, en continu)
   LOOP_SEG.forEach((s) => sc.add.tileSprite(s.x, s.y, s.w, s.h, "sol_terre").setOrigin(0, 0).setDepth(-19));
-  labelMonde(WORLD.w / 2, 96, "🌲 Grand cross en forêt", 99990);
+  OUVERTURES.forEach((s) => sc.add.tileSprite(s.x, s.y, s.w, s.h, "sol_terre").setOrigin(0, 0).setDepth(-19));
+  labelMonde(WORLD.w / 2, 300, "Grand cross en forêt", 99990);
   // 2) forêt sur toute la bande périphérique (sauf le chemin et les ouvertures).
   //    Collision seulement près du chemin (les arbres profonds sont décoratifs) → perf.
   for (let gy = 20; gy <= WORLD.h; gy += 68) {
     for (let gx = 20; gx <= WORLD.w; gx += 68) {
       if (!dansBande(gx, gy)) continue;
       const x = gx + aleatoire(-12, 12), y = gy + aleatoire(-10, 10);
-      if (surBoucle(x, y, 40) || surOuverture(x, y, 8)) continue;
-      const bordure = surBoucle(x, y, 92);   // arbre qui borde le chemin → collision
+      if (surBoucle(x, y, 66) || surOuverture(x, y, 30)) continue;   // dégage bien le chemin
+      const bordure = surBoucle(x, y, 116) || surOuverture(x, y, 80); // arbre qui borde le chemin → collision
       if ((gx + gy * 3) % 4 === 0) {
         sc.add.image(x, y, "bush").setOrigin(0.5, 0.95).setScale(aleatoire(12, 15) / 10).setDepth(y);
         if (bordure) COLLISIONS.push({ x: x - 22, y: y - 13, w: 44, h: 16 });
@@ -461,10 +462,10 @@ function placerParcours() {
       }
     }
   }
-  // 3) rondins en travers du chemin (grands côtés) — à franchir au saut
+  // 3) rondins en travers du chemin (grands côtés) — barrent tout le chemin, à franchir au saut
   RONDINS.forEach((r) => {
-    sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.1).setDepth(r.y + 40);
-    COLLISIONS.push({ x: r.x - 17, y: r.y - 58, w: 34, h: 116, haie: true });
+    sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.5).setDepth(r.y + 40);
+    COLLISIONS.push({ x: r.x - 24, y: r.y - 80, w: 48, h: 160, haie: true });
   });
 }
 
@@ -527,16 +528,17 @@ function construireMonde() {
   // Sol : pelouse tuilée sur tout le monde
   sc.add.tileSprite(0, 0, WORLD.w, WORLD.h, "sol_herbe").setOrigin(0, 0).setDepth(-20);
 
-  // Chemin de terre : vertical devant les bâtiments + horizontal vers le portail de l'enclos
+  // Chemin de terre : vertical devant les bâtiments + large chemin vers le portail de l'enclos
   const gateY = CORRAL.y + CORRAL.h * 0.5;
-  sc.add.tileSprite(370, 775, 180, 620, "sol_terre").setOrigin(0.5, 0.5).setDepth(-19);
-  sc.add.tileSprite(370, gateY, CORRAL.x - 370, 90, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
+  sc.add.tileSprite(370, 775, 200, 620, "sol_terre").setOrigin(0.5, 0.5).setDepth(-19);
+  sc.add.tileSprite(370, gateY, CORRAL.x - 350, 200, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
 
-  // Enclos (herbe légèrement plus claire) + clôture
+  // Enclos (herbe légèrement plus claire) + clôture + panneau
   const pre = sc.add.graphics();
   pre.fillStyle(0x86c25a, 0.55); pre.fillRoundedRect(CORRAL.x, CORRAL.y, CORRAL.w, CORRAL.h, 18);
   pre.setDepth(-18);
   placerCloture();
+  labelMonde(CORRAL.x + CORRAL.w / 2, CORRAL.y - 14, "Enclos", 99990);
 
   // Parcours d'obstacles (à droite)
   placerParcours();
@@ -547,7 +549,7 @@ function construireMonde() {
   // Bâtiments (+ empreinte de collision à la base)
   STATIONS.forEach((s) => {
     const b = sc.add.image(s.x, s.y, s.sprite).setOrigin(0.5, 0.88).setScale(1.2).setDepth(s.y);
-    const l = sc.add.text(s.x, s.y + 30, s.label, { fontSize: "22px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 5 }).setOrigin(0.5).setDepth(s.y + 1);
+    const l = sc.add.text(s.x, s.y + 28, s.label, { fontSize: "22px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 5 }).setOrigin(0.5).setDepth(99990);
     s.obj = b; s.labelObj = l;
     COLLISIONS.push({ x: s.x - 70, y: s.y - 60, w: 140, h: 75 });
   });
