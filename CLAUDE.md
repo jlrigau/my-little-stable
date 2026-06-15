@@ -69,12 +69,17 @@ Style **pixel-art LPC**, **plus aucun emoji dans le monde** :
   Le cheval **se fatigue** à la monte (descente auto si épuisé). Profil gauche/droite seulement.
 - **Parcours** (monde 2800x1900... en fait `WORLD` 2800x2100) : deux parcours.
   (1) **Arène de saut** clôturée à droite de l'enclos (`PARCOURS`, `HAIES`, sprite `haie.png`).
-  (2) **Grand cross en forêt** = boucle de sable qui fait le tour de la map (`LOOP_SEG`, `RONDINS`,
-  sprite `rondins.png`), bordée d'une **forêt** périphérique (`BAND`, remplissage en grille via
-  `dansBande`/`surBoucle`, collision seulement sur les arbres qui bordent le chemin). Rondins sur les
-  grands côtés horizontaux uniquement (le saut ne va qu'à gauche/droite). `OUVERTURES` = corridors
-  d'herbe reliant l'intérieur à la boucle. À cheval, bouton **🦘 Sauter** (`sauter()`/`sautEnCours`)
-  franchit l'obstacle (collision ignorée pendant le saut) ; sinon bloqué.
+  (2) **Grand cross en forêt** = large boucle de sable (`PW=240`) qui fait le tour de la map
+  (`LOOP_SEG` + `OUVERTURES` réunis dans `CHEMINS`), bordée d'une **forêt** périphérique (`BAND`).
+  **Végétation posée par une règle UNIQUE** (donc continue/identique partout, angles et ouvertures
+  gérés tout seuls) : grille dans `dansBande`, on saute `procheBatiment`/`clairiere` (enclos+arène) ;
+  si `surChemin(,6)` on dégage le chemin ; si `surChemin(,80)` = **haie** (buisson bas + collision),
+  sinon = **forêt** (pins, sans collision). Le sable déborde de `SAND=46` sous la végétation
+  (pas de bord droit ni d'angle visible). Rondins (`RONDINS`, `rondins.png`) au CENTRE VISIBLE des
+  grands côtés horizontaux (remontés de `RDEC`), collision plus courte que le chemin → on peut passer
+  au-dessus/en-dessous OU sauter. `OUVERTURES` = couloirs de sable (gauche/droite) reliant l'intérieur
+  à la boucle. À cheval, bouton **🦘 Sauter** (`sauter()`/`sautEnCours`) franchit l'obstacle (collision
+  ignorée pendant le saut) ; sinon bloqué.
 - **Dormir** : transition nuit (voile `nuitVoile` qui s'assombrit puis s'éclaircit) ; interdit d'enchaîner
   les nuits (`actionsDepuisDodo` : il faut s'occuper d'un cheval entre deux dodos).
 - **Déco** : achat au magasin → **fantôme** semi-transparent qui suit le joueur (`ghostDecor`),

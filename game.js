@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph45";
+const ASSET_VER = "ph46";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -42,32 +42,40 @@ const PRIX_CHEVAL = 45, PRIX_FOIN = 4, PRIX_BOX = 80, AGE_ADULTE = 5;
 /* ===================== Monde ===================== */
 
 const WORLD = { w: 2800, h: 2100 };
-const CORRAL = { x: 800, y: 360, w: 820, h: 760 };
-// Arène de saut (concours) — agrandie, clôturée, dans l'intérieur.
-const PARCOURS = { x: 1720, y: 440, w: 720, h: 640 };
+const CORRAL = { x: 800, y: 480, w: 820, h: 760 };
+// Arène de saut (concours) — clôturée, dans l'intérieur (en dehors de la bande forestière).
+const PARCOURS = { x: 1700, y: 540, w: 620, h: 640 };
 const HAIES = [
-  { x: 1880, y: 690 }, { x: 2110, y: 690 }, { x: 2340, y: 690 },
-  { x: 1880, y: 900 }, { x: 2110, y: 900 }, { x: 2340, y: 900 },
+  { x: 1830, y: 770 }, { x: 2020, y: 770 }, { x: 2210, y: 770 },
+  { x: 1830, y: 980 }, { x: 2020, y: 980 }, { x: 2210, y: 980 },
 ];
 // GRAND CROSS : boucle de sable qui fait tout le tour de la map, dans une forêt.
-const BAND = 360;                                   // épaisseur de la forêt périphérique
+const BAND = 440;                                   // épaisseur de la forêt périphérique
+const PW = 240;                                     // largeur (épaisseur) du chemin de cross
 const LOOP_SEG = [
-  { x: 90, y: 90, w: WORLD.w - 180, h: 156 },        // grand côté HAUT (centre y=168, avec rondins)
-  { x: 90, y: WORLD.h - 246, w: WORLD.w - 180, h: 156 }, // grand côté BAS (centre y=WORLD.h-168)
-  { x: 90, y: 90, w: 156, h: WORLD.h - 180 },        // côté GAUCHE (virage en forêt)
-  { x: WORLD.w - 246, y: 90, w: 156, h: WORLD.h - 180 }, // côté DROIT (virage en forêt)
+  { x: 90, y: 90, w: WORLD.w - 180, h: PW },              // grand côté HAUT
+  { x: 90, y: WORLD.h - 90 - PW, w: WORLD.w - 180, h: PW }, // grand côté BAS
+  { x: 90, y: 90, w: PW, h: WORLD.h - 180 },              // côté GAUCHE (virage)
+  { x: WORLD.w - 90 - PW, y: 90, w: PW, h: WORLD.h - 180 }, // côté DROIT (virage)
 ];
-// Ouvertures = longs couloirs de sable reliant l'intérieur à la boucle.
+// Ouvertures = couloirs de sable reliant l'intérieur à la boucle.
 // Uniquement à GAUCHE et à DROITE (les passages haut et bas sont fermés).
 const OUVERTURES = [
-  { x: 200, y: 1280, w: 380, h: 200 },                // GAUCHE (bas-gauche)
-  { x: WORLD.w - 580, y: 1280, w: 380, h: 200 },      // DROITE (sous l'arène)
+  { x: 200, y: 1320, w: 430, h: 220 },                // GAUCHE → relie l'intérieur au côté gauche
+  { x: WORLD.w - 630, y: 1320, w: 430, h: 220 },      // DROITE → relie l'intérieur au côté droit
 ];
-// Rondins à sauter : sur les grands côtés horizontaux, un peu remontés pour être au
-// milieu du sable visible (les buissons du bas en recouvrent un peu le bas).
+// Tous les rectangles « chemin » réunis : sert à placer la végétation de façon
+// déclarative (bordure continue, ouvertures et angles gérés automatiquement).
+const CHEMINS = LOOP_SEG.concat(OUVERTURES);
+// Rondins à sauter : au CENTRE VISIBLE des grands côtés horizontaux. La haie du bord
+// intérieur (buissons dessinés vers le haut) « mord » un peu sur le sable, donc on
+// remonte les rondins de RDEC pour qu'ils paraissent centrés. Chemin large => on peut
+// aussi passer au-dessus / en-dessous sans rester coincé.
+const RDEC = 14;
+const RX = [520, 820, 1120, 1700, 2000, 2300];
 const RONDINS = [
-  { x: 520, y: 146 }, { x: 820, y: 146 }, { x: 1120, y: 146 }, { x: 1700, y: 146 }, { x: 2000, y: 146 }, { x: 2300, y: 146 },
-  { x: 520, y: WORLD.h - 190 }, { x: 820, y: WORLD.h - 190 }, { x: 1120, y: WORLD.h - 190 }, { x: 1700, y: WORLD.h - 190 }, { x: 2000, y: WORLD.h - 190 }, { x: 2300, y: WORLD.h - 190 },
+  ...RX.map((x) => ({ x, y: 90 + PW / 2 - RDEC })),          // côté HAUT
+  ...RX.map((x) => ({ x, y: WORLD.h - 90 - PW / 2 - RDEC })), // côté BAS
 ];
 const STATIONS = [
   { type: "dormir", x: 450, y: 540, sprite: "cabane_ardoise", label: "Maison" },
@@ -441,20 +449,24 @@ function placerParcours() {
   });
 
   // ----- Grand cross : boucle de sable autour de la map, dans une forêt -----
-  // 1) le chemin de sable (déborde sous les arbres : pas de bords droits ni d'angles visibles)
-  LOOP_SEG.forEach((s) => sc.add.tileSprite(s.x - 60, s.y - 60, s.w + 120, s.h + 120, "sol_terre").setOrigin(0, 0).setDepth(-19));
-  OUVERTURES.forEach((s) => sc.add.tileSprite(s.x - 55, s.y - 55, s.w + 110, s.h + 110, "sol_terre").setOrigin(0, 0).setDepth(-19));
+  // 1) le chemin de sable (déborde un peu sous la végétation : pas de bord droit ni d'angle visible)
+  const SAND = 46;
+  CHEMINS.forEach((s) => sc.add.tileSprite(s.x - SAND, s.y - SAND, s.w + 2 * SAND, s.h + 2 * SAND, "sol_terre").setOrigin(0, 0).setDepth(-19));
   labelMonde(WORLD.w / 2, 300, "Grand cross en forêt", 99990);
-  // 2) HAIE déterministe : buissons réguliers le long des DEUX bords de chaque segment
-  //    (identique partout). Puis pins en retrait derrière (profondeur), via la grille.
-  placerHaie(LOOP_SEG);
-  placerHaie(OUVERTURES);
-  for (let gy = 16; gy <= WORLD.h; gy += 52) {
-    for (let gx = 16; gx <= WORLD.w; gx += 52) {
-      if (!dansBande(gx, gy)) continue;
-      const x = gx + aleatoire(-10, 10), y = gy + aleatoire(-9, 9);
-      if (surBoucle(x, y, 70) || surOuverture(x, y, 60) || procheBatiment(x, y)) continue; // derrière la haie
-      sc.add.image(x, y, "pine").setOrigin(0.5, 0.95).setScale(aleatoire(15, 19) / 10).setDepth(y);
+  // 2) Végétation de la bande, posée par une RÈGLE UNIQUE (donc identique et continue
+  //    partout) : tout près du chemin = HAIE (buisson bas), plus loin = forêt (pins).
+  //    Les ouvertures et les angles se gèrent tout seuls (zones « sur le chemin » = vides).
+  for (let gy = 24; gy <= WORLD.h; gy += 44) {
+    for (let gx = 24; gx <= WORLD.w; gx += 44) {
+      if (!dansBande(gx, gy) || procheBatiment(gx, gy) || clairiere(gx, gy)) continue;
+      if (surChemin(gx, gy, 6)) continue;                 // garder le chemin dégagé
+      const x = gx + aleatoire(-7, 7), y = gy + aleatoire(-6, 6);
+      if (surChemin(gx, gy, 80)) {                         // bordure du chemin → HAIE (buisson)
+        sc.add.image(x, y, "bush").setOrigin(0.5, 0.9).setScale(aleatoire(11, 14) / 10).setDepth(y);
+        COLLISIONS.push({ x: x - 22, y: y - 10, w: 44, h: 14 });
+      } else {                                             // plus loin → forêt (pins, pas de collision serrée)
+        sc.add.image(x, y, "pine").setOrigin(0.5, 0.95).setScale(aleatoire(15, 19) / 10).setDepth(y);
+      }
     }
   }
   // 2b) forêt décorative juste au-delà des bords du monde (pas de vide aux bords) — sans collision
@@ -466,37 +478,25 @@ function placerParcours() {
       sc.add.image(x, y, (gx + gy) % 4 === 0 ? "bush" : "pine").setOrigin(0.5, 0.95).setScale(aleatoire(15, 19) / 10).setDepth(y);
     }
   }
-  // 3) rondins en travers du chemin (grands côtés) — barrent tout le chemin, à franchir au saut
+  // 3) rondins en travers des grands côtés — au CENTRE du chemin. Le chemin étant large,
+  //    on peut passer au-dessus / en-dessous (collision plus courte que le chemin).
   RONDINS.forEach((r) => {
-    sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.5).setDepth(r.y + 40);
-    COLLISIONS.push({ x: r.x - 24, y: r.y - 95, w: 48, h: 190, haie: true });
-  });
-}
-
-// Haie régulière (buissons) le long des deux longs bords de chaque segment de chemin.
-function placerHaie(segs) {
-  const pas = 42;
-  const buisson = (x, y) => {
-    // ne pas boucher les ANGLES : on saute le buisson s'il tombe bien à l'intérieur d'un autre segment
-    if (LOOP_SEG.some((s) => x > s.x + 26 && x < s.x + s.w - 26 && y > s.y + 26 && y < s.y + s.h - 26)) return;
-    const bx = x + aleatoire(-5, 5), by = y + aleatoire(-4, 4);
-    sc.add.image(bx, by, "bush").setOrigin(0.5, 0.95).setScale(aleatoire(13, 16) / 10).setDepth(by);
-    COLLISIONS.push({ x: bx - 23, y: by - 12, w: 46, h: 15 });
-  };
-  segs.forEach((s) => {
-    if (s.w >= s.h) { // segment horizontal : bord haut et bord bas
-      for (let x = s.x - 6; x <= s.x + s.w + 6; x += pas) { buisson(x, s.y); buisson(x, s.y + s.h); }
-    } else {          // segment vertical : buissons un peu À L'EXTÉRIEUR (sinon le sentier est trop étroit)
-      for (let y = s.y - 6; y <= s.y + s.h + 6; y += pas) { buisson(s.x - 22, y); buisson(s.x + s.w + 22, y); }
-    }
+    sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.3).setDepth(r.y + 30);
+    COLLISIONS.push({ x: r.x - 22, y: r.y - 50, w: 44, h: 100, haie: true });
   });
 }
 
 // Dégage une clairière autour des bâtiments (pas d'arbres qui les écrasent).
 function procheBatiment(x, y) { return STATIONS.some((s) => Math.abs(x - s.x) < 120 && Math.abs(y - s.y) < 160); }
+// Pas de végétation à l'intérieur de l'enclos ni de l'arène (la bande forestière
+// peut en frôler le bord) — leurs clôtures bloquent déjà le joueur.
+function clairiere(x, y) {
+  const dans = (r) => x > r.x - 24 && x < r.x + r.w + 24 && y > r.y - 24 && y < r.y + r.h + 24;
+  return dans(CORRAL) || dans(PARCOURS);
+}
 function dansBande(x, y) { return x < BAND || x > WORLD.w - BAND || y < BAND || y > WORLD.h - BAND; }
-function surBoucle(x, y, m) { return LOOP_SEG.some((s) => x > s.x - m && x < s.x + s.w + m && y > s.y - m && y < s.y + s.h + m); }
-function surOuverture(x, y, m) { return OUVERTURES.some((s) => x > s.x - m && x < s.x + s.w + m && y > s.y - m && y < s.y + s.h + m); }
+// « Sur le chemin » (dans un rectangle de CHEMINS élargi de m) : règle de placement de la végétation.
+function surChemin(x, y, m) { return CHEMINS.some((s) => x > s.x - m && x < s.x + s.w + m && y > s.y - m && y < s.y + s.h + m); }
 
 // Empêche le joueur de traverser les obstacles (clôture, arbres, bâtiments) — AABB par axe.
 function bloquerObstacles() {
