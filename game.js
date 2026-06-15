@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph42";
+const ASSET_VER = "ph45";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -66,8 +66,8 @@ const OUVERTURES = [
 // Rondins à sauter : sur les grands côtés horizontaux, un peu remontés pour être au
 // milieu du sable visible (les buissons du bas en recouvrent un peu le bas).
 const RONDINS = [
-  { x: 520, y: 150 }, { x: 820, y: 150 }, { x: 1120, y: 150 }, { x: 1700, y: 150 }, { x: 2000, y: 150 }, { x: 2300, y: 150 },
-  { x: 520, y: WORLD.h - 186 }, { x: 820, y: WORLD.h - 186 }, { x: 1120, y: WORLD.h - 186 }, { x: 1700, y: WORLD.h - 186 }, { x: 2000, y: WORLD.h - 186 }, { x: 2300, y: WORLD.h - 186 },
+  { x: 520, y: 146 }, { x: 820, y: 146 }, { x: 1120, y: 146 }, { x: 1700, y: 146 }, { x: 2000, y: 146 }, { x: 2300, y: 146 },
+  { x: 520, y: WORLD.h - 190 }, { x: 820, y: WORLD.h - 190 }, { x: 1120, y: WORLD.h - 190 }, { x: 1700, y: WORLD.h - 190 }, { x: 2000, y: WORLD.h - 190 }, { x: 2300, y: WORLD.h - 190 },
 ];
 const STATIONS = [
   { type: "dormir", x: 450, y: 540, sprite: "cabane_ardoise", label: "Maison" },
@@ -441,34 +441,27 @@ function placerParcours() {
   });
 
   // ----- Grand cross : boucle de sable autour de la map, dans une forêt -----
-  // 1) le chemin de sable (la boucle) + les ouvertures. Le sable DÉBORDE sous les arbres
-  //    (on ne voit pas ses bords droits ni les angles : les arbres les recouvrent).
+  // 1) le chemin de sable (déborde sous les arbres : pas de bords droits ni d'angles visibles)
   LOOP_SEG.forEach((s) => sc.add.tileSprite(s.x - 60, s.y - 60, s.w + 120, s.h + 120, "sol_terre").setOrigin(0, 0).setDepth(-19));
-  OUVERTURES.forEach((s) => sc.add.tileSprite(s.x - 50, s.y - 50, s.w + 100, s.h + 100, "sol_terre").setOrigin(0, 0).setDepth(-19));
+  OUVERTURES.forEach((s) => sc.add.tileSprite(s.x - 55, s.y - 55, s.w + 110, s.h + 110, "sol_terre").setOrigin(0, 0).setDepth(-19));
   labelMonde(WORLD.w / 2, 300, "Grand cross en forêt", 99990);
-  // 2) forêt sur toute la bande périphérique (sauf le chemin et les ouvertures).
-  //    Collision seulement près du chemin (les arbres profonds sont décoratifs) → perf.
-  for (let gy = 16; gy <= WORLD.h; gy += 50) {
-    for (let gx = 16; gx <= WORLD.w; gx += 50) {
+  // 2) HAIE déterministe : buissons réguliers le long des DEUX bords de chaque segment
+  //    (identique partout). Puis pins en retrait derrière (profondeur), via la grille.
+  placerHaie(LOOP_SEG);
+  placerHaie(OUVERTURES);
+  for (let gy = 16; gy <= WORLD.h; gy += 52) {
+    for (let gx = 16; gx <= WORLD.w; gx += 52) {
       if (!dansBande(gx, gy)) continue;
       const x = gx + aleatoire(-10, 10), y = gy + aleatoire(-9, 9);
-      if (surBoucle(x, y, 36) || surOuverture(x, y, 22) || procheBatiment(x, y)) continue; // dégage chemin + bâtiments
-      const bordure = surBoucle(x, y, 80) || surOuverture(x, y, 56);  // arbre qui borde le chemin
-      if (bordure) {
-        // bordure = BUISSONS bas (peu de feuillage qui déborde sur le chemin → chemin centré)
-        sc.add.image(x, y, "bush").setOrigin(0.5, 0.95).setScale(aleatoire(12, 15) / 10).setDepth(y);
-        COLLISIONS.push({ x: x - 22, y: y - 13, w: 44, h: 16 });
-      } else {
-        // forêt en retrait = PINS (sans collision, le joueur n'y va pas)
-        sc.add.image(x, y, "pine").setOrigin(0.5, 0.95).setScale(aleatoire(15, 19) / 10).setDepth(y);
-      }
+      if (surBoucle(x, y, 70) || surOuverture(x, y, 60) || procheBatiment(x, y)) continue; // derrière la haie
+      sc.add.image(x, y, "pine").setOrigin(0.5, 0.95).setScale(aleatoire(15, 19) / 10).setDepth(y);
     }
   }
-  // 2b) forêt décorative JUSTE au-delà des bords du monde (pas de vide aux bords) — sans collision
+  // 2b) forêt décorative juste au-delà des bords du monde (pas de vide aux bords) — sans collision
   const M = 260;
   for (let gy = -M; gy <= WORLD.h + M; gy += 90) {
     for (let gx = -M; gx <= WORLD.w + M; gx += 90) {
-      if (gx > -10 && gx < WORLD.w + 10 && gy > -10 && gy < WORLD.h + 10) continue; // intérieur du monde -> déjà fait
+      if (gx > -10 && gx < WORLD.w + 10 && gy > -10 && gy < WORLD.h + 10) continue;
       const x = gx + aleatoire(-13, 13), y = gy + aleatoire(-13, 13);
       sc.add.image(x, y, (gx + gy) % 4 === 0 ? "bush" : "pine").setOrigin(0.5, 0.95).setScale(aleatoire(15, 19) / 10).setDepth(y);
     }
@@ -477,6 +470,25 @@ function placerParcours() {
   RONDINS.forEach((r) => {
     sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.5).setDepth(r.y + 40);
     COLLISIONS.push({ x: r.x - 24, y: r.y - 95, w: 48, h: 190, haie: true });
+  });
+}
+
+// Haie régulière (buissons) le long des deux longs bords de chaque segment de chemin.
+function placerHaie(segs) {
+  const pas = 42;
+  const buisson = (x, y) => {
+    // ne pas boucher les ANGLES : on saute le buisson s'il tombe bien à l'intérieur d'un autre segment
+    if (LOOP_SEG.some((s) => x > s.x + 26 && x < s.x + s.w - 26 && y > s.y + 26 && y < s.y + s.h - 26)) return;
+    const bx = x + aleatoire(-5, 5), by = y + aleatoire(-4, 4);
+    sc.add.image(bx, by, "bush").setOrigin(0.5, 0.95).setScale(aleatoire(13, 16) / 10).setDepth(by);
+    COLLISIONS.push({ x: bx - 23, y: by - 12, w: 46, h: 15 });
+  };
+  segs.forEach((s) => {
+    if (s.w >= s.h) { // segment horizontal : bord haut et bord bas
+      for (let x = s.x - 6; x <= s.x + s.w + 6; x += pas) { buisson(x, s.y); buisson(x, s.y + s.h); }
+    } else {          // segment vertical : buissons un peu À L'EXTÉRIEUR (sinon le sentier est trop étroit)
+      for (let y = s.y - 6; y <= s.y + s.h + 6; y += pas) { buisson(s.x - 22, y); buisson(s.x + s.w + 22, y); }
+    }
   });
 }
 
