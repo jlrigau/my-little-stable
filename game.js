@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph20";
+const ASSET_VER = "ph21";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -121,6 +121,7 @@ function init() {
     ouvrirCreation({ avatar: PERSOS[0].id, couleur: THEMES[0] }, () => nouvellePartie(nomRanchTemp, persoEnCours));
   });
   $("btn-charger").addEventListener("click", continuerPartie);
+  const br = $("btn-refresh"); if (br) br.addEventListener("click", viderCacheEtRecharger);
   $("nom-haras").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-commencer").click(); });
   if (charger()) $("msg-accueil").textContent = "Une partie existe : clique sur « Continuer ma partie » 🐴";
 
@@ -143,6 +144,17 @@ function init() {
     else if (btn.dataset.decor) acheterDecor(btn.dataset.decor);
     else if (btn.dataset.annulerPlace) annulerPlacement();
   });
+}
+
+// Outil de dev : vide les caches et recharge avec une URL fraîche (sans toucher à la sauvegarde).
+async function viderCacheEtRecharger() {
+  try {
+    if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map((k) => caches.delete(k))); }
+    if (navigator.serviceWorker) { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map((r) => r.unregister())); }
+  } catch (e) {}
+  const u = new URL(location.href);
+  u.searchParams.set("fresh", Date.now());
+  location.replace(u.toString());
 }
 
 function nouvellePartie(nom, perso) {

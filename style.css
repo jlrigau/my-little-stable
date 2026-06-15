@@ -26,6 +26,14 @@ body {
 /* Écran de jeu : fond couleur HUD pour couvrir la zone de sécurité iOS (haut) */
 #ecran-jeu { background: var(--vert-fonce); }
 
+/* Bouton dev : vider le cache (à retirer en fin de dev) */
+.btn-refresh {
+  margin-top: 14px; background: transparent; border: 2px dashed var(--brun);
+  color: var(--brun); border-radius: 12px; padding: 8px 12px; font-size: 0.85rem;
+  font-weight: bold; cursor: pointer; opacity: 0.8;
+}
+.btn-refresh:active { transform: translateY(2px); }
+
 /* ===== Accueil & création ===== */
 #ecran-accueil, #ecran-creation { align-items: center; justify-content: center; }
 .boite-accueil, .boite-creation {
