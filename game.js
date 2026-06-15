@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph40";
+const ASSET_VER = "ph41";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -446,18 +446,19 @@ function placerParcours() {
   labelMonde(WORLD.w / 2, 300, "Grand cross en forêt", 99990);
   // 2) forêt sur toute la bande périphérique (sauf le chemin et les ouvertures).
   //    Collision seulement près du chemin (les arbres profonds sont décoratifs) → perf.
-  for (let gy = 16; gy <= WORLD.h; gy += 52) {
-    for (let gx = 16; gx <= WORLD.w; gx += 52) {
+  for (let gy = 16; gy <= WORLD.h; gy += 50) {
+    for (let gx = 16; gx <= WORLD.w; gx += 50) {
       if (!dansBande(gx, gy)) continue;
       const x = gx + aleatoire(-10, 10), y = gy + aleatoire(-9, 9);
-      if (surBoucle(x, y, 38) || surOuverture(x, y, 22) || procheBatiment(x, y)) continue; // dégage chemin + bâtiments
-      const bordure = surBoucle(x, y, 92) || surOuverture(x, y, 60);  // arbre qui borde le chemin → collision
-      if ((gx + gy * 3) % 4 === 0) {
+      if (surBoucle(x, y, 36) || surOuverture(x, y, 22) || procheBatiment(x, y)) continue; // dégage chemin + bâtiments
+      const bordure = surBoucle(x, y, 80) || surOuverture(x, y, 56);  // arbre qui borde le chemin
+      if (bordure) {
+        // bordure = BUISSONS bas (peu de feuillage qui déborde sur le chemin → chemin centré)
         sc.add.image(x, y, "bush").setOrigin(0.5, 0.95).setScale(aleatoire(12, 15) / 10).setDepth(y);
-        if (bordure) COLLISIONS.push({ x: x - 22, y: y - 13, w: 44, h: 16 });
+        COLLISIONS.push({ x: x - 22, y: y - 13, w: 44, h: 16 });
       } else {
+        // forêt en retrait = PINS (sans collision, le joueur n'y va pas)
         sc.add.image(x, y, "pine").setOrigin(0.5, 0.95).setScale(aleatoire(15, 19) / 10).setDepth(y);
-        if (bordure) COLLISIONS.push({ x: x - 14, y: y - 20, w: 28, h: 22 });
       }
     }
   }
@@ -473,7 +474,7 @@ function placerParcours() {
   // 3) rondins en travers du chemin (grands côtés) — barrent tout le chemin, à franchir au saut
   RONDINS.forEach((r) => {
     sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.5).setDepth(r.y + 40);
-    COLLISIONS.push({ x: r.x - 24, y: r.y - 80, w: 48, h: 160, haie: true });
+    COLLISIONS.push({ x: r.x - 24, y: r.y - 95, w: 48, h: 190, haie: true });
   });
 }
 
