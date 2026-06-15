@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph28";
+const ASSET_VER = "ph29";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -631,8 +631,8 @@ function sceneUpdate(time, delta) {
     monte.corpsT.setFlipX(joueurFacing === "right");
     joueurSprite.y = -58 - arc; joueurOmbre.setVisible(false);
     if (joueurNom) joueurNom.y = -138 - arc;
-    // Le cheval se fatigue quand on le monte (plus vite au galop / en mouvement).
-    const taux = (mvx || mvy) ? (enCourse ? 7 : 4) : 1.2;
+    // Le cheval se fatigue quand on le monte (doucement ; plus vite au galop).
+    const taux = (mvx || mvy) ? (enCourse ? 2.4 : 1.1) : 0.3;
     fatigueAcc += taux * dt;
     if (fatigueAcc >= 1) {
       const d = Math.floor(fatigueAcc); fatigueAcc -= d;
