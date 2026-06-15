@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph46";
+const ASSET_VER = "ph47";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -559,7 +559,8 @@ function construireMonde() {
   // Chemin de terre : vertical devant les bâtiments + large chemin vers le portail de l'enclos
   const gateY = CORRAL.y + CORRAL.h * 0.5;
   sc.add.tileSprite(370, 775, 200, 620, "sol_terre").setOrigin(0.5, 0.5).setDepth(-19);
-  sc.add.tileSprite(370, gateY, CORRAL.x - 350, 200, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
+  // s'arrête PILE à la clôture (CORRAL.x) → la barrière est au bord du chemin, pas d'overlap dans l'enclos
+  sc.add.tileSprite(370, gateY, CORRAL.x - 370, 200, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
 
   // Enclos (herbe légèrement plus claire) + clôture + panneau
   const pre = sc.add.graphics();

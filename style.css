@@ -25,8 +25,8 @@ body {
 .cache { display: none !important; }
 /* Voile de nuit plein écran (transition « dormir ») — au-dessus du jeu, sous le message */
 #nuit-voile { position: fixed; inset: 0; background: #0a1633; opacity: 0; pointer-events: none; z-index: 40; }
-/* Écran de jeu : fond couleur HUD pour couvrir la zone de sécurité iOS (haut) */
-#ecran-jeu { background: var(--vert-fonce); position: relative; }
+/* Écran de jeu : épinglé à tout l'écran (sinon le fond orange du body dépasse en bas). */
+#ecran-jeu { background: var(--vert-fonce); position: fixed; inset: 0; height: auto; }
 
 /* Bouton dev : vider le cache (à retirer en fin de dev) */
 .btn-refresh {
@@ -134,8 +134,8 @@ input[type="text"] {
 /* ===== Panneau ===== */
 /* Le bandeau FLOTTE par-dessus le jeu (n'altère pas la taille du canvas => pas de
    clignotement) : petit quand on se balade, plus grand près d'un cheval. */
-.panneau { position: absolute; left: 0; right: 0; bottom: 0; background: var(--creme); border-radius: 20px 20px 0 0; padding: 12px 14px calc(10px + env(safe-area-inset-bottom)); min-height: 52px; max-height: 46vh; overflow-y: auto; box-shadow: 0 -4px 14px rgba(0,0,0,0.22); z-index: 5; }
-.panneau-aide { text-align: center; margin: 14px 0; opacity: 0.8; font-weight: bold; }
+.panneau { position: fixed; left: 0; right: 0; bottom: 0; background: var(--creme); border-radius: 18px 18px 0 0; padding: 8px 14px calc(6px + env(safe-area-inset-bottom)); min-height: 40px; max-height: 42vh; overflow-y: auto; box-shadow: 0 -4px 14px rgba(0,0,0,0.22); z-index: 5; }
+.panneau-aide { text-align: center; margin: 4px 0; opacity: 0.8; font-weight: bold; }
 .pc-tete { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .pc-sous { font-size: 0.85rem; opacity: 0.8; }
 .pc-emoji { font-size: 2rem; }
