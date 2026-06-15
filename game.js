@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph32";
+const ASSET_VER = "ph34";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -41,36 +41,41 @@ const PRIX_CHEVAL = 45, PRIX_FOIN = 4, PRIX_BOX = 80, AGE_ADULTE = 5;
 
 /* ===================== Monde ===================== */
 
-const WORLD = { w: 2600, h: 1900 };
-const CORRAL = { x: 800, y: 250, w: 820, h: 820 };
-// Arène de saut (concours) à droite de l'enclos, avec clôture autour.
-const PARCOURS = { x: 1840, y: 470, w: 720, h: 400 };
+const WORLD = { w: 2800, h: 2100 };
+const CORRAL = { x: 800, y: 360, w: 820, h: 760 };
+// Arène de saut (concours) — agrandie, clôturée, dans l'intérieur.
+const PARCOURS = { x: 1720, y: 440, w: 720, h: 640 };
 const HAIES = [
-  { x: 2000, y: 670 }, { x: 2180, y: 670 }, { x: 2360, y: 670 }, { x: 2490, y: 670 },
+  { x: 1880, y: 690 }, { x: 2110, y: 690 }, { x: 2340, y: 690 },
+  { x: 1880, y: 900 }, { x: 2110, y: 900 }, { x: 2340, y: 900 },
 ];
-// Cross en forêt (en bas) : sentier bordé d'arbres + troncs couchés à sauter.
-const CROSS = { x: 910, y: 1095, w: 1520, h: 760 };   // région forêt (label + remplissage d'arbres)
-// Circuit serpentant : segments du chemin de sable (lignes droites reliées par des virages).
-const CROSS_SEGMENTS = [
-  { x: 1000, y: 1120, w: 110, h: 130 },   // entrée (on descend depuis le nord)
-  { x: 1000, y: 1205, w: 1320, h: 110 },  // ligne A → droite
-  { x: 2210, y: 1205, w: 110, h: 330 },   // virage à droite (A → B)
-  { x: 1000, y: 1425, w: 1320, h: 110 },  // ligne B → gauche
-  { x: 1000, y: 1425, w: 110, h: 330 },   // virage à gauche (B → C)
-  { x: 1000, y: 1645, w: 1320, h: 110 },  // ligne C → droite
+// GRAND CROSS : boucle de sable qui fait tout le tour de la map, dans une forêt.
+const BAND = 320;                                   // épaisseur de la forêt périphérique
+const LOOP_SEG = [
+  { x: 110, y: 110, w: WORLD.w - 220, h: 120 },     // grand côté HAUT (avec rondins)
+  { x: 110, y: WORLD.h - 230, w: WORLD.w - 220, h: 120 }, // grand côté BAS (avec rondins)
+  { x: 110, y: 110, w: 120, h: WORLD.h - 220 },     // côté GAUCHE (virage en forêt)
+  { x: WORLD.w - 230, y: 110, w: 120, h: WORLD.h - 220 }, // côté DROIT (virage en forêt)
 ];
+// Ouvertures (corridors d'herbe) reliant l'intérieur à la boucle.
+const OUVERTURES = [
+  { x: WORLD.w / 2 - 90, y: 220, w: 180, h: 150 },          // haut
+  { x: WORLD.w / 2 - 90, y: WORLD.h - 370, w: 180, h: 150 }, // bas
+  { x: 220, y: WORLD.h / 2 - 90, w: 150, h: 180 },          // gauche (vers l'enclos)
+  { x: WORLD.w - 370, y: WORLD.h / 2 - 90, w: 150, h: 180 }, // droite
+];
+// Rondins à sauter : uniquement sur les grands côtés horizontaux (haut/bas).
 const RONDINS = [
-  { x: 1350, y: 1260 }, { x: 1730, y: 1260 }, { x: 2080, y: 1260 },
-  { x: 1350, y: 1480 }, { x: 1730, y: 1480 }, { x: 2080, y: 1480 },
-  { x: 1350, y: 1700 }, { x: 1730, y: 1700 }, { x: 2080, y: 1700 },
+  { x: 520, y: 170 }, { x: 820, y: 170 }, { x: 1120, y: 170 }, { x: 1700, y: 170 }, { x: 2000, y: 170 }, { x: 2300, y: 170 },
+  { x: 520, y: WORLD.h - 170 }, { x: 820, y: WORLD.h - 170 }, { x: 1120, y: WORLD.h - 170 }, { x: 1700, y: WORLD.h - 170 }, { x: 2000, y: WORLD.h - 170 }, { x: 2300, y: WORLD.h - 170 },
 ];
 const STATIONS = [
-  { type: "dormir", x: 250, y: 380, sprite: "cabane_ardoise", label: "Maison" },
-  { type: "boutique", x: 250, y: 860, sprite: "cabane_chaume", label: "Magasin" },
+  { type: "dormir", x: 450, y: 540, sprite: "cabane_ardoise", label: "Maison" },
+  { type: "boutique", x: 450, y: 1010, sprite: "cabane_chaume", label: "Magasin" },
 ];
 const SLOTS_DECOR = [
-  { x: 560, y: 200 }, { x: 560, y: 1180 }, { x: 470, y: 600 }, { x: 120, y: 1180 },
-  { x: 1820, y: 220 }, { x: 1820, y: 1120 }, { x: 1700, y: 660 }, { x: 120, y: 200 },
+  { x: 640, y: 1300 }, { x: 900, y: 1300 }, { x: 1200, y: 1300 }, { x: 1500, y: 1300 },
+  { x: 700, y: 1500 }, { x: 1700, y: 1300 }, { x: 1900, y: 1500 }, { x: 1100, y: 1500 },
 ];
 
 /* ===================== État ===================== */
@@ -423,7 +428,7 @@ function bordureCloture(r) {
   );
 }
 
-// Les deux parcours : arène de saut (concours) + cross en forêt.
+// Arène de saut (agrandie) + grand cross qui fait le tour de la map.
 function placerParcours() {
   // ----- Arène de saut (sol en terre + clôture + haies) -----
   const p = PARCOURS;
@@ -435,36 +440,37 @@ function placerParcours() {
     COLLISIONS.push({ x: h.x - 33, y: h.y - 18, w: 66, h: 30, haie: true });
   });
 
-  // ----- Cross en forêt : circuit de sable serpentant dans une forêt dense -----
-  // 1) le chemin de sable (segments)
-  CROSS_SEGMENTS.forEach((s) => sc.add.tileSprite(s.x, s.y, s.w, s.h, "sol_terre").setOrigin(0, 0).setDepth(-19));
-  labelMonde(CROSS.x + CROSS.w / 2, CROSS.y - 4, "🌲 Cross en forêt", 99990);
-  // 2) forêt dense tout autour (on remplit la région sauf le chemin)
-  const R = CROSS;
-  for (let gy = R.y; gy <= R.y + R.h; gy += 56) {
-    for (let gx = R.x; gx <= R.x + R.w; gx += 58) {
+  // ----- Grand cross : boucle de sable autour de la map, dans une forêt -----
+  // 1) le chemin de sable (la boucle)
+  LOOP_SEG.forEach((s) => sc.add.tileSprite(s.x, s.y, s.w, s.h, "sol_terre").setOrigin(0, 0).setDepth(-19));
+  labelMonde(WORLD.w / 2, 96, "🌲 Grand cross en forêt", 99990);
+  // 2) forêt sur toute la bande périphérique (sauf le chemin et les ouvertures).
+  //    Collision seulement près du chemin (les arbres profonds sont décoratifs) → perf.
+  for (let gy = 20; gy <= WORLD.h; gy += 68) {
+    for (let gx = 20; gx <= WORLD.w; gx += 68) {
+      if (!dansBande(gx, gy)) continue;
       const x = gx + aleatoire(-12, 12), y = gy + aleatoire(-10, 10);
-      if (surChemin(x, y, 44)) continue;
+      if (surBoucle(x, y, 40) || surOuverture(x, y, 8)) continue;
+      const bordure = surBoucle(x, y, 92);   // arbre qui borde le chemin → collision
       if ((gx + gy * 3) % 4 === 0) {
         sc.add.image(x, y, "bush").setOrigin(0.5, 0.95).setScale(aleatoire(12, 15) / 10).setDepth(y);
-        COLLISIONS.push({ x: x - 22, y: y - 13, w: 44, h: 16 });
+        if (bordure) COLLISIONS.push({ x: x - 22, y: y - 13, w: 44, h: 16 });
       } else {
         sc.add.image(x, y, "pine").setOrigin(0.5, 0.95).setScale(aleatoire(15, 19) / 10).setDepth(y);
-        COLLISIONS.push({ x: x - 14, y: y - 20, w: 28, h: 22 });
+        if (bordure) COLLISIONS.push({ x: x - 14, y: y - 20, w: 28, h: 22 });
       }
     }
   }
-  // 3) troncs couchés EN TRAVERS du chemin (à franchir au saut, sinon bloqué)
+  // 3) rondins en travers du chemin (grands côtés) — à franchir au saut
   RONDINS.forEach((r) => {
     sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.1).setDepth(r.y + 40);
     COLLISIONS.push({ x: r.x - 17, y: r.y - 58, w: 34, h: 116, haie: true });
   });
 }
 
-// Vrai si (x,y) est sur le chemin de sable du cross (segments + marge).
-function surChemin(x, y, m) {
-  return CROSS_SEGMENTS.some((s) => x > s.x - m && x < s.x + s.w + m && y > s.y - m && y < s.y + s.h + m);
-}
+function dansBande(x, y) { return x < BAND || x > WORLD.w - BAND || y < BAND || y > WORLD.h - BAND; }
+function surBoucle(x, y, m) { return LOOP_SEG.some((s) => x > s.x - m && x < s.x + s.w + m && y > s.y - m && y < s.y + s.h + m); }
+function surOuverture(x, y, m) { return OUVERTURES.some((s) => x > s.x - m && x < s.x + s.w + m && y > s.y - m && y < s.y + s.h + m); }
 
 // Empêche le joueur de traverser les obstacles (clôture, arbres, bâtiments) — AABB par axe.
 function bloquerObstacles() {
@@ -485,15 +491,10 @@ function dansCorral(x, y) {
          y > CORRAL.y - 40 && y < CORRAL.y + CORRAL.h + 40;
 }
 
-// Arbres et buissons fixes — placés HORS de l'anneau praticable autour de l'enclos.
+// Décor fixe d'intérieur (la forêt périphérique est gérée par placerParcours).
 // [x, y, sprite, échelle]
 const SCENERY = [
-  // côté gauche
-  [110, 320, "pine", 1.7], [180, 1130, "pine", 1.8], [90, 700, "bush", 1.4],
-  [520, 130, "pine", 1.6], [110, 140, "bush", 1.3], [120, 1000, "bush", 1.3],
-  // coins du grand monde
-  [130, 1780, "pine", 1.7], [700, 1820, "bush", 1.3], [2540, 250, "pine", 1.6],
-  [2545, 1800, "pine", 1.7], [2560, 1100, "pine", 1.6],
+  [700, 1350, "bush", 1.3], [1700, 1400, "pine", 1.6], [2200, 1350, "bush", 1.3],
 ];
 
 function placerScenery() {
@@ -528,8 +529,8 @@ function construireMonde() {
 
   // Chemin de terre : vertical devant les bâtiments + horizontal vers le portail de l'enclos
   const gateY = CORRAL.y + CORRAL.h * 0.5;
-  sc.add.tileSprite(160, 380, 200, 520, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
-  sc.add.tileSprite(260, gateY - 45, CORRAL.x - 260, 90, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
+  sc.add.tileSprite(370, 775, 180, 620, "sol_terre").setOrigin(0.5, 0.5).setDepth(-19);
+  sc.add.tileSprite(370, gateY, CORRAL.x - 370, 90, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
 
   // Enclos (herbe légèrement plus claire) + clôture
   const pre = sc.add.graphics();
@@ -1087,8 +1088,9 @@ function ouvrirAide() {
       <p><b>🐴 Un cheval :</b> approche-toi puis 🌾 Nourrir, 🧽 Brosser, 🎾 Jouer, 🏇 Monter, ou 🎨 Relooker
       (robe, nom). Garde ses besoins au vert !</p>
       <p><b>🏇 Monter :</b> en selle, promène-toi à cheval. Re-clique « Descendre » pour t'arrêter.</p>
-      <p><b>🦘 Parcours d'obstacles :</b> à droite de l'enclos ! À cheval, approche une haie puis touche
-      <b>« Sauter »</b> pour la franchir (sinon le cheval est bloqué devant). Sauter fatigue le cheval.</p>
+      <p><b>🦘 Sauter / parcours :</b> à cheval, approche un obstacle puis touche <b>« Sauter »</b> pour le
+      franchir (sinon le cheval est bloqué devant). Il y a l'<b>🏇 arène de saut</b> (à droite de l'enclos) et
+      un grand <b>🌲 cross en forêt</b> qui fait le tour de la map (rondins). Sauter fatigue le cheval.</p>
       <p><b>🏃 Courir :</b> tape <b>deux fois rapidement</b> vers un endroit et le personnage (ou le cheval) court !</p>
       <p><b>🏪 Magasin :</b> foin, décos, adopter des chevaux. Après l'achat d'une déco, promène-toi où tu veux puis touche <b>« ✅ Poser ici »</b>.</p>
       <p><b>🏡 Maison :</b> dormir passe au jour suivant (occupe-toi d'abord d'un cheval). <b>🧍 (en haut) :</b> change ton personnage.</p>
