@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph19";
+const ASSET_VER = "ph20";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -871,7 +871,7 @@ function poserDecor() {
   etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
   const nom = placementDecor.nom; placementDecor = null;
   if (ghostDecor) { ghostDecor.destroy(); ghostDecor = null; }
-  placerDecors(); sauvegarder(); majHud(); idPanneau = null; majInteraction();
+  placerDecors(); sauvegarder(); majHud(); idPanneau = "maj"; majInteraction();
   message(`${nom} installé ! ✨`);
 }
 
@@ -880,7 +880,7 @@ function annulerPlacement() {
   etat.pieces += placementDecor.prix;   // remboursé
   placementDecor = null;
   if (ghostDecor) { ghostDecor.destroy(); ghostDecor = null; }
-  majHud(); idPanneau = null; majInteraction();
+  majHud(); idPanneau = "maj"; majInteraction();
   message("Placement annulé, tu es remboursé. 💰");
 }
 
