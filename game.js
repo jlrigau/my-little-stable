@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph38";
+const ASSET_VER = "ph39";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -57,11 +57,9 @@ const LOOP_SEG = [
   { x: 90, y: 90, w: 156, h: WORLD.h - 180 },        // côté GAUCHE (virage en forêt)
   { x: WORLD.w - 246, y: 90, w: 156, h: WORLD.h - 180 }, // côté DROIT (virage en forêt)
 ];
-// Ouvertures = longs couloirs de sable reliant l'intérieur à la boucle (placés à des
-// endroits DÉGAGÉS : ni derrière l'enclos, ni derrière l'arène).
+// Ouvertures = longs couloirs de sable reliant l'intérieur à la boucle.
+// Uniquement à GAUCHE et à DROITE (les passages haut et bas sont fermés).
 const OUVERTURES = [
-  { x: 560, y: 200, w: 200, h: 360 },                 // HAUT (à gauche de l'enclos)
-  { x: 1120, y: WORLD.h - 580, w: 220, h: 360 },      // BAS (sous l'enclos)
   { x: 200, y: 1280, w: 380, h: 200 },                // GAUCHE (bas-gauche)
   { x: WORLD.w - 580, y: 1280, w: 380, h: 200 },      // DROITE (sous l'arène)
 ];
