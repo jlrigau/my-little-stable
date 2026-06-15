@@ -66,6 +66,11 @@ Style **pixel-art LPC**, **plus aucun emoji dans le monde** :
   arbres/bâtiments. **Collisions** (`COLLISIONS` + `bloquerObstacles`) sur clôture + arbres + buissons
   + bâtiments + déco (empreinte plus large à cheval). Portail = trou clôture à gauche.
 - **À cheval** : enfant assis sur le dos (`joueurSprite.y=-58`, ombre masquée), sans anim de marche.
+  Le cheval **se fatigue** à la monte (descente auto si épuisé). Profil gauche/droite seulement.
+- **Parcours d'obstacles** : arène en terre à droite (`PARCOURS`, `HAIES`, `placerParcours`), monde
+  élargi (w=2600), 2e portail à droite de l'enclos. À cheval, bouton **🦘 Sauter** (`sauter()`) =
+  bond en avant (`sautEnCours`/`sautAnim`) qui franchit la haie (collision ignorée le temps du saut) ;
+  sinon le cheval reste bloqué. Sprite `assets/sprite/haie.png`.
 - **Dormir** : transition nuit (voile `nuitVoile` qui s'assombrit puis s'éclaircit) ; interdit d'enchaîner
   les nuits (`actionsDepuisDodo` : il faut s'occuper d'un cheval entre deux dodos).
 - **Déco** : achat au magasin → **fantôme** semi-transparent qui suit le joueur (`ghostDecor`),

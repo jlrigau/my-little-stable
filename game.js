@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph27";
+const ASSET_VER = "ph28";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -41,8 +41,13 @@ const PRIX_CHEVAL = 45, PRIX_FOIN = 4, PRIX_BOX = 80, AGE_ADULTE = 5;
 
 /* ===================== Monde ===================== */
 
-const WORLD = { w: 2000, h: 1320 };
+const WORLD = { w: 2600, h: 1320 };
 const CORRAL = { x: 800, y: 250, w: 820, h: 820 };
+// Parcours d'obstacles : arène en terre à droite de l'enclos + position des haies.
+const PARCOURS = { x: 1860, y: 500, w: 680, h: 360 };
+const HAIES = [
+  { x: 2000, y: 680 }, { x: 2170, y: 680 }, { x: 2340, y: 680 }, { x: 2490, y: 680 },
+];
 const STATIONS = [
   { type: "dormir", x: 250, y: 380, sprite: "cabane_ardoise", label: "Maison" },
   { type: "boutique", x: 250, y: 860, sprite: "cabane_chaume", label: "Magasin" },
@@ -260,6 +265,8 @@ let placementDecor = null, ghostDecor = null, ghostCote = 1; // déco en cours d
 let nuitEnCours = false;   // transition nuit (dormir) — voile plein écran en HTML/CSS
 let enCourse = false, dernierTapT = 0;       // double-tap rapide => le perso court
 let fatigueAcc = 0;                          // accumulateur de fatigue du cheval monté
+let sautEnCours = false;                     // saut d'obstacle en cours (à cheval)
+const sautAnim = { h: 0 };                   // hauteur du saut (0..1) pour l'arc visuel
 let cibleActive = null, idPanneau = null, monte = null;
 let ringSel = null;
 let decorObjs = [];
@@ -311,7 +318,7 @@ function txt(x, y, s, taille) {
 function scenePreload() {
   this.load.image("sol_herbe", av("assets/sprite/tile_grass.png"));
   this.load.image("sol_terre", av("assets/sprite/tile_dirt.png"));
-  ["pine", "bush", "trough", "cabane_ardoise", "cabane_chaume"]
+  ["pine", "bush", "trough", "cabane_ardoise", "cabane_chaume", "haie"]
     .forEach((k) => this.load.image(k, av(`assets/sprite/${k}.png`)));
   this.load.spritesheet("fence", av("assets/lpc/fence_medieval.png"), { frameWidth: 32, frameHeight: 32 });
   PERSOS.forEach((p) => this.load.spritesheet(p.key, av(`assets/lpc/${p.key}.png`), { frameWidth: 64, frameHeight: 64 }));
@@ -359,21 +366,33 @@ function placerCloture() {
   };
   for (let x = x0 + s; x < x1; x += s) { add(x, y0, 1, false); add(x, y1, 1, false); }
   for (let y = y0 + s; y < y1; y += s) {
-    if (!(y > gateA && y < gateB)) add(x0, y, 17, false);
-    add(x1, y, 17, false);
+    const dansPortail = (y > gateA && y < gateB);
+    if (!dansPortail) { add(x0, y, 17, false); add(x1, y, 17, false); }  // 2 portails (gauche + droite)
   }
   add(x0, y0, 32, false); add(x1, y0, 34, false);
   add(x0, y1, 32, true); add(x1, y1, 34, true);
 
-  // Murs de collision de la clôture (le portail gauche reste ouvert)
+  // Murs de collision de la clôture (portails ouverts à gauche ET à droite, vers le parcours)
   const t = 14;
   COLLISIONS.push(
     { x: x0, y: y0 - t / 2, w: CORRAL.w, h: t },          // haut
     { x: x0, y: y1 - t / 2, w: CORRAL.w, h: t },          // bas
-    { x: x1 - t / 2, y: y0, w: t, h: CORRAL.h },          // droite
     { x: x0 - t / 2, y: y0, w: t, h: gateA - y0 },        // gauche (au-dessus du portail)
     { x: x0 - t / 2, y: gateB, w: t, h: y1 - gateB },     // gauche (sous le portail)
+    { x: x1 - t / 2, y: y0, w: t, h: gateA - y0 },        // droite (au-dessus du portail)
+    { x: x1 - t / 2, y: gateB, w: t, h: y1 - gateB },     // droite (sous le portail)
   );
+}
+
+// Arène du parcours d'obstacles (sol en terre + haies à sauter).
+function placerParcours() {
+  const p = PARCOURS;
+  sc.add.tileSprite(p.x, p.y, p.w, p.h, "sol_terre").setOrigin(0, 0).setDepth(-19);
+  sc.add.text(p.x + p.w / 2, p.y - 6, "🏇 Parcours d'obstacles", { fontSize: "24px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 5 }).setOrigin(0.5, 1).setDepth(p.y);
+  HAIES.forEach((h) => {
+    sc.add.image(h.x, h.y, "haie").setOrigin(0.5, 0.92).setScale(1.0).setDepth(h.y);
+    COLLISIONS.push({ x: h.x - 33, y: h.y - 18, w: 66, h: 30, haie: true });
+  });
 }
 
 // Empêche le joueur de traverser les obstacles (clôture, arbres, bâtiments) — AABB par axe.
@@ -401,11 +420,11 @@ const SCENERY = [
   // côté gauche
   [110, 320, "pine", 1.7], [180, 1130, "pine", 1.8], [90, 700, "bush", 1.4],
   [120, 1190, "bush", 1.3], [520, 130, "pine", 1.6], [620, 1240, "bush", 1.3],
-  // côté droit (au-delà de l'anneau, x > 1740)
-  [1850, 330, "pine", 1.8], [1900, 840, "pine", 1.7], [1820, 1190, "bush", 1.4],
-  [1890, 560, "bush", 1.4], [1830, 1060, "pine", 1.7], [1900, 150, "pine", 1.6],
-  // coins
-  [110, 140, "bush", 1.3], [1740, 1250, "bush", 1.3],
+  [110, 140, "bush", 1.3],
+  // autour de l'arène (en dehors du couloir de saut)
+  [1770, 300, "pine", 1.6], [1800, 1050, "pine", 1.6], [2250, 290, "bush", 1.4],
+  [2000, 1130, "bush", 1.3], [2460, 1130, "bush", 1.3], [2560, 200, "pine", 1.5],
+  [2560, 520, "pine", 1.6], [2560, 980, "pine", 1.6],
 ];
 
 function placerScenery() {
@@ -433,7 +452,7 @@ function construireMonde() {
   sc.children.removeAll();
   decorObjs = [];
   COLLISIONS = [];
-  placementDecor = null; ghostDecor = null;
+  placementDecor = null; ghostDecor = null; sautEnCours = false;
 
   // Sol : pelouse tuilée sur tout le monde
   sc.add.tileSprite(0, 0, WORLD.w, WORLD.h, "sol_herbe").setOrigin(0, 0).setDepth(-20);
@@ -448,6 +467,9 @@ function construireMonde() {
   pre.fillStyle(0x86c25a, 0.55); pre.fillRoundedRect(CORRAL.x, CORRAL.y, CORRAL.w, CORRAL.h, 18);
   pre.setDepth(-18);
   placerCloture();
+
+  // Parcours d'obstacles (à droite)
+  placerParcours();
 
   // Décor fixe (arbres, buissons)
   placerScenery();
@@ -571,21 +593,25 @@ function sceneUpdate(time, delta) {
     else moveTarget = { x: c.x + (dx / d) * 72, y: c.y + (dy / d) * 72 };
   }
 
-  const vit = monte ? (enCourse ? 560 : 340) : (enCourse ? 370 : 200);
   let mvx = 0, mvy = 0;
-  if (vx || vy) {
-    moveTarget = null; pendingInteract = null; enCourse = false;
-    const n = Math.hypot(vx, vy); mvx = vx / n; mvy = vy / n;
-  } else if (moveTarget && !modaleOuverte) {
-    const dx = moveTarget.x - joueur.x, dy = moveTarget.y - joueur.y, d = Math.hypot(dx, dy);
-    if (d < 8) { moveTarget = null; enCourse = false; if (pendingInteract) { const r = pendingInteract; pendingInteract = null; interagir(r); } }
-    else { mvx = dx / d; mvy = dy / d; }
+  if (!sautEnCours) {
+    const vit = monte ? (enCourse ? 560 : 340) : (enCourse ? 370 : 200);
+    if (vx || vy) {
+      moveTarget = null; pendingInteract = null; enCourse = false;
+      const n = Math.hypot(vx, vy); mvx = vx / n; mvy = vy / n;
+    } else if (moveTarget && !modaleOuverte) {
+      const dx = moveTarget.x - joueur.x, dy = moveTarget.y - joueur.y, d = Math.hypot(dx, dy);
+      if (d < 8) { moveTarget = null; enCourse = false; if (pendingInteract) { const r = pendingInteract; pendingInteract = null; interagir(r); } }
+      else { mvx = dx / d; mvy = dy / d; }
+    }
+    if (mvx || mvy) { joueur.x += mvx * vit * dt; joueur.y += mvy * vit * dt; }
+    majAnimJoueur(mvx, mvy);
+    joueur.x = clamp(joueur.x, 40, WORLD.w - 40);
+    joueur.y = clamp(joueur.y, 40, WORLD.h - 40);
+    bloquerObstacles();
+  } else {
+    majAnimJoueur(0, 0);   // pose figée pendant le saut (le tween gère la position)
   }
-  if (mvx || mvy) { joueur.x += mvx * vit * dt; joueur.y += mvy * vit * dt; }
-  majAnimJoueur(mvx, mvy);
-  joueur.x = clamp(joueur.x, 40, WORLD.w - 40);
-  joueur.y = clamp(joueur.y, 40, WORLD.h - 40);
-  bloquerObstacles();
   joueur.setDepth(joueur.y);
 
   // Déco en cours de placement : le fantôme se tient À CÔTÉ du joueur (gauche/droite
@@ -599,11 +625,12 @@ function sceneUpdate(time, delta) {
 
   // À cheval : le cheval est au sol sous le joueur, l'enfant est assis sur son dos.
   if (monte) {
-    monte.obj.x = joueur.x; monte.obj.y = joueur.y; monte.x = joueur.x; monte.y = joueur.y;
+    const arc = sautAnim.h * 70;   // hauteur du saut d'obstacle
+    monte.obj.x = joueur.x; monte.obj.y = joueur.y - arc; monte.x = joueur.x; monte.y = joueur.y;
     monte.obj.setDepth(joueur.y - 1);
     monte.corpsT.setFlipX(joueurFacing === "right");
-    joueurSprite.y = -58; joueurOmbre.setVisible(false);
-    if (joueurNom) joueurNom.y = -138;
+    joueurSprite.y = -58 - arc; joueurOmbre.setVisible(false);
+    if (joueurNom) joueurNom.y = -138 - arc;
     // Le cheval se fatigue quand on le monte (plus vite au galop / en mouvement).
     const taux = (mvx || mvy) ? (enCourse ? 7 : 4) : 1.2;
     fatigueAcc += taux * dt;
@@ -723,16 +750,19 @@ function construirePanneau() {
   if (!cibleActive) { p.innerHTML = `<p class="panneau-aide">Promène-toi 🚶 et approche-toi d'un cheval ou d'un bâtiment pour agir.</p>`; return; }
   if (cibleActive.robe) {
     const c = cibleActive, estMonte = monte === c;
+    // À cheval : actions de monte (Sauter / Descendre). Au sol : s'occuper du cheval.
+    const actions = estMonte
+      ? `<button class="bouton bouton-rodeo" data-cheval="sauter">🦘 Sauter</button>
+         <button class="bouton bouton-secondaire" data-cheval="monter">🛑 Descendre</button>`
+      : `<button class="bouton" data-cheval="nourrir">🌾 Nourrir</button>
+         <button class="bouton" data-cheval="brosser">🧽 Brosser</button>
+         <button class="bouton" data-cheval="jouer">🎾 Jouer</button>
+         <button class="bouton bouton-rodeo" data-cheval="monter">🏇 Monter</button>
+         <button class="bouton bouton-secondaire" data-cheval="relooker">🎨 Relooker</button>`;
     p.innerHTML = `
       <div class="pc-tete"><div><b>${c.nom}</b> <span class="pc-sous">${estPoulain(c) ? "🐣 Poulain (" + c.age + " j)" : "Adulte (" + c.age + " j)"}</span></div></div>
       <div class="pc-barres" id="pc-barres"></div>
-      <div class="pc-actions">
-        <button class="bouton" data-cheval="nourrir">🌾 Nourrir</button>
-        <button class="bouton" data-cheval="brosser">🧽 Brosser</button>
-        <button class="bouton" data-cheval="jouer">🎾 Jouer</button>
-        <button class="bouton bouton-rodeo" data-cheval="monter">${estMonte ? "🛑 Descendre" : "🏇 Monter"}</button>
-        <button class="bouton bouton-secondaire" data-cheval="relooker">🎨 Relooker</button>
-      </div>`;
+      <div class="pc-actions">${actions}</div>`;
     majBarres(c);
   } else {
     const s = cibleActive;
@@ -780,18 +810,34 @@ function actionCheval(action) {
       monte = c; c.bonheur = borner(c.bonheur + 12); c.energie = borner(c.energie - 6); etat.actionsDepuisDodo++; fatigueAcc = 0;
       message(`En selle sur ${c.nom} ! 🏇`);
       idPanneau = null; majInteraction(); majHud(); return;
+    case "sauter": sauter(); return;
     case "relooker": ouvrirRelooker(c); return;
   }
   majBarres(c); majHud();
 }
 
+// Saut d'obstacle (à cheval) : bond en avant qui franchit les haies (et toute collision).
+function sauter() {
+  if (!monte || sautEnCours || !sc) return;
+  const c = monte;
+  if (c.energie < 10) { message(`${c.nom} est trop fatigué pour sauter ! 😴`); return; }
+  c.energie = borner(c.energie - 8); fatigueAcc = 0; etat.actionsDepuisDodo++;
+  sautEnCours = true; moveTarget = null; suiviCheval = null;
+  const dir = (joueurFacing === "left") ? -1 : 1;
+  const cibleX = clamp(joueur.x + dir * 165, 40, WORLD.w - 40);
+  sc.tweens.add({ targets: joueur, x: cibleX, duration: 560, ease: "Quad.easeOut", onComplete: () => { sautEnCours = false; } });
+  sautAnim.h = 0;
+  sc.tweens.add({ targets: sautAnim, h: 1, duration: 290, yoyo: true, ease: "Sine.easeOut" });
+  c.bonheur = borner(c.bonheur + 4); majHud();
+}
+
 // Descend du cheval (et l'écarte du joueur). epuise = descente forcée car énergie à 0.
 function descendreCheval(c, epuise) {
-  monte = null; moveTarget = null; enCourse = false; fatigueAcc = 0;
+  monte = null; moveTarget = null; enCourse = false; fatigueAcc = 0; sautEnCours = false;
   if (joueurSprite) joueurSprite.y = 0;
   if (joueurOmbre) joueurOmbre.setVisible(true);
-  c.x = clamp(joueur.x + 135, CORRAL.x + 70, CORRAL.x + CORRAL.w - 70);
-  c.y = clamp(joueur.y, CORRAL.y + 70, CORRAL.y + CORRAL.h - 70);
+  c.x = clamp(joueur.x + 135, 40, WORLD.w - 40);   // reste là où on descend (parcours inclus)
+  c.y = clamp(joueur.y, 40, WORLD.h - 40);
   c.tx = c.x; c.ty = c.y; c.prochainPas = 0;
   if (c.obj) { c.obj.x = c.x; c.obj.y = c.y; }
   idPanneau = null; majInteraction(); majHud();
@@ -972,6 +1018,8 @@ function ouvrirAide() {
       <p><b>🐴 Un cheval :</b> approche-toi puis 🌾 Nourrir, 🧽 Brosser, 🎾 Jouer, 🏇 Monter, ou 🎨 Relooker
       (robe, nom). Garde ses besoins au vert !</p>
       <p><b>🏇 Monter :</b> en selle, promène-toi à cheval. Re-clique « Descendre » pour t'arrêter.</p>
+      <p><b>🦘 Parcours d'obstacles :</b> à droite de l'enclos ! À cheval, approche une haie puis touche
+      <b>« Sauter »</b> pour la franchir (sinon le cheval est bloqué devant). Sauter fatigue le cheval.</p>
       <p><b>🏃 Courir :</b> tape <b>deux fois rapidement</b> vers un endroit et le personnage (ou le cheval) court !</p>
       <p><b>🏪 Magasin :</b> foin, décos, adopter des chevaux. Après l'achat d'une déco, promène-toi où tu veux puis touche <b>« ✅ Poser ici »</b>.</p>
       <p><b>🏡 Maison :</b> dormir passe au jour suivant (occupe-toi d'abord d'un cheval). <b>🧍 (en haut) :</b> change ton personnage.</p>
