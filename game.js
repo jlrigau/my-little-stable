@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph34";
+const ASSET_VER = "ph35";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -867,7 +867,7 @@ function actionCheval(action) {
       etat.foin--; c.faim = borner(c.faim + 35); c.bonheur = borner(c.bonheur + 6); etat.pieces += 2;
       etat.actionsDepuisDodo++; bond(c); message(`${c.nom} a mangé du bon foin ! 🌾`); break;
     case "brosser":
-      c.proprete = borner(c.proprete + 40); c.bonheur = borner(c.bonheur + 10); c.energie = borner(c.energie - 5); etat.pieces += 2;
+      c.proprete = borner(c.proprete + 40); c.bonheur = borner(c.bonheur + 12); etat.pieces += 2;
       etat.actionsDepuisDodo++; bond(c); message(`${c.nom} est tout beau et brillant ! ✨`); break;
     case "jouer":
       if (c.energie < 15) { message(`${c.nom} est trop fatigué pour jouer. 😴`); return; }
