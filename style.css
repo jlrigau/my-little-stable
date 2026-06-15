@@ -13,12 +13,13 @@
 
 * { box-sizing: border-box; font-family: "Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif; }
 html, body { height: 100%; }
-/* Fond de base = haut du dégradé d'accueil (continuité avec la barre d'état iOS). */
+/* Fond de base = dégradé chaud et DOUX (pas de bandeau foncé en bas). */
 html { background: #ffce8f; }
 body {
   margin: 0; color: var(--texte);
   background-color: #ffce8f;
-  background-image: linear-gradient(170deg, #ffce8f 0%, #ffb066 35%, #e8895a 70%, #c46a4a 100%);
+  background-image: linear-gradient(180deg, #ffce8f 0%, #ffc885 55%, #ffc07c 100%);
+  background-attachment: fixed;
   overflow: hidden;
 }
 .ecran { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
