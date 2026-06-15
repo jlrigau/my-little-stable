@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph24";
+const ASSET_VER = "ph25";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -256,7 +256,7 @@ let joueur = null, joueurSprite = null, joueurOmbre = null, joueurNom = null, jo
 let cursors = null, wasd = null;
 let moveTarget = null, pendingInteract = null;
 let placementDecor = null, ghostDecor = null, ghostCote = 1; // déco en cours de placement (fantôme à côté du joueur)
-let nuitEnCours = false, nuitVoile = null;   // transition nuit (dormir)
+let nuitEnCours = false;   // transition nuit (dormir) — voile plein écran en HTML/CSS
 let enCourse = false, dernierTapT = 0;       // double-tap rapide => le perso court
 let cibleActive = null, idPanneau = null, monte = null;
 let ringSel = null;
@@ -477,9 +477,6 @@ function construireMonde() {
   // anneau de sélection
   ringSel = sc.add.ellipse(0, 0, 90, 50, 0xffd54a, 0);
   ringSel.setStrokeStyle(4, 0xffd54a, 1); ringSel.setVisible(false); ringSel.setDepth(2);
-
-  // voile de nuit (fixé à l'écran) pour la transition « dormir » — invisible au départ
-  nuitVoile = sc.add.rectangle(0, 0, 4000, 3000, 0x0a1633).setOrigin(0, 0).setScrollFactor(0).setDepth(9000).setAlpha(0);
 
   sc.cameras.main.startFollow(joueur, true, 0.12, 0.12);
   ajusterZoom();
@@ -783,11 +780,14 @@ function jourSuivant() {
     return;
   }
   nuitEnCours = true; moveTarget = null; message("🌙 La nuit tombe…");
-  if (nuitVoile && sc) {
-    sc.tweens.add({
-      targets: nuitVoile, alpha: 0.72, duration: 1100, hold: 700, yoyo: true,
-      onYoyo: appliquerJour, onComplete: () => { nuitEnCours = false; },
-    });
+  // Voile plein écran en HTML (immunisé au zoom/scroll de la caméra).
+  const v = $("nuit-voile");
+  if (v) {
+    v.style.transition = "opacity 1s ease";
+    v.style.opacity = "0.78";                                  // la nuit tombe
+    setTimeout(appliquerJour, 1150);                           // au plus sombre : on passe le jour
+    setTimeout(() => { v.style.opacity = "0"; }, 1850);        // le soleil revient
+    setTimeout(() => { nuitEnCours = false; }, 2900);
   } else { appliquerJour(); nuitEnCours = false; }
 }
 

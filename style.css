@@ -23,6 +23,8 @@ body {
 }
 .ecran { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
 .cache { display: none !important; }
+/* Voile de nuit plein écran (transition « dormir ») — au-dessus du jeu, sous le message */
+#nuit-voile { position: fixed; inset: 0; background: #0a1633; opacity: 0; pointer-events: none; z-index: 40; }
 /* Écran de jeu : fond couleur HUD pour couvrir la zone de sécurité iOS (haut) */
 #ecran-jeu { background: var(--vert-fonce); }
 
