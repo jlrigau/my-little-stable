@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph41";
+const ASSET_VER = "ph42";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -63,10 +63,11 @@ const OUVERTURES = [
   { x: 200, y: 1280, w: 380, h: 200 },                // GAUCHE (bas-gauche)
   { x: WORLD.w - 580, y: 1280, w: 380, h: 200 },      // DROITE (sous l'arène)
 ];
-// Rondins à sauter : uniquement sur les grands côtés horizontaux (haut/bas), centrés sur le chemin.
+// Rondins à sauter : sur les grands côtés horizontaux, un peu remontés pour être au
+// milieu du sable visible (les buissons du bas en recouvrent un peu le bas).
 const RONDINS = [
-  { x: 520, y: 168 }, { x: 820, y: 168 }, { x: 1120, y: 168 }, { x: 1700, y: 168 }, { x: 2000, y: 168 }, { x: 2300, y: 168 },
-  { x: 520, y: WORLD.h - 168 }, { x: 820, y: WORLD.h - 168 }, { x: 1120, y: WORLD.h - 168 }, { x: 1700, y: WORLD.h - 168 }, { x: 2000, y: WORLD.h - 168 }, { x: 2300, y: WORLD.h - 168 },
+  { x: 520, y: 150 }, { x: 820, y: 150 }, { x: 1120, y: 150 }, { x: 1700, y: 150 }, { x: 2000, y: 150 }, { x: 2300, y: 150 },
+  { x: 520, y: WORLD.h - 186 }, { x: 820, y: WORLD.h - 186 }, { x: 1120, y: WORLD.h - 186 }, { x: 1700, y: WORLD.h - 186 }, { x: 2000, y: WORLD.h - 186 }, { x: 2300, y: WORLD.h - 186 },
 ];
 const STATIONS = [
   { type: "dormir", x: 450, y: 540, sprite: "cabane_ardoise", label: "Maison" },
@@ -440,9 +441,10 @@ function placerParcours() {
   });
 
   // ----- Grand cross : boucle de sable autour de la map, dans une forêt -----
-  // 1) le chemin de sable (la boucle) + les ouvertures (tout en sable, en continu)
-  LOOP_SEG.forEach((s) => sc.add.tileSprite(s.x, s.y, s.w, s.h, "sol_terre").setOrigin(0, 0).setDepth(-19));
-  OUVERTURES.forEach((s) => sc.add.tileSprite(s.x, s.y, s.w, s.h, "sol_terre").setOrigin(0, 0).setDepth(-19));
+  // 1) le chemin de sable (la boucle) + les ouvertures. Le sable DÉBORDE sous les arbres
+  //    (on ne voit pas ses bords droits ni les angles : les arbres les recouvrent).
+  LOOP_SEG.forEach((s) => sc.add.tileSprite(s.x - 60, s.y - 60, s.w + 120, s.h + 120, "sol_terre").setOrigin(0, 0).setDepth(-19));
+  OUVERTURES.forEach((s) => sc.add.tileSprite(s.x - 50, s.y - 50, s.w + 100, s.h + 100, "sol_terre").setOrigin(0, 0).setDepth(-19));
   labelMonde(WORLD.w / 2, 300, "Grand cross en forêt", 99990);
   // 2) forêt sur toute la bande périphérique (sauf le chemin et les ouvertures).
   //    Collision seulement près du chemin (les arbres profonds sont décoratifs) → perf.
