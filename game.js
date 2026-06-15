@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph30";
+const ASSET_VER = "ph32";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -49,9 +49,20 @@ const HAIES = [
   { x: 2000, y: 670 }, { x: 2180, y: 670 }, { x: 2360, y: 670 }, { x: 2490, y: 670 },
 ];
 // Cross en forêt (en bas) : sentier bordé d'arbres + troncs couchés à sauter.
-const CROSS = { x: 940, y: 1330, w: 1480, h: 360, trailY: 1500 };
+const CROSS = { x: 910, y: 1095, w: 1520, h: 760 };   // région forêt (label + remplissage d'arbres)
+// Circuit serpentant : segments du chemin de sable (lignes droites reliées par des virages).
+const CROSS_SEGMENTS = [
+  { x: 1000, y: 1120, w: 110, h: 130 },   // entrée (on descend depuis le nord)
+  { x: 1000, y: 1205, w: 1320, h: 110 },  // ligne A → droite
+  { x: 2210, y: 1205, w: 110, h: 330 },   // virage à droite (A → B)
+  { x: 1000, y: 1425, w: 1320, h: 110 },  // ligne B → gauche
+  { x: 1000, y: 1425, w: 110, h: 330 },   // virage à gauche (B → C)
+  { x: 1000, y: 1645, w: 1320, h: 110 },  // ligne C → droite
+];
 const RONDINS = [
-  { x: 1200, y: 1500 }, { x: 1480, y: 1500 }, { x: 1760, y: 1500 }, { x: 2040, y: 1500 }, { x: 2300, y: 1500 },
+  { x: 1350, y: 1260 }, { x: 1730, y: 1260 }, { x: 2080, y: 1260 },
+  { x: 1350, y: 1480 }, { x: 1730, y: 1480 }, { x: 2080, y: 1480 },
+  { x: 1350, y: 1700 }, { x: 1730, y: 1700 }, { x: 2080, y: 1700 },
 ];
 const STATIONS = [
   { type: "dormir", x: 250, y: 380, sprite: "cabane_ardoise", label: "Maison" },
@@ -424,20 +435,35 @@ function placerParcours() {
     COLLISIONS.push({ x: h.x - 33, y: h.y - 18, w: 66, h: 30, haie: true });
   });
 
-  // ----- Cross en forêt (sentier bordé d'arbres + troncs à sauter) -----
-  const c = CROSS, ty = c.trailY;
-  sc.add.tileSprite(c.x + 80, ty - 28, c.w - 120, 56, "sol_terre").setOrigin(0, 0).setDepth(-19);
-  labelMonde(c.x + c.w / 2, c.y - 4, "🌲 Cross en forêt", 99990);   // au-dessus des arbres
-  // murs d'arbres au-dessus et en dessous du sentier (la forêt qui borde le cross)
-  for (let x = c.x + 80; x <= c.x + c.w - 40; x += 82) {
-    arbreCollision(x, ty - 86, 1.5);
-    arbreCollision(x, ty + 96, 1.5);
+  // ----- Cross en forêt : circuit de sable serpentant dans une forêt dense -----
+  // 1) le chemin de sable (segments)
+  CROSS_SEGMENTS.forEach((s) => sc.add.tileSprite(s.x, s.y, s.w, s.h, "sol_terre").setOrigin(0, 0).setDepth(-19));
+  labelMonde(CROSS.x + CROSS.w / 2, CROSS.y - 4, "🌲 Cross en forêt", 99990);
+  // 2) forêt dense tout autour (on remplit la région sauf le chemin)
+  const R = CROSS;
+  for (let gy = R.y; gy <= R.y + R.h; gy += 56) {
+    for (let gx = R.x; gx <= R.x + R.w; gx += 58) {
+      const x = gx + aleatoire(-12, 12), y = gy + aleatoire(-10, 10);
+      if (surChemin(x, y, 44)) continue;
+      if ((gx + gy * 3) % 4 === 0) {
+        sc.add.image(x, y, "bush").setOrigin(0.5, 0.95).setScale(aleatoire(12, 15) / 10).setDepth(y);
+        COLLISIONS.push({ x: x - 22, y: y - 13, w: 44, h: 16 });
+      } else {
+        sc.add.image(x, y, "pine").setOrigin(0.5, 0.95).setScale(aleatoire(15, 19) / 10).setDepth(y);
+        COLLISIONS.push({ x: x - 14, y: y - 20, w: 28, h: 22 });
+      }
+    }
   }
-  // troncs couchés EN TRAVERS du sentier (à franchir en sautant)
+  // 3) troncs couchés EN TRAVERS du chemin (à franchir au saut, sinon bloqué)
   RONDINS.forEach((r) => {
-    sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.05).setDepth(r.y + 40);
-    COLLISIONS.push({ x: r.x - 17, y: r.y - 50, w: 34, h: 100, haie: true });
+    sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.1).setDepth(r.y + 40);
+    COLLISIONS.push({ x: r.x - 17, y: r.y - 58, w: 34, h: 116, haie: true });
   });
+}
+
+// Vrai si (x,y) est sur le chemin de sable du cross (segments + marge).
+function surChemin(x, y, m) {
+  return CROSS_SEGMENTS.some((s) => x > s.x - m && x < s.x + s.w + m && y > s.y - m && y < s.y + s.h + m);
 }
 
 // Empêche le joueur de traverser les obstacles (clôture, arbres, bâtiments) — AABB par axe.
