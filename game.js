@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph17";
+const ASSET_VER = "ph18";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -243,7 +243,7 @@ let jeu = null, sc = null;
 let joueur = null, joueurSprite = null, joueurOmbre = null, joueurNom = null, joueurFacing = "down";
 let cursors = null, wasd = null;
 let moveTarget = null, pendingInteract = null;
-let placementDecor = null, ghostDecor = null; // déco en cours de placement (fantôme qui suit le joueur)
+let placementDecor = null, ghostDecor = null, ghostCote = 1; // déco en cours de placement (fantôme à côté du joueur)
 let nuitEnCours = false, nuitVoile = null;   // transition nuit (dormir)
 let enCourse = false, dernierTapT = 0;       // double-tap rapide => le perso court
 let cibleActive = null, idPanneau = null, monte = null;
@@ -556,8 +556,14 @@ function sceneUpdate(time, delta) {
   bloquerObstacles();
   joueur.setDepth(joueur.y);
 
-  // Déco en cours de placement : le fantôme suit le joueur (aperçu de l'emplacement).
-  if (placementDecor && ghostDecor) { ghostDecor.x = joueur.x; ghostDecor.y = joueur.y; ghostDecor.setDepth(joueur.y + 0.5); }
+  // Déco en cours de placement : le fantôme se tient À CÔTÉ du joueur (gauche/droite
+  // selon le déplacement), et devient rouge si l'endroit est interdit.
+  if (placementDecor && ghostDecor) {
+    if (joueurFacing === "left") ghostCote = -1; else if (joueurFacing === "right") ghostCote = 1;
+    const g = ghostXY();
+    ghostDecor.x = g.x; ghostDecor.y = g.y; ghostDecor.setDepth(g.y + 0.5);
+    if (placementInterdit(placementDecor, g.x, g.y)) ghostDecor.setTint(0xff5555); else ghostDecor.clearTint();
+  }
 
   // À cheval : le cheval est au sol sous le joueur, l'enfant est assis sur son dos.
   if (monte) {
@@ -829,20 +835,38 @@ function acheterDecor(id) {
   const d = DECORS.find((x) => x.id === id); if (!d) return;
   if (etat.pieces < d.prix) return message("Pas assez de 💰 !");
   etat.pieces -= d.prix;
-  placementDecor = d;
+  placementDecor = d; ghostCote = 1;
   fermerModale();
   if (sc) {
     if (ghostDecor) ghostDecor.destroy();
-    ghostDecor = sc.add.image(joueur.x, joueur.y, d.sprite).setOrigin(0.5, 0.95).setScale(1.2).setAlpha(0.55).setDepth(99999);
+    ghostDecor = sc.add.image(joueur.x, joueur.y, d.sprite).setOrigin(0.5, 0.95).setScale(1.2).setAlpha(0.6).setDepth(99999);
   }
   majHud(); idPanneau = null; majInteraction();
   message(`${d.nom} acheté ! Promène-toi et touche « ✅ Poser ici ».`);
 }
 
-// Pose la déco en cours à l'endroit où se trouve le joueur.
+// Position de pose courante = celle du fantôme (à côté du joueur).
+function ghostXY() {
+  const x = joueur.x + ghostCote * 60, y = joueur.y + 6;
+  return { x: clamp(x, 40, WORLD.w - 40), y: clamp(y, 70, WORLD.h - 30) };
+}
+
+// Règles de placement. Retourne null si OK, sinon un message d'erreur.
+function placementInterdit(d, x, y) {
+  for (const s of STATIONS) {
+    if (x > s.x - 80 && x < s.x + 80 && y > s.y - 150 && y < s.y + 24) return "🏠 Pas sur un bâtiment !";
+  }
+  const dansCorral = x > CORRAL.x && x < CORRAL.x + CORRAL.w && y > CORRAL.y && y < CORRAL.y + CORRAL.h;
+  if (dansCorral && d.id !== "abreuvoir") return "🐴 Les arbres et buissons gênent les chevaux dans l'enclos !";
+  return null;
+}
+
+// Pose la déco à l'endroit du fantôme (si l'emplacement est autorisé).
 function poserDecor() {
   if (!placementDecor) return;
-  const x = clamp(joueur.x, 40, WORLD.w - 40), y = clamp(joueur.y, 70, WORLD.h - 30);
+  const { x, y } = ghostXY();
+  const err = placementInterdit(placementDecor, x, y);
+  if (err) { message(err); return; }
   etat.decors.push({ id: placementDecor.id, x, y });
   etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
   const nom = placementDecor.nom; placementDecor = null;
