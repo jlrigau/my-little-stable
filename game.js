@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph14";
+const ASSET_VER = "ph15";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -631,9 +631,9 @@ function majInteraction() {
     ringSel.setPosition(x, y + 10).setVisible(true).setDepth(y - 1);
   } else if (ringSel) ringSel.setVisible(false);
 
-  const station = meilleur && !meilleur.robe;
-  $("btn-action").classList.toggle("cache", !station);
-  if (station) $("btn-action").textContent = meilleur.label;
+  // Le bouton flottant ne sert plus que pour « Poser ici » (placement déco) :
+  // pour les bâtiments, le grand bouton du bandeau du bas suffit.
+  $("btn-action").classList.add("cache");
 }
 
 /* ===================== Clic ===================== */
