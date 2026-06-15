@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph26";
+const ASSET_VER = "ph27";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -255,7 +255,7 @@ function ouvrirCreation(perso, onValider) {
 let jeu = null, sc = null;
 let joueur = null, joueurSprite = null, joueurOmbre = null, joueurNom = null, joueurFacing = "down";
 let cursors = null, wasd = null;
-let moveTarget = null, pendingInteract = null;
+let moveTarget = null, pendingInteract = null, suiviCheval = null;
 let placementDecor = null, ghostDecor = null, ghostCote = 1; // déco en cours de placement (fantôme à côté du joueur)
 let nuitEnCours = false;   // transition nuit (dormir) — voile plein écran en HTML/CSS
 let enCourse = false, dernierTapT = 0;       // double-tap rapide => le perso court
@@ -480,7 +480,7 @@ function construireMonde() {
   ringSel = sc.add.ellipse(0, 0, 90, 50, 0xffd54a, 0);
   ringSel.setStrokeStyle(4, 0xffd54a, 1); ringSel.setVisible(false); ringSel.setDepth(2);
 
-  sc.cameras.main.startFollow(joueur, true, 0.12, 0.12);
+  sc.cameras.main.startFollow(joueur, true, 0.5, 0.5);   // suivi réactif (peu d'élan à l'arrêt)
   ajusterZoom();
 }
 
@@ -560,6 +560,15 @@ function sceneUpdate(time, delta) {
     if (cursors.right.isDown || wasd.droite.isDown) vx += 1;
     if (cursors.up.isDown || wasd.haut.isDown || wasd.up.isDown) vy -= 1;
     if (cursors.down.isDown || wasd.bas.isDown) vy += 1;
+  }
+
+  // Suivi d'un cheval (qui peut se déplacer) : on recale la cible vers sa position
+  // courante et on s'arrête dès qu'on est assez proche pour s'en occuper.
+  if (vx || vy) suiviCheval = null;
+  if (suiviCheval && !monte && !modaleOuverte) {
+    const c = suiviCheval, dx = joueur.x - c.x, dy = joueur.y - c.y, d = Math.hypot(dx, dy) || 1;
+    if (d < 92) { suiviCheval = null; moveTarget = null; }
+    else moveTarget = { x: c.x + (dx / d) * 72, y: c.y + (dy / d) * 72 };
   }
 
   const vit = monte ? (enCourse ? 560 : 340) : (enCourse ? 370 : 200);
@@ -683,15 +692,18 @@ function onPointer(p) {
   enCourse = (tnow - dernierTapT) < 350;
   dernierTapT = tnow;
 
+  suiviCheval = null;
   let cible = null, dmin = Infinity;
   STATIONS.forEach((s) => { const d = Math.hypot(s.x - wx, s.y - wy); if (d < 70 && d < dmin) { dmin = d; cible = s; } });
   etat.chevaux.forEach((c) => { if (c === monte) return; const d = Math.hypot(c.x - wx, c.y - wy); if (d < 55 && d < dmin) { dmin = d; cible = c; } });
-  if (cible) {
+  if (cible && cible.robe) {
+    // Cheval : on le suit (il peut bouger) jusqu'à s'arrêter juste à côté.
+    suiviCheval = cible; pendingInteract = null;
+  } else if (cible) {
     const tx = cible.x, ty = cible.y;
     const dx = joueur.x - tx, dy = joueur.y - ty, d = Math.hypot(dx, dy) || 1;
-    const recul = cible.robe ? 60 : 90;
-    moveTarget = { x: tx + (dx / d) * recul, y: ty + (dy / d) * recul };
-    pendingInteract = cible.robe ? null : cible;
+    moveTarget = { x: tx + (dx / d) * 90, y: ty + (dy / d) * 90 };
+    pendingInteract = cible;
   } else { moveTarget = { x: clamp(wx, 40, WORLD.w - 40), y: clamp(wy, 40, WORLD.h - 40) }; pendingInteract = null; }
 }
 
