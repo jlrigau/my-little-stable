@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph16";
+const ASSET_VER = "ph17";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -778,8 +778,14 @@ function appliquerJour() {
   if (joueurSprite) joueurSprite.y = 0;
   if (joueurOmbre) joueurOmbre.setVisible(true);
   majHud(); sauvegarder();
-  if (negliges.length) message(`🌅 Jour ${etat.jour}. Occupe-toi de ${negliges.join(" et ")} !`);
+  if (negliges.length) message(`🌅 Jour ${etat.jour}. Occupe-toi de ${listeFr(negliges)} !`);
   else message(`🌅 Jour ${etat.jour} : tout le monde a bien dormi. 🐴 (+5 💰)`);
+}
+
+// Liste « à la française » : "A", "A et B", "A, B et C", "A, B, C et D"…
+function listeFr(arr) {
+  if (arr.length <= 1) return arr.join("");
+  return arr.slice(0, -1).join(", ") + " et " + arr[arr.length - 1];
 }
 
 /* ===================== Modale / magasin / relooking ===================== */
