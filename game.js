@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph39";
+const ASSET_VER = "ph40";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -446,12 +446,12 @@ function placerParcours() {
   labelMonde(WORLD.w / 2, 300, "Grand cross en forêt", 99990);
   // 2) forêt sur toute la bande périphérique (sauf le chemin et les ouvertures).
   //    Collision seulement près du chemin (les arbres profonds sont décoratifs) → perf.
-  for (let gy = 16; gy <= WORLD.h; gy += 54) {
-    for (let gx = 16; gx <= WORLD.w; gx += 54) {
+  for (let gy = 16; gy <= WORLD.h; gy += 52) {
+    for (let gx = 16; gx <= WORLD.w; gx += 52) {
       if (!dansBande(gx, gy)) continue;
-      const x = gx + aleatoire(-11, 11), y = gy + aleatoire(-9, 9);
-      if (surBoucle(x, y, 46) || surOuverture(x, y, 24)) continue;   // dégage le chemin (forêt proche)
-      const bordure = surBoucle(x, y, 100) || surOuverture(x, y, 64); // arbre qui borde le chemin → collision
+      const x = gx + aleatoire(-10, 10), y = gy + aleatoire(-9, 9);
+      if (surBoucle(x, y, 38) || surOuverture(x, y, 22) || procheBatiment(x, y)) continue; // dégage chemin + bâtiments
+      const bordure = surBoucle(x, y, 92) || surOuverture(x, y, 60);  // arbre qui borde le chemin → collision
       if ((gx + gy * 3) % 4 === 0) {
         sc.add.image(x, y, "bush").setOrigin(0.5, 0.95).setScale(aleatoire(12, 15) / 10).setDepth(y);
         if (bordure) COLLISIONS.push({ x: x - 22, y: y - 13, w: 44, h: 16 });
@@ -461,6 +461,15 @@ function placerParcours() {
       }
     }
   }
+  // 2b) forêt décorative JUSTE au-delà des bords du monde (pas de vide aux bords) — sans collision
+  const M = 260;
+  for (let gy = -M; gy <= WORLD.h + M; gy += 90) {
+    for (let gx = -M; gx <= WORLD.w + M; gx += 90) {
+      if (gx > -10 && gx < WORLD.w + 10 && gy > -10 && gy < WORLD.h + 10) continue; // intérieur du monde -> déjà fait
+      const x = gx + aleatoire(-13, 13), y = gy + aleatoire(-13, 13);
+      sc.add.image(x, y, (gx + gy) % 4 === 0 ? "bush" : "pine").setOrigin(0.5, 0.95).setScale(aleatoire(15, 19) / 10).setDepth(y);
+    }
+  }
   // 3) rondins en travers du chemin (grands côtés) — barrent tout le chemin, à franchir au saut
   RONDINS.forEach((r) => {
     sc.add.image(r.x, r.y, "rondins").setOrigin(0.5, 0.5).setScale(1.5).setDepth(r.y + 40);
@@ -468,6 +477,8 @@ function placerParcours() {
   });
 }
 
+// Dégage une clairière autour des bâtiments (pas d'arbres qui les écrasent).
+function procheBatiment(x, y) { return STATIONS.some((s) => Math.abs(x - s.x) < 120 && Math.abs(y - s.y) < 160); }
 function dansBande(x, y) { return x < BAND || x > WORLD.w - BAND || y < BAND || y > WORLD.h - BAND; }
 function surBoucle(x, y, m) { return LOOP_SEG.some((s) => x > s.x - m && x < s.x + s.w + m && y > s.y - m && y < s.y + s.h + m); }
 function surOuverture(x, y, m) { return OUVERTURES.some((s) => x > s.x - m && x < s.x + s.w + m && y > s.y - m && y < s.y + s.h + m); }
@@ -509,7 +520,9 @@ function placerScenery() {
 
 function sceneCreate() {
   sc = this;
-  this.cameras.main.setBounds(0, 0, WORLD.w, WORLD.h);
+  // Limites caméra étendues au-delà du monde : le joueur reste centré (au-dessus du
+  // bandeau) même tout en bas / aux bords -> on accède partout.
+  this.cameras.main.setBounds(-700, -700, WORLD.w + 1400, WORLD.h + 1400);
   this.cameras.main.setBackgroundColor("#6fae4f");
   creerAnims();
   creerCoeur();
@@ -525,8 +538,8 @@ function construireMonde() {
   COLLISIONS = [];
   placementDecor = null; ghostDecor = null; sautEnCours = false;
 
-  // Sol : pelouse tuilée sur tout le monde
-  sc.add.tileSprite(0, 0, WORLD.w, WORLD.h, "sol_herbe").setOrigin(0, 0).setDepth(-20);
+  // Sol : pelouse tuilée (débordant au-delà du monde pour ne pas voir de vide aux bords)
+  sc.add.tileSprite(-700, -700, WORLD.w + 1400, WORLD.h + 1400, "sol_herbe").setOrigin(0, 0).setDepth(-20);
 
   // Chemin de terre : vertical devant les bâtiments + large chemin vers le portail de l'enclos
   const gateY = CORRAL.y + CORRAL.h * 0.5;
