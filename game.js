@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph13";
+const ASSET_VER = "ph14";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -503,9 +503,11 @@ function placerDecors() {
 function majAnimJoueur(mvx, mvy) {
   if (!joueurSprite) return;
   const key = persoDef(etat.perso.avatar).key;
-  // À cheval : l'enfant ne « marche » pas, il reste en pose fixe (assis).
+  // À cheval : l'enfant ne « marche » pas et ne regarde QUE gauche/droite
+  // (le cheval n'a que ces 2 profils → on évite l'enfant qui regarde en haut/bas).
   if (monte) {
-    if (mvx || mvy) joueurFacing = Math.abs(mvx) > Math.abs(mvy) ? (mvx < 0 ? "left" : "right") : (mvy < 0 ? "up" : "down");
+    if (mvx) joueurFacing = mvx < 0 ? "left" : "right";
+    else if (joueurFacing !== "left" && joueurFacing !== "right") joueurFacing = "right";
     joueurSprite.anims.stop();
     joueurSprite.setFrame(DIRS[joueurFacing] * 9);
     return;
