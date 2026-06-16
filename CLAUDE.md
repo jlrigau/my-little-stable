@@ -124,10 +124,19 @@ feuille de route complète (12 skills + orchestrateur `retour-enfant`).
 - **`_shared/`** : outillage commun — `serve.sh` (serveur statique),
   `bump-version.mjs` (incrémente `phN` aux DEUX endroits), `playtest.cjs` (harnais
   Playwright : captures de zones, marchabilité du cross, assertions, erreurs de page).
-- **Étape A (filet de sécurité, FAIT)** : `release-deploy` (cache-bust + push `main`
-  + vérif `deploy.yml`), `test-debug` (valider/déboguer avec preuves), `map-verify`
+Les 12 skills sont créés (étapes A→D) :
+- **A — filet de sécurité** : `release-deploy` (cache-bust + push `main` + vérif
+  `deploy.yml`), `test-debug` (valider/déboguer avec preuves), `map-verify`
   (placement carte : captures multi-zones + marchabilité avant push).
-- **À venir** : `asset-search` (+ vérif sécurité enfant), `asset-add`, `add-decor-item`,
-  `add-horse-coat`/`add-character`, `add-collision`, `place-vegetation`,
-  `state-migration`, `ios-pwa-check`, puis l'orchestrateur **`retour-enfant`**
-  (mode « session de retour » piloté par l'enfant, bascule par phrases).
+- **B — contenu** : `asset-search` (recherche + **vérif sécurité enfant obligatoire**
+  + propositions à choisir ; check-list dans `references/securite-enfant.md`),
+  `asset-add` (télécharger/découper Pillow + texture via `av()` + `CREDITS.md`).
+- **C — briques d'édition** : `add-decor-item` (`DECORS`), `add-horse-coat` (`COATS`),
+  `add-character` (`PERSOS`), `add-collision` (`COLLISIONS` + `haie`),
+  `place-vegetation` (règle déclarative du cross), `state-migration` (champ `etat`
+  rétro-compatible), `ios-pwa-check` (safe-area, panneau bas, manifest).
+- **D — orchestrateur** : **`retour-enfant`** — mode « session de retour » piloté
+  par l'enfant. Entrée : « Ma fille va faire des retours »/« …a des retours à faire » ;
+  sortie : « C'est bon, ma fille a fini de faire ses retours ». Persistant, **aucune
+  question technique** (seulement fonctionnelles en mots d'enfant), enchaîne les
+  autres skills, confirme simplement + annulation. Exemples : `references/exemples.md`.
