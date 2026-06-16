@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph50";
+const ASSET_VER = "ph51";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -43,7 +43,7 @@ const PRIX_CHEVAL = 45, PRIX_FOIN = 4, PRIX_BOX = 80, AGE_ADULTE = 5;
 
 const WORLD = { w: 2800, h: 2100 };
 const CORRAL = { x: 800, y: 480, w: 820, h: 760 };
-// Arène de saut (concours) — clôturée, dans l'intérieur (en dehors de la bande forestière).
+// Carrière de saut d'obstacles — clôturée, dans l'intérieur (en dehors de la bande forestière).
 const PARCOURS = { x: 1700, y: 540, w: 620, h: 640 };
 const HAIES = [
   { x: 1830, y: 770 }, { x: 2020, y: 770 }, { x: 2210, y: 770 },
@@ -79,7 +79,7 @@ const RONDINS = [
 ];
 const STATIONS = [
   { type: "dormir", x: 450, y: 540, sprite: "cabane_ardoise", label: "Maison" },
-  { type: "boutique", x: 450, y: 1010, sprite: "cabane_chaume", label: "Magasin" },
+  { type: "boutique", x: 450, y: 1010, sprite: "cabane_chaume", label: "Sellerie" },
 ];
 const SLOTS_DECOR = [
   { x: 640, y: 1300 }, { x: 900, y: 1300 }, { x: 1200, y: 1300 }, { x: 1500, y: 1300 },
@@ -385,7 +385,7 @@ function creerCoeur() {
   g.generateTexture("coeur", 22, 24); g.destroy();
 }
 
-// Clôture en ganivelle autour de l'enclos (avec un portail sur le côté écuries).
+// Clôture en ganivelle autour du paddock (avec un portail sur le côté écuries).
 function placerCloture() {
   const s = 32, x0 = CORRAL.x, y0 = CORRAL.y, x1 = CORRAL.x + CORRAL.w, y1 = CORRAL.y + CORRAL.h;
   const gateA = y0 + CORRAL.h * 0.34, gateB = y0 + CORRAL.h * 0.66;
@@ -436,12 +436,12 @@ function bordureCloture(r) {
   );
 }
 
-// Arène de saut (agrandie) + grand cross qui fait le tour de la map.
+// Carrière (obstacles) + grand parcours de cross qui fait le tour de la map.
 function placerParcours() {
-  // ----- Arène de saut (sol en terre + clôture + haies) -----
+  // ----- Carrière (sol en terre + clôture + haies) -----
   const p = PARCOURS;
   sc.add.tileSprite(p.x, p.y, p.w, p.h, "sol_terre").setOrigin(0, 0).setDepth(-19);
-  labelMonde(p.x + p.w / 2, p.y - 36, "Arène de saut", 99990);
+  labelMonde(p.x + p.w / 2, p.y - 36, "Carrière", 99990);
   bordureCloture(p);
   HAIES.forEach((h) => {
     sc.add.image(h.x, h.y, "haie").setOrigin(0.5, 0.92).setScale(1.0).setDepth(h.y);
@@ -452,7 +452,7 @@ function placerParcours() {
   // 1) le chemin de sable (déborde un peu sous la végétation : pas de bord droit ni d'angle visible)
   const SAND = 46;
   CHEMINS.forEach((s) => sc.add.tileSprite(s.x - SAND, s.y - SAND, s.w + 2 * SAND, s.h + 2 * SAND, "sol_terre").setOrigin(0, 0).setDepth(-19));
-  labelMonde(WORLD.w / 2, 300, "Grand cross en forêt", 99990);
+  labelMonde(WORLD.w / 2, 300, "Parcours de cross", 99990);
   // 2) Végétation de la bande, posée par une RÈGLE UNIQUE (donc identique et continue
   //    partout) : tout près du chemin = HAIE (buisson bas), plus loin = forêt (pins).
   //    Les ouvertures et les angles se gèrent tout seuls (zones « sur le chemin » = vides).
@@ -488,7 +488,7 @@ function placerParcours() {
 
 // Dégage une clairière autour des bâtiments (pas d'arbres qui les écrasent).
 function procheBatiment(x, y) { return STATIONS.some((s) => Math.abs(x - s.x) < 120 && Math.abs(y - s.y) < 160); }
-// Pas de végétation à l'intérieur de l'enclos ni de l'arène (la bande forestière
+// Pas de végétation à l'intérieur du paddock ni de la carrière (la bande forestière
 // peut en frôler le bord) — leurs clôtures bloquent déjà le joueur.
 function clairiere(x, y) {
   const dans = (r) => x > r.x - 24 && x < r.x + r.w + 24 && y > r.y - 24 && y < r.y + r.h + 24;
@@ -581,18 +581,18 @@ function construireMonde() {
   // Sol : pelouse tuilée (débordant au-delà du monde pour ne pas voir de vide aux bords)
   sc.add.tileSprite(-700, -700, WORLD.w + 1400, WORLD.h + 1400, "sol_herbe").setOrigin(0, 0).setDepth(-20);
 
-  // Chemin de terre : vertical devant les bâtiments + large chemin vers le portail de l'enclos
+  // Chemin de terre : vertical devant les bâtiments + large chemin vers le portail du paddock
   const gateY = CORRAL.y + CORRAL.h * 0.5;
   sc.add.tileSprite(370, 775, 200, 620, "sol_terre").setOrigin(0.5, 0.5).setDepth(-19);
-  // s'arrête PILE à la clôture (CORRAL.x) → la barrière est au bord du chemin, pas d'overlap dans l'enclos
+  // s'arrête PILE à la clôture (CORRAL.x) → la barrière est au bord du chemin, pas d'overlap dans le paddock
   sc.add.tileSprite(370, gateY, CORRAL.x - 370, 200, "sol_terre").setOrigin(0, 0.5).setDepth(-19);
 
-  // Enclos (herbe légèrement plus claire) + clôture + panneau
+  // Paddock (herbe légèrement plus claire) + clôture + panneau
   const pre = sc.add.graphics();
   pre.fillStyle(0x86c25a, 0.55); pre.fillRoundedRect(CORRAL.x, CORRAL.y, CORRAL.w, CORRAL.h, 18);
   pre.setDepth(-18);
   placerCloture();
-  labelMonde(CORRAL.x + CORRAL.w / 2, CORRAL.y - 14, "Enclos", 99990);
+  labelMonde(CORRAL.x + CORRAL.w / 2, CORRAL.y - 14, "Paddock", 99990);
 
   // Parcours d'obstacles (à droite)
   placerParcours();
@@ -892,7 +892,7 @@ function construirePanneau() {
     majBarres(c);
   } else {
     const s = cibleActive;
-    const lib = { dormir: "🌙 Dormir (jour suivant)", boutique: "🛒 Entrer dans le magasin" }[s.type];
+    const lib = { dormir: "🌙 Dormir (jour suivant)", boutique: "🛒 Entrer dans la sellerie" }[s.type];
     p.innerHTML = `<div class="pc-station"><button class="bouton bouton-geant" data-station="${s.type}">${lib}</button></div>`;
   }
 }
@@ -919,7 +919,7 @@ function actionCheval(action) {
   const c = cibleActive; if (!c || !c.robe) return;
   switch (action) {
     case "nourrir":
-      if (etat.foin <= 0) { message("🌾 Plus de foin ! Va au magasin."); return; }
+      if (etat.foin <= 0) { message("🌾 Plus de foin ! Va à la sellerie."); return; }
       etat.foin--; c.faim = borner(c.faim + 35); c.bonheur = borner(c.bonheur + 6); etat.pieces += 2;
       etat.actionsDepuisDodo++; bond(c); message(`${c.nom} a mangé du bon foin ! 🌾`); break;
     case "brosser":
@@ -1020,7 +1020,7 @@ function listeFr(arr) {
   return arr.slice(0, -1).join(", ") + " et " + arr[arr.length - 1];
 }
 
-/* ===================== Modale / magasin / relooking ===================== */
+/* ===================== Modale / sellerie / relooking ===================== */
 
 function ouvrirModale(t, html) { $("modale-titre").innerHTML = t; $("modale-corps").innerHTML = html; $("modale").classList.remove("cache"); }
 function fermerModale() { $("modale").classList.add("cache"); }
@@ -1041,7 +1041,7 @@ function ouvrirBoutique() {
   if (!placeLibre) html += `<p>⚠️ Ton corral est plein ! Agrandis-le d'abord.</p>`;
   else html += `<p>Adopte un cheval puis personnalise-le avec <b>🎨 Relooker</b> dans le corral.</p>
     <button class="bouton bouton-geant" data-boutique="cheval">🛒 Adopter un cheval (${PRIX_CHEVAL} 💰)</button>`;
-  ouvrirModale("🛒 Magasin", html);
+  ouvrirModale("🛒 Sellerie", html);
 }
 
 function acheter(quoi) {
@@ -1083,7 +1083,7 @@ function placementInterdit(d, x, y) {
     if (x > s.x - 80 && x < s.x + 80 && y > s.y - 150 && y < s.y + 24) return "🏠 Pas sur un bâtiment !";
   }
   const dansCorral = x > CORRAL.x && x < CORRAL.x + CORRAL.w && y > CORRAL.y && y < CORRAL.y + CORRAL.h;
-  if (dansCorral && d.id !== "abreuvoir") return "🐴 Les arbres et buissons gênent les chevaux dans l'enclos !";
+  if (dansCorral && d.id !== "abreuvoir") return "🐴 Les arbres et buissons gênent les chevaux dans le paddock !";
   return null;
 }
 
@@ -1145,10 +1145,10 @@ function ouvrirAide() {
       (robe, nom). Garde ses besoins au vert !</p>
       <p><b>🏇 Monter :</b> en selle, promène-toi à cheval. Re-clique « Descendre » pour t'arrêter.</p>
       <p><b>🦘 Sauter / parcours :</b> à cheval, approche un obstacle puis touche <b>« Sauter »</b> pour le
-      franchir (sinon le cheval est bloqué devant). Il y a l'<b>🏇 arène de saut</b> (à droite de l'enclos) et
-      un grand <b>🌲 cross en forêt</b> qui fait le tour de la map (rondins). Sauter fatigue le cheval.</p>
+      franchir (sinon le cheval est bloqué devant). Il y a la <b>🏇 carrière</b> (à droite du paddock) et
+      un grand <b>🌲 parcours de cross</b> qui fait le tour de la map (rondins). Sauter fatigue le cheval.</p>
       <p><b>🏃 Courir :</b> tape <b>deux fois rapidement</b> vers un endroit et le personnage (ou le cheval) court !</p>
-      <p><b>🏪 Magasin :</b> foin, décos, adopter des chevaux. Après l'achat d'une déco, promène-toi où tu veux puis touche <b>« ✅ Poser ici »</b>.</p>
+      <p><b>🏪 Sellerie :</b> foin, décos, adopter des chevaux. Après l'achat d'une déco, promène-toi où tu veux puis touche <b>« ✅ Poser ici »</b>.</p>
       <p><b>🏡 Maison :</b> dormir passe au jour suivant (occupe-toi d'abord d'un cheval). <b>🧍 (en haut) :</b> change ton personnage.</p>
       <p>💰 Tu gagnes des sous en t'occupant de tes chevaux. 💾 Sauvegarde automatique.</p>
     </div>`);

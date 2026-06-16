@@ -6,7 +6,7 @@
 Jeu de **simulation d'élevage de chevaux pour enfants (9-10 ans)**, en français.
 Vue de dessus : on déplace un personnage dans un **centre équestre / ferme**, on
 s'occupe des chevaux (nourrir, brosser, jouer, **monter**), on les personnalise, on
-agrandit l'enclos.
+agrandit le paddock.
 
 - **Site 100 % statique** déployé sur **GitHub Pages** : https://jlrigau.github.io/my-little-stable/
 - Moteur : **Phaser 3** (CDN jsDelivr), rendu **pixel-art** avec de vrais sprites.
@@ -48,10 +48,13 @@ avec `--ignore-certificate-errors` (le proxy TLS casse la validation des certifs
 
 ## 6. État actuel du visuel (refonte « centre équestre », validée par l'utilisateur)
 Style **pixel-art LPC**, **plus aucun emoji dans le monde** :
-- **Sol** : pelouse tuilée + chemins de terre. **Enclos** : clôture en ganivelle
+- **Libellés carte (vocabulaire équestre)** : **Paddock** (l'enclos `CORRAL`), **Carrière**
+  (l'aire d'obstacles `PARCOURS`), **Parcours de cross** (la boucle), **Sellerie** (la boutique),
+  **Maison** (le dodo). À garder cohérents partout (carte + pop-ups + actions + aide).
+- **Sol** : pelouse tuilée + chemins de terre. **Paddock** : clôture en ganivelle
   AVEC collision (le joueur ne traverse pas, sauf portail gauche) → `MURS` + `bloquerCloture()`.
 - **Bâtiments** : cabanes en rondins LPC pré-assemblées — `cabane_ardoise` (Maison/dormir),
-  `cabane_chaume` (Magasin). (Les granges modulaires LPC s'assemblaient mal → abandonnées.)
+  `cabane_chaume` (Sellerie). (Les granges modulaires LPC s'assemblaient mal → abandonnées.)
 - **Joueur** : ENFANTS LPC pré-composés (corps + habits + cheveux) → `assets/lpc/kid_fille.png`
   et `kid_garcon.png`. Walkcycle 576x256 (9 col × 4 lignes : haut/gauche/bas/droite, col 0 = idle).
   Origine ~0.92 (pieds au sol, pas de flottement), échelle ~1.7.
@@ -68,11 +71,11 @@ Style **pixel-art LPC**, **plus aucun emoji dans le monde** :
 - **À cheval** : enfant assis sur le dos (`joueurSprite.y=-58`, ombre masquée), sans anim de marche.
   Le cheval **se fatigue** à la monte (descente auto si épuisé). Profil gauche/droite seulement.
 - **Parcours** (monde 2800x1900... en fait `WORLD` 2800x2100) : deux parcours.
-  (1) **Arène de saut** clôturée à droite de l'enclos (`PARCOURS`, `HAIES`, sprite `haie.png`).
-  (2) **Grand cross en forêt** = large boucle de sable (`PW=240`) qui fait le tour de la map
+  (1) **Carrière** (saut d'obstacles) clôturée à droite du paddock (`PARCOURS`, `HAIES`, sprite `haie.png`).
+  (2) **Parcours de cross** = large boucle de sable (`PW=240`) qui fait le tour de la map
   (`LOOP_SEG` + `OUVERTURES` réunis dans `CHEMINS`), bordée d'une **forêt** périphérique (`BAND`).
   **Végétation posée par une règle UNIQUE** (donc continue/identique partout, angles et ouvertures
-  gérés tout seuls) : grille dans `dansBande`, on saute `procheBatiment`/`clairiere` (enclos+arène) ;
+  gérés tout seuls) : grille dans `dansBande`, on saute `procheBatiment`/`clairiere` (paddock+carrière) ;
   si `surChemin(,6)` on dégage le chemin ; si `surChemin(,80)` = **haie** (buisson bas + collision),
   sinon = **forêt** (pins, sans collision). Le sable déborde de `SAND=46` sous la végétation
   (pas de bord droit ni d'angle visible). Rondins (`RONDINS`, `rondins.png`) au CENTRE VISIBLE des
@@ -82,7 +85,7 @@ Style **pixel-art LPC**, **plus aucun emoji dans le monde** :
   ignorée pendant le saut) ; sinon bloqué.
 - **Dormir** : transition nuit (voile `nuitVoile` qui s'assombrit puis s'éclaircit) ; interdit d'enchaîner
   les nuits (`actionsDepuisDodo` : il faut s'occuper d'un cheval entre deux dodos).
-- **Déco** : achat au magasin → **fantôme** semi-transparent qui suit le joueur (`ghostDecor`),
+- **Déco** : achat à la sellerie → **fantôme** semi-transparent qui suit le joueur (`ghostDecor`),
   on se déplace où on veut puis bouton **« ✅ Poser ici »** (`poserDecor`) ; positions dans
   `etat.decors=[{id,x,y}]`. Caméra suit le joueur → c'est pour ça qu'on place « à ses pieds ».
 - **Noms de chevaux uniques** (`nomLibre`/`nomUtilise`). **Prénom du joueur** : `etat.perso.nom`
@@ -106,7 +109,7 @@ dessiné main, emojis) → ne pas y revenir.
 
 ## 9. Pistes / TODO possibles
 - Remplacer aussi les petites icônes emoji du HUD/boutons par des icônes dessinées (demandé en option).
-- Animation de galop quand on monte ; plus de chevaux dans l'enclos ; sons ; objectifs/médailles.
+- Animation de galop quand on monte ; plus de chevaux dans le paddock ; sons ; objectifs/médailles.
 - Si réseau élargi à Kenney : assets supplémentaires.
 
 ## 10. Conventions
