@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph49";
+const ASSET_VER = "ph50";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -543,8 +543,33 @@ function sceneCreate() {
   creerCoeur();
   construireMonde();
   cursors = this.input.keyboard.createCursorKeys();
-  wasd = this.input.keyboard.addKeys({ haut: "Z", bas: "S", gauche: "Q", droite: "D", up: "W", left: "A" });
+  wasd = this.input.keyboard.addKeys({ haut: "Z", bas: "S", gauche: "Q", droite: "D", up: "W", left: "A" }, false);
+  // Ne JAMAIS confisquer les touches au navigateur (sinon impossible de taper
+  // certaines lettres — A, Z, Q, S, D, W — dans les champs « nom »).
+  this.input.keyboard.clearCaptures();
+  // Quand un champ texte a le focus, on coupe le clavier du jeu (pas de lettre
+  // bloquée ni de déplacement parasite), réactivé en sortie de champ.
+  brancherFocusClavier();
   this.input.on("pointerdown", (p) => onPointer(p));
+}
+
+// Coupe le clavier Phaser tant qu'un <input>/<textarea> est en cours de saisie.
+let focusClavierBranche = false;
+function brancherFocusClavier() {
+  if (focusClavierBranche) return;
+  focusClavierBranche = true;
+  const estChamp = (el) => el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
+  document.addEventListener("focusin", (e) => {
+    if (estChamp(e.target) && sc && sc.input && sc.input.keyboard) {
+      sc.input.keyboard.enabled = false;
+      sc.input.keyboard.resetKeys();
+    }
+  });
+  document.addEventListener("focusout", (e) => {
+    if (estChamp(e.target) && sc && sc.input && sc.input.keyboard) {
+      sc.input.keyboard.enabled = true;
+    }
+  });
 }
 
 function construireMonde() {
