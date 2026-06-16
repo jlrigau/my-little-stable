@@ -8,8 +8,15 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph56";
+const ASSET_VER = "ph57";
 function av(p) { return p + "?v=" + ASSET_VER; }
+
+// iOS ignore user-scalable=no : on bloque ici le zoom par pincement et double-tap
+// (sinon taper un bouton zoome l'écran et gêne le jeu). Le double-tap pour COURIR,
+// lui, repose sur deux pointerdown et reste fonctionnel.
+["gesturestart", "gesturechange", "gestureend"].forEach((ev) =>
+  document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
+document.addEventListener("dblclick", (e) => e.preventDefault(), { passive: false });
 
 /* ===================== Données ===================== */
 

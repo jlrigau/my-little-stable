@@ -12,7 +12,10 @@
 }
 
 * { box-sizing: border-box; font-family: "Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif; }
-html, body { height: 100%; }
+/* touch-action: manipulation => supprime le double-tap-zoom d'iOS (sinon taper un
+   bouton zoome l'écran). Le canvas du jeu garde touch-action: none de son côté. */
+html, body { height: 100%; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+button, .bouton, input, select, textarea { touch-action: manipulation; }
 /* Fond de base = dégradé chaud et DOUX (pas de bandeau foncé en bas). */
 html { background: #ffce8f; }
 body {
