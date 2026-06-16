@@ -114,3 +114,20 @@ dessiné main, emojis) → ne pas y revenir.
 
 ## 10. Conventions
 - Tout pousser sur `main`. Messages de commit clairs, en français. Sauvegarde auto en place.
+
+## 11. Skills (Claude Code) — `.claude/skills/`
+Compétences réutilisables au **format Claude Code** (`<nom>/SKILL.md` avec
+frontmatter `name` + `description` ; instructions qui s'appuient sur les outils
+Claude Code : Bash, Read pour voir les captures, GitHub MCP pour vérifier le
+déploiement, AskUserQuestion, ToolSearch…). Voir l'issue GitHub #5 pour la
+feuille de route complète (12 skills + orchestrateur `retour-enfant`).
+- **`_shared/`** : outillage commun — `serve.sh` (serveur statique),
+  `bump-version.mjs` (incrémente `phN` aux DEUX endroits), `playtest.cjs` (harnais
+  Playwright : captures de zones, marchabilité du cross, assertions, erreurs de page).
+- **Étape A (filet de sécurité, FAIT)** : `release-deploy` (cache-bust + push `main`
+  + vérif `deploy.yml`), `test-debug` (valider/déboguer avec preuves), `map-verify`
+  (placement carte : captures multi-zones + marchabilité avant push).
+- **À venir** : `asset-search` (+ vérif sécurité enfant), `asset-add`, `add-decor-item`,
+  `add-horse-coat`/`add-character`, `add-collision`, `place-vegetation`,
+  `state-migration`, `ios-pwa-check`, puis l'orchestrateur **`retour-enfant`**
+  (mode « session de retour » piloté par l'enfant, bascule par phrases).
