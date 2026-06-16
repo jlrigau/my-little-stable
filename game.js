@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph52";
+const ASSET_VER = "ph53";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -197,7 +197,7 @@ function nouvellePartie(nom, perso) {
   etat = {
     nomRanch: nom, perso, pieces: 40, foin: 6, jour: 1, boxes: 4,
     chevaux: [nouveauCheval({ nom: "Éclair", robe: COATS[0].id })],
-    decors: [], vitesse: 1, actionsDepuisDodo: 0,
+    decors: [], vitesse: 1, actionsDepuisDodo: 0, dernierNaissance: 0,
   };
   sauvegarder(); demarrerJeu();
 }
@@ -216,6 +216,7 @@ function continuerPartie() {
   }).filter((d) => DECORS.some((x) => x.id === d.id));
   if (typeof etat.vitesse !== "number") etat.vitesse = 1;
   if (typeof etat.actionsDepuisDodo !== "number") etat.actionsDepuisDodo = 0;
+  if (typeof etat.dernierNaissance !== "number") etat.dernierNaissance = 0;
   etat.chevaux.forEach((c) => { c.obj = null; c.prochainPas = 0; c.robe = robeCoat(c); });
   compteurId = s.compteurId || (etat.chevaux.length + 1);
   demarrerJeu();
@@ -632,18 +633,24 @@ function construireMonde() {
   ajusterZoom();
 }
 
-function echelleCheval(c) { return estPoulain(c) ? 1.3 : 2.0; }
+// Échelle : un poulain naît petit (~1.15) et grandit progressivement jusqu'à
+// l'âge adulte (2.0 à AGE_ADULTE). majVisuelCheval réapplique l'échelle chaque jour.
+function echelleCheval(c) {
+  if (!estPoulain(c)) return 2.0;
+  const t = clamp(c.age / AGE_ADULTE, 0, 1);
+  return 1.15 + (2.0 - 1.15) * t;
+}
 function coeurY(c) { return -(61 * echelleCheval(c) + 14); }
 
 function creerObjCheval(c) {
   const coat = robeCoat(c), ech = echelleCheval(c);
-  const ombre = sc.add.ellipse(0, 0, 58 * ech, 16 * ech, 0x000000, 0.25);
+  const ombre = sc.add.ellipse(0, 0, 58, 16, 0x000000, 0.25).setScale(ech);
   const corps = sc.add.sprite(0, 0, "horse-" + coat).setOrigin(0.46, 0.734).setScale(ech);
   corps.play("horse-" + coat + "-walk");
   const coeur = sc.add.image(0, coeurY(c), "coeur").setOrigin(0.5).setScale(0.95).setTint(0x6fcf5f);
   const nom = sc.add.text(0, 22, c.nom, { fontSize: "16px", fontFamily: "sans-serif", color: "#fff8ec", fontStyle: "bold", stroke: "#3a2716", strokeThickness: 4 }).setOrigin(0.5);
   const cont = sc.add.container(c.x, c.y, [ombre, corps, coeur, nom]);
-  c.obj = cont; c.corpsT = corps; c.coeur = coeur; c.nomT = nom;
+  c.obj = cont; c.corpsT = corps; c.coeur = coeur; c.nomT = nom; c.ombreT = ombre;
 }
 
 function majVisuelCheval(c) {
@@ -652,6 +659,7 @@ function majVisuelCheval(c) {
   c.corpsT.setTexture("horse-" + coat);
   c.corpsT.play("horse-" + coat + "-walk");
   c.corpsT.setScale(ech);
+  if (c.ombreT) c.ombreT.setScale(ech);
   c.coeur.y = coeurY(c);
   c.nomT.setText(c.nom);
 }
@@ -1061,9 +1069,32 @@ function appliquerJour() {
   monte = null;
   if (joueurSprite) joueurSprite.y = 0;
   if (joueurOmbre) joueurOmbre.setVisible(true);
+  const bebe = tenterNaissance();
   majHud(); sauvegarder();
-  if (negliges.length) message(`🌅 Jour ${etat.jour}. Occupe-toi de ${listeFr(negliges)} !`);
+  if (bebe) message(`🐣 Bonne nouvelle ! Un poulain est né : ${bebe.nom} ! 💕`);
+  else if (negliges.length) message(`🌅 Jour ${etat.jour}. Occupe-toi de ${listeFr(negliges)} !`);
   else message(`🌅 Jour ${etat.jour} : tout le monde a bien dormi. 🐴 (+5 💰)`);
+}
+
+// Reproduction : deux chevaux adultes HEUREUX peuvent donner un poulain pendant la
+// nuit. Garde-fous : place libre dans le corral, un seul poulain à la fois, et un
+// délai (cooldown) entre deux naissances pour éviter l'explosion de population.
+function tenterNaissance() {
+  const adultesHeureux = etat.chevaux.filter((c) => !estPoulain(c) && c.bonheur >= 80);
+  const dejaPoulain = etat.chevaux.some(estPoulain);
+  const placeLibre = etat.chevaux.length < etat.boxes;
+  const cooldownOk = (etat.jour - (etat.dernierNaissance || 0)) >= 3;
+  if (adultesHeureux.length < 2 || dejaPoulain || !placeLibre || !cooldownOk) return null;
+  const parent = choisir(adultesHeureux);
+  // robe héritée d'un des parents heureux
+  const bebe = nouveauCheval({ age: 0, robe: choisir(adultesHeureux).robe });
+  bebe.x = clamp(parent.x + aleatoire(-50, 50), CORRAL.x + 60, CORRAL.x + CORRAL.w - 60);
+  bebe.y = clamp(parent.y + aleatoire(-50, 50), CORRAL.y + 60, CORRAL.y + CORRAL.h - 60);
+  bebe.tx = bebe.x; bebe.ty = bebe.y;
+  etat.chevaux.push(bebe);
+  etat.dernierNaissance = etat.jour;
+  if (sc) { creerObjCheval(bebe); animAction(bebe, "jouer"); }   // petite fête de naissance
+  return bebe;
 }
 
 // Liste « à la française » : "A", "A et B", "A, B et C", "A, B, C et D"…
