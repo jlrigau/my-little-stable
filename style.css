@@ -205,3 +205,17 @@ input[type="text"] {
 }
 .btn-avatar.btn-vignette img { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
 .carte-decor .d-img { width: 56px; height: 56px; object-fit: contain; image-rendering: pixelated; }
+
+/* ===== Objectifs / niveau ===== */
+.niveau-bloc { background: #fff7e8; border: 3px solid var(--vert-fonce); border-radius: 14px; padding: 10px 12px; margin-bottom: 10px; }
+.niveau-haut { display: flex; justify-content: space-between; align-items: center; color: var(--vert-fonce); font-size: 1.05rem; }
+.xp-barre { height: 14px; background: #e7d8c2; border-radius: 8px; overflow: hidden; margin: 6px 0 4px; }
+.xp-remplissage { height: 100%; background: linear-gradient(90deg, #f4b942, #e8722d); border-radius: 8px; transition: width .3s ease; }
+.niveau-sous { margin: 2px 0 0; font-size: .85rem; opacity: .8; text-align: center; }
+.obj-liste { display: flex; flex-direction: column; gap: 6px; }
+.obj-ligne { display: flex; align-items: center; gap: 8px; background: #fff; border: 2px solid #e2d6c2; border-radius: 12px; padding: 8px 10px; }
+.obj-ligne.obj-ok { background: #eef8e6; border-color: var(--vert); }
+.obj-coche { font-size: 1.1rem; }
+.obj-txt { flex: 1; display: flex; flex-direction: column; line-height: 1.15; }
+.obj-txt small { opacity: .7; }
+.obj-xp { font-weight: bold; color: var(--vert-fonce); white-space: nowrap; }

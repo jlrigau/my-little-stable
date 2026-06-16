@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph53";
+const ASSET_VER = "ph54";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -38,6 +38,23 @@ const DECORS = [
 const NOMS = ["Éclair", "Tornade", "Caramel", "Étoile", "Tonnerre", "Cannelle", "Bandit", "Mistral", "Pépite", "Comète", "Bravo", "Sable"];
 
 const PRIX_CHEVAL = 45, PRIX_FOIN = 4, PRIX_BOX = 80, AGE_ADULTE = 5;
+
+// Objectifs (gamification) : accomplis -> XP -> niveaux. verif(etat) = condition.
+const XP_NIVEAU = 60;   // XP nécessaire par niveau
+const OBJECTIFS = [
+  { id: "repas",    nom: "Premier repas",       desc: "Nourris un cheval",            xp: 10, verif: (s) => s.stats.nourrir >= 1 },
+  { id: "brosse",   nom: "Tout beau",           desc: "Brosse un cheval",             xp: 10, verif: (s) => s.stats.brosser >= 1 },
+  { id: "jeu",      nom: "On s'amuse",          desc: "Joue avec un cheval",          xp: 10, verif: (s) => s.stats.jouer >= 1 },
+  { id: "cavalier", nom: "En selle !",          desc: "Monte un cheval",              xp: 15, verif: (s) => s.stats.monter >= 1 },
+  { id: "sauteur",  nom: "Saute l'obstacle",    desc: "Saute un obstacle à cheval",   xp: 20, verif: (s) => s.stats.sauter >= 1 },
+  { id: "deco",     nom: "Décorateur",          desc: "Pose une décoration",          xp: 10, verif: (s) => s.stats.decors >= 1 },
+  { id: "eleveur",  nom: "Deux chevaux",        desc: "Aie 2 chevaux",                xp: 15, verif: (s) => s.chevaux.length >= 2 },
+  { id: "famille",  nom: "Un poulain est né",   desc: "Fais naître un poulain",       xp: 30, verif: (s) => s.stats.naissances >= 1 },
+  { id: "heureux",  nom: "Cheval très heureux", desc: "Un cheval au bonheur maximum", xp: 20, verif: (s) => s.chevaux.some((c) => c.bonheur >= 100) },
+  { id: "riche",    nom: "Petite fortune",      desc: "Atteins 120 pièces",           xp: 15, verif: (s) => s.pieces >= 120 },
+];
+function niveauPour(xp) { return 1 + Math.floor((xp || 0) / XP_NIVEAU); }
+function statsVierges() { return { nourrir: 0, brosser: 0, jouer: 0, monter: 0, sauter: 0, naissances: 0, decors: 0 }; }
 
 /* ===================== Monde ===================== */
 
@@ -165,6 +182,7 @@ function init() {
     if (joueurNom) joueurNom.setText(etat.perso.nom || "");
   }));
   $("btn-aide").addEventListener("click", ouvrirAide);
+  $("btn-objectifs").addEventListener("click", ouvrirObjectifs);
 
   $("btn-fermer-modale").addEventListener("click", fermerModale);
   $("modale").addEventListener("click", (e) => { if (e.target.id === "modale") fermerModale(); });
@@ -198,6 +216,7 @@ function nouvellePartie(nom, perso) {
     nomRanch: nom, perso, pieces: 40, foin: 6, jour: 1, boxes: 4,
     chevaux: [nouveauCheval({ nom: "Éclair", robe: COATS[0].id })],
     decors: [], vitesse: 1, actionsDepuisDodo: 0, dernierNaissance: 0,
+    stats: statsVierges(), objectifsFaits: {}, xp: 0, niveau: 1,
   };
   sauvegarder(); demarrerJeu();
 }
@@ -217,6 +236,10 @@ function continuerPartie() {
   if (typeof etat.vitesse !== "number") etat.vitesse = 1;
   if (typeof etat.actionsDepuisDodo !== "number") etat.actionsDepuisDodo = 0;
   if (typeof etat.dernierNaissance !== "number") etat.dernierNaissance = 0;
+  etat.stats = Object.assign(statsVierges(), etat.stats || {});
+  if (!etat.objectifsFaits) etat.objectifsFaits = {};
+  if (typeof etat.xp !== "number") etat.xp = 0;
+  if (typeof etat.niveau !== "number") etat.niveau = niveauPour(etat.xp);
   etat.chevaux.forEach((c) => { c.obj = null; c.prochainPas = 0; c.robe = robeCoat(c); });
   compteurId = s.compteurId || (etat.chevaux.length + 1);
   demarrerJeu();
@@ -239,7 +262,32 @@ function majHud() {
   $("aff-foin").textContent = etat.foin;
   $("aff-jour").textContent = etat.jour;
   $("aff-boxes").textContent = etat.chevaux.length + "/" + etat.boxes;
+  verifierObjectifs();                                  // peut accomplir des objectifs / monter de niveau
+  const an = $("aff-niveau"); if (an) an.textContent = etat.niveau || 1;
   sauvegarder();
+}
+
+// Vérifie les objectifs non encore accomplis ; ajoute l'XP, gère le niveau, notifie.
+// Appelé depuis majHud (donc après chaque changement d'état). Ne rappelle PAS majHud
+// (évite la récursion) et ne sauvegarde pas (majHud s'en charge).
+function verifierObjectifs() {
+  if (!etat || !etat.stats || !etat.objectifsFaits) return;
+  const faits = [];
+  let gain = 0;
+  OBJECTIFS.forEach((o) => {
+    if (!etat.objectifsFaits[o.id] && o.verif(etat)) {
+      etat.objectifsFaits[o.id] = true; gain += o.xp; faits.push(o);
+    }
+  });
+  if (!faits.length) return;
+  const avant = etat.niveau || 1;
+  etat.xp = (etat.xp || 0) + gain;
+  etat.niveau = niveauPour(etat.xp);
+  let msg = faits.length === 1
+    ? `🎯 Objectif accompli : ${faits[0].nom} ! +${gain} XP`
+    : `🎯 ${faits.length} objectifs accomplis ! +${gain} XP`;
+  if (etat.niveau > avant) msg += ` ⭐ Niveau ${etat.niveau} !`;
+  message(msg);
 }
 let timerMessage = null;
 function message(t) {
@@ -929,19 +977,19 @@ function actionCheval(action) {
     case "nourrir":
       if (etat.foin <= 0) { message("🌾 Plus de foin ! Va à la sellerie."); return; }
       etat.foin--; c.faim = borner(c.faim + 35); c.bonheur = borner(c.bonheur + 6); etat.pieces += 2;
-      etat.actionsDepuisDodo++; animAction(c, "nourrir"); message(`${c.nom} a mangé du bon foin ! 🌾`); break;
+      etat.actionsDepuisDodo++; etat.stats.nourrir++; animAction(c, "nourrir"); message(`${c.nom} a mangé du bon foin ! 🌾`); break;
     case "brosser":
       c.proprete = borner(c.proprete + 40); c.bonheur = borner(c.bonheur + 12); etat.pieces += 2;
-      etat.actionsDepuisDodo++; bond(c); message(`${c.nom} est tout beau et brillant ! ✨`); break;
+      etat.actionsDepuisDodo++; etat.stats.brosser++; bond(c); message(`${c.nom} est tout beau et brillant ! ✨`); break;
     case "jouer":
       if (c.energie < 15) { message(`${c.nom} est trop fatigué pour jouer. 😴`); return; }
       c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 16); c.faim = borner(c.faim - 8); etat.pieces += 3;
-      etat.actionsDepuisDodo++; animAction(c, "jouer"); message(`${c.nom} s'est bien amusé ! 🎾`); break;
+      etat.actionsDepuisDodo++; etat.stats.jouer++; animAction(c, "jouer"); message(`${c.nom} s'est bien amusé ! 🎾`); break;
     case "monter":
       if (monte === c) { descendreCheval(c, false); return; }
       if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour être monté. 🐣`); return; }
       if (c.energie < 20) { message(`${c.nom} est trop fatigué pour te porter. 😴`); return; }
-      monte = c; c.bonheur = borner(c.bonheur + 12); c.energie = borner(c.energie - 6); etat.actionsDepuisDodo++; fatigueAcc = 0;
+      monte = c; c.bonheur = borner(c.bonheur + 12); c.energie = borner(c.energie - 6); etat.actionsDepuisDodo++; etat.stats.monter++; fatigueAcc = 0;
       message(`En selle sur ${c.nom} ! 🏇`);
       idPanneau = null; majInteraction(); majHud(); return;
     case "sauter": sauter(); return;
@@ -955,7 +1003,7 @@ function sauter() {
   if (!monte || sautEnCours || !sc) return;
   const c = monte;
   if (c.energie < 10) { message(`${c.nom} est trop fatigué pour sauter ! 😴`); return; }
-  c.energie = borner(c.energie - 8); fatigueAcc = 0; etat.actionsDepuisDodo++;
+  c.energie = borner(c.energie - 8); fatigueAcc = 0; etat.actionsDepuisDodo++; etat.stats.sauter++;
   sautEnCours = true; moveTarget = null; suiviCheval = null;
   const dir = (joueurFacing === "left") ? -1 : 1;
   const cibleX = clamp(joueur.x + dir * 165, 40, WORLD.w - 40);
@@ -1093,6 +1141,7 @@ function tenterNaissance() {
   bebe.tx = bebe.x; bebe.ty = bebe.y;
   etat.chevaux.push(bebe);
   etat.dernierNaissance = etat.jour;
+  etat.stats.naissances++;
   if (sc) { creerObjCheval(bebe); animAction(bebe, "jouer"); }   // petite fête de naissance
   return bebe;
 }
@@ -1177,6 +1226,7 @@ function poserDecor() {
   const err = placementInterdit(placementDecor, x, y);
   if (err) { message(err); return; }
   etat.decors.push({ id: placementDecor.id, x, y });
+  etat.stats.decors++;
   etat.chevaux.forEach((c) => (c.bonheur = borner(c.bonheur + 5)));
   const nom = placementDecor.nom; placementDecor = null;
   if (ghostDecor) { ghostDecor.destroy(); ghostDecor = null; }
@@ -1216,6 +1266,27 @@ function ouvrirRelooker(c) {
     majVisuelCheval(c); sauvegarder(); fermerModale(); idPanneau = null; message(`${c.nom} est relooké ! 🎨`);
   });
   apercu();
+}
+
+function ouvrirObjectifs() {
+  const niv = etat.niveau || 1, xp = etat.xp || 0;
+  const dansNiv = xp - (niv - 1) * XP_NIVEAU;
+  const pct = Math.max(0, Math.min(100, Math.round((dansNiv / XP_NIVEAU) * 100)));
+  const faits = OBJECTIFS.filter((o) => etat.objectifsFaits[o.id]).length;
+  const lignes = OBJECTIFS.map((o) => {
+    const ok = !!etat.objectifsFaits[o.id];
+    return `<div class="obj-ligne ${ok ? "obj-ok" : ""}">
+      <span class="obj-coche">${ok ? "✅" : "⬜"}</span>
+      <span class="obj-txt"><b>${o.nom}</b><small>${o.desc}</small></span>
+      <span class="obj-xp">+${o.xp}&nbsp;XP</span></div>`;
+  }).join("");
+  ouvrirModale("🎯 Objectifs", `
+    <div class="niveau-bloc">
+      <div class="niveau-haut"><b>⭐ Niveau ${niv}</b><span>${dansNiv}/${XP_NIVEAU} XP</span></div>
+      <div class="xp-barre"><div class="xp-remplissage" style="width:${pct}%"></div></div>
+      <p class="niveau-sous">${faits}/${OBJECTIFS.length} objectifs accomplis</p>
+    </div>
+    <div class="obj-liste">${lignes}</div>`);
 }
 
 function ouvrirAide() {
