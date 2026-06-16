@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph51";
+const ASSET_VER = "ph52";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 /* ===================== Données ===================== */
@@ -921,14 +921,14 @@ function actionCheval(action) {
     case "nourrir":
       if (etat.foin <= 0) { message("🌾 Plus de foin ! Va à la sellerie."); return; }
       etat.foin--; c.faim = borner(c.faim + 35); c.bonheur = borner(c.bonheur + 6); etat.pieces += 2;
-      etat.actionsDepuisDodo++; bond(c); message(`${c.nom} a mangé du bon foin ! 🌾`); break;
+      etat.actionsDepuisDodo++; animAction(c, "nourrir"); message(`${c.nom} a mangé du bon foin ! 🌾`); break;
     case "brosser":
       c.proprete = borner(c.proprete + 40); c.bonheur = borner(c.bonheur + 12); etat.pieces += 2;
       etat.actionsDepuisDodo++; bond(c); message(`${c.nom} est tout beau et brillant ! ✨`); break;
     case "jouer":
       if (c.energie < 15) { message(`${c.nom} est trop fatigué pour jouer. 😴`); return; }
       c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 16); c.faim = borner(c.faim - 8); etat.pieces += 3;
-      etat.actionsDepuisDodo++; bond(c); message(`${c.nom} s'est bien amusé ! 🎾`); break;
+      etat.actionsDepuisDodo++; animAction(c, "jouer"); message(`${c.nom} s'est bien amusé ! 🎾`); break;
     case "monter":
       if (monte === c) { descendreCheval(c, false); return; }
       if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour être monté. 🐣`); return; }
@@ -970,8 +970,60 @@ function descendreCheval(c, epuise) {
   message(epuise ? `${c.nom} est épuisé, laisse-le se reposer ! 😴` : `Tu descends de ${c.nom}. 🙂`);
 }
 
+// Petit sursaut : on anime le CORPS (local au conteneur), pas le conteneur lui-même,
+// car l'update réécrit c.obj.y à chaque frame quand le joueur est proche.
 function bond(c) {
-  if (c.obj && sc) sc.tweens.add({ targets: c.obj, y: c.y - 14, duration: 130, yoyo: true, ease: "Quad.easeOut" });
+  if (c.corpsT && sc) sc.tweens.add({
+    targets: c.corpsT, y: -12, duration: 130, yoyo: true, ease: "Quad.easeOut",
+    onComplete: () => { if (c.corpsT) c.corpsT.y = 0; },
+  });
+}
+
+// Petite texture ronde « miette » (particule de nourriture), créée une seule fois.
+function assurerMiette() {
+  if (!sc || sc.textures.exists("miette")) return;
+  const g = sc.add.graphics();
+  g.fillStyle(0xe8b34a, 1); g.fillCircle(5, 5, 5);
+  g.fillStyle(0xc98a2e, 1); g.fillCircle(5, 5, 2.4);
+  g.generateTexture("miette", 10, 10); g.destroy();
+}
+
+// Animation d'action distincte selon le type (nourrir / jouer). Particules en
+// coordonnées MONDE (hors conteneur), corps animé en LOCAL (non écrasé par l'update).
+function animAction(c, type) {
+  if (!c.obj || !c.corpsT || !sc) return;
+  const x = c.x, y = c.y;
+  if (type === "nourrir") {
+    // hochement « il mange » : le corps plonge deux fois vers le sol
+    sc.tweens.add({
+      targets: c.corpsT, y: 7, duration: 120, yoyo: true, repeat: 1, ease: "Sine.easeInOut",
+      onComplete: () => { if (c.corpsT) c.corpsT.y = 0; },
+    });
+    assurerMiette();
+    for (let i = 0; i < 5; i++) {
+      const p = sc.add.image(x + aleatoire(-20, 20), y - 36, "miette")
+        .setDepth(99998).setScale(aleatoire(7, 12) / 10);
+      sc.tweens.add({
+        targets: p, y: p.y + aleatoire(16, 30), alpha: 0, duration: aleatoire(420, 700),
+        ease: "Quad.easeIn", onComplete: () => p.destroy(),
+      });
+    }
+  } else if (type === "jouer") {
+    // bond joyeux plus ample + petits cœurs colorés qui montent
+    sc.tweens.add({
+      targets: c.corpsT, y: -24, duration: 210, yoyo: true, ease: "Quad.easeOut",
+      onComplete: () => { if (c.corpsT) c.corpsT.y = 0; },
+    });
+    const teintes = [0xff7eb6, 0x7fd06f, 0xffd24a];
+    for (let i = 0; i < 5; i++) {
+      const h = sc.add.image(x + aleatoire(-26, 26), y - 42, "coeur")
+        .setDepth(99998).setScale(aleatoire(7, 11) / 10).setTint(teintes[i % teintes.length]);
+      sc.tweens.add({
+        targets: h, y: h.y - aleatoire(46, 80), alpha: 0, duration: aleatoire(600, 900),
+        ease: "Sine.easeOut", onComplete: () => h.destroy(),
+      });
+    }
+  }
 }
 
 function jourSuivant() {
