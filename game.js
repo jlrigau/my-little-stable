@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph58";
+const ASSET_VER = "ph59";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 // iOS ignore user-scalable=no : on bloque ici le zoom par pincement et double-tap
@@ -864,23 +864,33 @@ function sceneUpdate(time, delta) {
   etat.chevaux.forEach((c) => {
     if (!c.obj) return;
     if (c !== monte) {
-      // Le cheval s'arrête quand le joueur est proche (pour pouvoir s'en occuper).
-      if (distJoueur(c.x, c.y) < 115) {
+      if (c.cabreEnCours) {
+        // Pendant le cabré il reste planté (le corps pivote tout seul via la tween).
+        c.obj.x = c.x; c.obj.y = c.y; c.obj.setDepth(c.y);
+      } else if (distJoueur(c.x, c.y) < 115) {
+        // Le cheval s'arrête quand le joueur est proche (pour pouvoir s'en occuper).
         c.prochainPas = now + 800;
         c.corpsT.setFlipX(joueur.x > c.x);
         c.obj.x = c.x; c.obj.y = c.y; c.obj.setDepth(c.y);
-        const mp = moyenne(c);
-        c.coeur.setTint(mp > 60 ? 0x6fcf5f : mp > 35 ? 0xf4b942 : 0xe05656);
-        return;
+      } else {
+        if (now > c.prochainPas) {
+          c.tx = aleatoire(CORRAL.x + 70, CORRAL.x + CORRAL.w - 70);
+          c.ty = aleatoire(CORRAL.y + 70, CORRAL.y + CORRAL.h - 70);
+          c.prochainPas = now + aleatoire(2500, 6000);
+        }
+        const dx = c.tx - c.x, dy = c.ty - c.y, d = Math.hypot(dx, dy);
+        if (d > 3) { c.x += (dx / d) * 40 * dt; c.y += (dy / d) * 40 * dt; c.corpsT.setFlipX(dx > 0); }
+        c.obj.x = c.x; c.obj.y = c.y; c.obj.setDepth(c.y);
       }
-      if (now > c.prochainPas) {
-        c.tx = aleatoire(CORRAL.x + 70, CORRAL.x + CORRAL.w - 70);
-        c.ty = aleatoire(CORRAL.y + 70, CORRAL.y + CORRAL.h - 70);
-        c.prochainPas = now + aleatoire(2500, 6000);
+      // Cabré spontané « au bout d'un moment » quand il est vraiment content.
+      if (moyenne(c) >= 80) {
+        if (!c.prochainCabri) c.prochainCabri = now + aleatoire(5000, 10000);
+        else if (!c.cabreEnCours && now > c.prochainCabri) {
+          cabrer(c); c.prochainCabri = now + aleatoire(8000, 14000);
+        }
+      } else {
+        c.prochainCabri = 0;   // réarme : le prochain cabré arrivera après un moment de bonheur
       }
-      const dx = c.tx - c.x, dy = c.ty - c.y, d = Math.hypot(dx, dy);
-      if (d > 3) { c.x += (dx / d) * 40 * dt; c.y += (dy / d) * 40 * dt; c.corpsT.setFlipX(dx > 0); }
-      c.obj.x = c.x; c.obj.y = c.y; c.obj.setDepth(c.y);
     } else {
       c.corpsT.setFlipX(joueurFacing === "right");
     }
@@ -1057,6 +1067,32 @@ function descendreCheval(c, epuise) {
   if (c.obj) { c.obj.x = c.x; c.obj.y = c.y; }
   idPanneau = null; majInteraction(); majHud();
   message(epuise ? `${c.nom} est épuisé, laisse-le se reposer ! 😴` : `Tu descends de ${c.nom}. 🙂`);
+}
+
+// Cabré de joie : quand le cheval est VRAIMENT content, il se dresse sur ses
+// pattes arrière. On fait pivoter le CORPS (origine ~centre-bas) pour lever
+// l'avant, on le tient un instant, puis il retombe. Pendant ce temps il reste
+// planté (géré dans update via c.cabreEnCours). Effet runtime, rien à sauver.
+function cabrer(c) {
+  if (!c.corpsT || !sc || c.cabreEnCours) return;
+  c.cabreEnCours = true;
+  const t = c.corpsT;
+  const dir = t.flipX ? 1 : -1;            // l'avant se lève selon le sens du cheval
+  sc.tweens.add({
+    targets: t, angle: dir * 30, y: -8,
+    duration: 300, ease: "Back.easeOut", yoyo: true, hold: 420,
+    onComplete: () => { if (t) { t.angle = 0; t.y = 0; } c.cabreEnCours = false; },
+  });
+  // petite gerbe de cœurs joyeux qui montent
+  const x = c.x, y = c.y, teintes = [0xff7eb6, 0x7fd06f, 0xffd24a];
+  for (let i = 0; i < 4; i++) {
+    const h = sc.add.image(x + aleatoire(-24, 24), y - 50, "coeur")
+      .setDepth(99998).setScale(aleatoire(7, 11) / 10).setTint(teintes[i % teintes.length]);
+    sc.tweens.add({
+      targets: h, y: h.y - aleatoire(48, 84), alpha: 0, duration: aleatoire(650, 950),
+      ease: "Sine.easeOut", onComplete: () => h.destroy(),
+    });
+  }
 }
 
 // Petit sursaut : on anime le CORPS (local au conteneur), pas le conteneur lui-même,

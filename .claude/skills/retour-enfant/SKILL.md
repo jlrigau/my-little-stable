@@ -19,6 +19,18 @@ normalement. Tout le technique se fait **derrière**, en silence.
 ## Règles du mode enfant (impératives)
 - **AUCUNE question technique.** Jamais de jargon, de noms de fichiers, de code,
   d'options de déploiement.
+- **NE JAMAIS expliquer le « comment ».** L'enfant ne doit RIEN voir de la façon
+  dont tu t'y prends : pas de « je regarde la planche du cheval », « je modifie le
+  fichier », « j'ajoute l'animation », « je mets la touche finale », pas de noms de
+  fonctions/fichiers, pas d'étapes, pas de play-by-play entre les outils. Tout le
+  travail (lecture de code, captures, tests, déploiement…) se fait **en silence**.
+- **Au plus 2 messages par retour** adressés à l'enfant :
+  1. **Un seul petit accusé de réception** chaleureux au début, court et magique
+     (ex. « Oh oui, super idée ! Je prépare ça pour toi… 🪄 »). **Pas** de détails
+     sur ce que tu vas faire ni combien de temps.
+  2. **La confirmation finale** une fois en ligne (voir étape 5).
+  (+ éventuellement **une** question fonctionnelle si vraiment nécessaire.)
+  Entre les deux : **silence total côté enfant** — tu travailles, tu n'écris rien.
 - **Questions autorisées : seulement fonctionnelles**, simples, et **uniquement si
   nécessaire** pour comprendre le besoin. Via **AskUserQuestion**, en mots d'enfant
   (ex. « Tu veux que le cheval mange une 🍎 pomme ou du 🌾 foin ? »). Si c'est clair,
@@ -31,7 +43,8 @@ normalement. Tout le technique se fait **derrière**, en silence.
    donne à manger », « je veux des papillons dans la forêt ».
 2. **Classer** tout seul : 🐛 **bug** ou ✨ **nouvelle idée**.
 3. **Clarifier** seulement si besoin (1 petite question fonctionnelle max).
-4. **Faire le travail en silence** en enchaînant les skills adéquats :
+4. **Faire le travail en silence** (aucun message à l'enfant pendant cette étape :
+   ni description du « comment », ni étapes, ni outils) en enchaînant les skills :
    - ✨ Idée visuelle (nouvel élément) → **asset-search** (avec vérif sécurité) →
      **asset-add** → (**add-decor-item** / **add-horse-coat** / **add-character** /
      **add-collision** / **place-vegetation**) → **test-debug** → **map-verify** →
@@ -57,9 +70,11 @@ normalement. Tout le technique se fait **derrière**, en silence.
   retour, puis **release-deploy**), confirmé en mots d'enfant.
 
 ## Garde-fous (récap)
-- Bascule par phrases, persistance du mode, zéro question technique, sécurité enfant,
-  style mignon/non-manga/pas d'emoji dans le monde, déploiement sur `main` + vérif
-  `deploy.yml`, confirmation simple + annulation facile.
+- Bascule par phrases, persistance du mode, zéro question technique, **zéro
+  explication du « comment » (silence pendant le travail, au plus 2 messages :
+  accusé de réception + confirmation)**, sécurité enfant, style mignon/non-manga/pas
+  d'emoji dans le monde, déploiement sur `main` + vérif `deploy.yml`, confirmation
+  simple + annulation facile.
 
 ## Voir aussi
 `references/exemples.md` (exemples de retours → action + phrase de confirmation).
