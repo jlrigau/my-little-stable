@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph59";
+const ASSET_VER = "ph60";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 // iOS ignore user-scalable=no : on bloque ici le zoom par pincement et double-tap
@@ -882,15 +882,6 @@ function sceneUpdate(time, delta) {
         if (d > 3) { c.x += (dx / d) * 40 * dt; c.y += (dy / d) * 40 * dt; c.corpsT.setFlipX(dx > 0); }
         c.obj.x = c.x; c.obj.y = c.y; c.obj.setDepth(c.y);
       }
-      // Cabré spontané « au bout d'un moment » quand il est vraiment content.
-      if (moyenne(c) >= 80) {
-        if (!c.prochainCabri) c.prochainCabri = now + aleatoire(5000, 10000);
-        else if (!c.cabreEnCours && now > c.prochainCabri) {
-          cabrer(c); c.prochainCabri = now + aleatoire(8000, 14000);
-        }
-      } else {
-        c.prochainCabri = 0;   // réarme : le prochain cabré arrivera après un moment de bonheur
-      }
     } else {
       c.corpsT.setFlipX(joueurFacing === "right");
     }
@@ -1027,7 +1018,16 @@ function actionCheval(action) {
     case "jouer":
       if (c.energie < 15) { message(`${c.nom} est trop fatigué pour jouer. 😴`); return; }
       c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 16); c.faim = borner(c.faim - 8); etat.pieces += 3;
-      etat.actionsDepuisDodo++; etat.stats.jouer++; animAction(c, "jouer"); message(`${c.nom} s'est bien amusé ! 🎾`); break;
+      etat.actionsDepuisDodo++; etat.stats.jouer++; animAction(c, "jouer");
+      // D'abord les cœurs (animAction) ; puis, s'il est VRAIMENT content, il se
+      // cabre de joie un instant après (« au bout d'un moment »).
+      if (moyenne(c) >= 80) {
+        sc && sc.time.delayedCall(700, () => cabrer(c));
+        message(`${c.nom} est si content qu'il se cabre de joie ! 🐴`);
+      } else {
+        message(`${c.nom} s'est bien amusé ! 🎾`);
+      }
+      break;
     case "monter":
       if (monte === c) { descendreCheval(c, false); return; }
       if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour être monté. 🐣`); return; }
