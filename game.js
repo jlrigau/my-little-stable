@@ -1069,19 +1069,32 @@ function descendreCheval(c, epuise) {
   message(epuise ? `${c.nom} est épuisé, laisse-le se reposer ! 😴` : `Tu descends de ${c.nom}. 🙂`);
 }
 
-// Cabré de joie : quand le cheval est VRAIMENT content, il se dresse sur ses
-// pattes arrière. On fait pivoter le CORPS (origine ~centre-bas) pour lever
-// l'avant, on le tient un instant, puis il retombe. Pendant ce temps il reste
+// Cabré de joie : quand le cheval est VRAIMENT content, il se DRESSE sur ses
+// pattes ARRIÈRE en levant l'avant. On fait pivoter le CORPS autour des pattes
+// arrière (origine déplacée temporairement vers le bas-arrière, position
+// compensée pour ne pas sauter) pour que l'arrière reste au sol et que l'avant
+// monte ; on tient un instant, puis il retombe. Pendant ce temps il reste
 // planté (géré dans update via c.cabreEnCours). Effet runtime, rien à sauver.
 function cabrer(c) {
   if (!c.corpsT || !sc || c.cabreEnCours) return;
   c.cabreEnCours = true;
   const t = c.corpsT;
-  const dir = t.flipX ? 1 : -1;            // l'avant se lève selon le sens du cheval
+  // Origine par défaut du corps (cf. creerObjCheval).
+  const OX0 = 0.46, OY0 = 0.734;
+  // Pivot = base des pattes arrière. Tête à gauche quand flipX=false → arrière à
+  // droite (0.70) ; flipX=true → arrière à gauche (0.30). Bien bas (0.95).
+  const oxN = t.flipX ? 0.30 : 0.70, oyN = 0.95;
+  t.setOrigin(oxN, oyN);
+  t.x += (oxN - OX0) * t.displayWidth;     // compense pour rester visuellement en place
+  t.y += (oyN - OY0) * t.displayHeight;
+  const dir = t.flipX ? -1 : 1;            // l'AVANT (tête) se lève selon le sens
   sc.tweens.add({
-    targets: t, angle: dir * 30, y: -8,
+    targets: t, angle: dir * 42,
     duration: 300, ease: "Back.easeOut", yoyo: true, hold: 420,
-    onComplete: () => { if (t) { t.angle = 0; t.y = 0; } c.cabreEnCours = false; },
+    onComplete: () => {                    // on rétablit l'origine et la position d'origine
+      if (t) { t.angle = 0; t.setOrigin(OX0, OY0); t.x = 0; t.y = 0; }
+      c.cabreEnCours = false;
+    },
   });
   // petite gerbe de cœurs joyeux qui montent
   const x = c.x, y = c.y, teintes = [0xff7eb6, 0x7fd06f, 0xffd24a];
