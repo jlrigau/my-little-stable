@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph61";
+const ASSET_VER = "ph62";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 // iOS ignore user-scalable=no : on bloque ici le zoom par pincement et double-tap
@@ -1022,8 +1022,9 @@ function actionCheval(action) {
       etat.actionsDepuisDodo++; etat.stats.jouer++; animAction(c, "jouer");
       // Cœurs à chaque fois (animAction) ; mais le cabré ne se déclenche QU'AU
       // MOMENT où la barre de contentement atteint le maximum en jouant (pas si
-      // elle était déjà pleine → il ne se recabre pas à chaque jeu).
-      if (bonheurAvant < 100 && c.bonheur >= 100) {
+      // elle était déjà pleine → il ne se recabre pas à chaque jeu). Réservé aux
+      // ADULTES : un poulain ne se cabre pas.
+      if (!estPoulain(c) && bonheurAvant < 100 && c.bonheur >= 100) {
         sc && sc.time.delayedCall(700, () => cabrer(c));
         message(`${c.nom} est au comble du bonheur, il se cabre de joie ! 🐴`);
       } else {
