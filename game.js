@@ -8,7 +8,7 @@
 "use strict";
 
 // Version des assets : à incrémenter quand on change une IMAGE (force le rechargement).
-const ASSET_VER = "ph60";
+const ASSET_VER = "ph61";
 function av(p) { return p + "?v=" + ASSET_VER; }
 
 // iOS ignore user-scalable=no : on bloque ici le zoom par pincement et double-tap
@@ -1015,19 +1015,22 @@ function actionCheval(action) {
     case "brosser":
       c.proprete = borner(c.proprete + 40); c.bonheur = borner(c.bonheur + 12); etat.pieces += 2;
       etat.actionsDepuisDodo++; etat.stats.brosser++; bond(c); message(`${c.nom} est tout beau et brillant ! ✨`); break;
-    case "jouer":
+    case "jouer": {
       if (c.energie < 15) { message(`${c.nom} est trop fatigué pour jouer. 😴`); return; }
+      const bonheurAvant = c.bonheur;
       c.bonheur = borner(c.bonheur + 22); c.energie = borner(c.energie - 16); c.faim = borner(c.faim - 8); etat.pieces += 3;
       etat.actionsDepuisDodo++; etat.stats.jouer++; animAction(c, "jouer");
-      // D'abord les cœurs (animAction) ; puis, s'il est VRAIMENT content, il se
-      // cabre de joie un instant après (« au bout d'un moment »).
-      if (moyenne(c) >= 80) {
+      // Cœurs à chaque fois (animAction) ; mais le cabré ne se déclenche QU'AU
+      // MOMENT où la barre de contentement atteint le maximum en jouant (pas si
+      // elle était déjà pleine → il ne se recabre pas à chaque jeu).
+      if (bonheurAvant < 100 && c.bonheur >= 100) {
         sc && sc.time.delayedCall(700, () => cabrer(c));
-        message(`${c.nom} est si content qu'il se cabre de joie ! 🐴`);
+        message(`${c.nom} est au comble du bonheur, il se cabre de joie ! 🐴`);
       } else {
         message(`${c.nom} s'est bien amusé ! 🎾`);
       }
       break;
+    }
     case "monter":
       if (monte === c) { descendreCheval(c, false); return; }
       if (estPoulain(c)) { message(`${c.nom} est un poulain, trop petit pour être monté. 🐣`); return; }
