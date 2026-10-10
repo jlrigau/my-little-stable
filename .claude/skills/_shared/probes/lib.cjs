@@ -35,10 +35,25 @@ async function scrubAll(page, { keepLast } = {}) {
   const off = await page.evaluate(() => { const br = document.getElementById("closeup-brush"); const t = (cuState && cuState.a.closeup.brushTip) || { x: .5, y: .5 }; return br && !br.classList.contains("hidden") ? { dx: (t.x - .5) * br.offsetWidth, dy: (t.y - .5) * br.offsetHeight } : { dx: 0, dy: 0 }; });
   const spots = await page.evaluate(() => [...document.querySelectorAll(".cu-spot")].map((s) => { const b = s.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }));
   const list = keepLast ? spots.slice(0, -1) : spots;
+  const count = () => page.evaluate(() => document.querySelectorAll(".cu-spot").length);
   for (const s of list) {
+    // rub until a spot is cleared here (overlapping spots: the top one goes first, keep going)
+    const n0 = await count();
     await page.mouse.move(s.x - off.dx, s.y - off.dy); await page.mouse.down();
-    for (let k = 0; k < 5; k++) { await page.mouse.move(s.x - off.dx + (k % 2 ? 9 : -9), s.y - off.dy, { steps: 2 }); await wait(page, 110); }
+    for (let k = 0; k < 12; k++) {
+      await page.mouse.move(s.x - off.dx + (k % 2 ? 9 : -9), s.y - off.dy, { steps: 2 }); await wait(page, 110);
+      if (k >= 4 && (await count()) < n0) break;
+    }
     await page.mouse.up();
+  }
+  // full clean: sweep whatever is left (e.g. a spot hidden under another one)
+  if (!keepLast) for (let pass = 0; pass < 4 && (await count()) > 0; pass++) {
+    const left = await page.evaluate(() => [...document.querySelectorAll(".cu-spot")].map((x) => { const b = x.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }));
+    for (const s of left) {
+      await page.mouse.move(s.x - off.dx, s.y - off.dy); await page.mouse.down();
+      for (let k = 0; k < 6; k++) { await page.mouse.move(s.x - off.dx + (k % 2 ? 9 : -9), s.y - off.dy, { steps: 2 }); await wait(page, 110); }
+      await page.mouse.up();
+    }
   }
   return { total: spots.length, last: spots[spots.length - 1], off };
 }

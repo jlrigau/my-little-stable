@@ -241,8 +241,10 @@ actions: [ {
 wantBubble: { sprite, need?, below?, withMood?, scale?, lift? },  // see below — "needs action" image bubble (replaces, or with withMood sits beside, the mood shape)
 allHappy: { mood, message, celebrate? },   // day-arc reward: rest with EVERYONE happy → synchronized celebration + special morning line
 customize: { rename, variant },
-ride: { adultsOnly, minEnergy, fatigueNeed, sitY, sitX?, nameY, onMount:{...}, *Message, hideRider?,
+ride: { adultsOnly, minEnergy, fatigueNeed, empty?:"slow", emptySpeed:0.25, emptyMessage, sitY, sitX?, nameY, onMount:{...}, *Message, hideRider?,
         jump:{ distance, cost, minEnergy, tooTired, reward?, rewardMessage?("{r}") } },
+   // empty:"slow": when the fatigue need hits 0 you stay on board and the ride crawls at emptySpeed
+   // (also during a race, which burns the need at race.drain/s, default 2.4) — e.g. a car out of fuel.
    // sitX: px the seated rider is moved towards the tail (side-view mounts).
    // hideRider: the player disappears while riding (a driver inside a car). The jump leaps the way the
    // player faces (4 ways with dirSheet). Per-creature fields speedMul (ride speed), drainMul (fatigue
@@ -436,7 +438,9 @@ zones[].labelLift: 14                  // label offset above the rect
 stations: [ { type, x, y, sprite, label, labelY?, scale?, box?, action, actionLabel,
               onUse?, spawn?, menu?, glow?, anim?, reach?:110, tapRadius?:80, sfx?, icon?, color?, hint? } ]
 // action: "nextDay" | "spawn" | "openShop" | "menu" | "missions" | "models" | "custom"
-// action:"custom" → onUse(state, api) with api = { message, refreshHud, save, earn(n), spend(n)→bool,
+// whileRiding / requireMounted: the station can be used without getting off (requireMounted: ONLY
+//   when riding — on foot it says needMountMessage); api.ride = the ridden creature.
+// action:"custom" → onUse(state, api) with api = { ride, message, refreshHud, save, earn(n), spend(n)→bool,
 //   addHeat(n), clearHeat(), fx(x,y) }
 // action:"menu" → menu: { title, subtitle, items:[{ label, sub, icon, img?, price?, do, highlight?:"chase" }] }
 //   do: "nextDay" | "openShop" | "spawn" | "missions" | "models" | "restyle" | "custom" (item.onPick(state, api))
@@ -463,8 +467,13 @@ which also counts the `earned` stat when it is listed in `objectives.extraStats`
 missions: { title, subtitle, stat:"missions", radius:80, color, marker:"<image key>", markerScale,
   offers:[{ label, sub, icon, pay, heat? }], dests:[{ x, y, name }],
   takenMessage("{d}"), hotMessage("{d}"), doneMessage("{p}"), busyMessage,
-  clearsChase:true, chaseEndMessage }   // completing a mission ends the chase (pursuers drive off + fade)
+  clearsChase:true, chaseEndMessage,   // completing a mission ends the chase (pursuers drive off + fade)
+  pickups:[{ x, y, name }], target:"<image key>", targetScale, cargoIcon, cargoLabel,
+  pickedMessage("{d}"), hotPickedMessage("{d}") }   // takenMessage may use {p} (pickup name)
 ```
+With `pickups`, a mission has **two legs**: go and pick the cargo up (the `marker`), then bring it
+to the destination, shown as a flat ground `target` decal; a HUD chip (`cargoIcon`) shows you carry
+it, and a hot offer's chase starts at pickup. Without `pickups`, one leg as below.
 Taken at a station (`action:"missions"` or a menu item): a pulsing ring + bobbing marker
 appear at a random destination (not the nearest one) and an arrow orbits the player towards
 it; reaching it pays `pay`, counts `stat`, and saves. `heat` > 0 starts a chase.

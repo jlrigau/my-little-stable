@@ -18,7 +18,15 @@ module.exports = async (page) => {
     models: !!GAME.models, menu: (GAME.stations || []).some((s) => s.action === "menu"), legacy: !!(GAME.meta && GAME.meta.legacySave),
   }));
   r.has = has;
-  await page.evaluate(() => { state.coins = 5000; refreshHud(); });
+  await page.evaluate(() => { state.coins = 5000; refreshHud();
+    // reach every leg of the current mission (pickup → delivery) by teleporting onto each goal
+    window.__finishMission = async () => {
+      for (let k = 0; k < 3 && state.mission; k++) {
+        const g = missionGoal(state.mission); player.x = g.x; player.y = g.y;
+        await new Promise((res) => setTimeout(res, 400));
+      }
+    };
+  });
 
   // ---- ride: mount the first adult creature, move, check facing / rider, then jump ----
   if (has.ride) {
@@ -46,6 +54,28 @@ module.exports = async (page) => {
     });
     out.jump = j; check(j.jumped, "ride: jump did not count");
     r.ride = out;
+  }
+
+  // ---- ride.empty:"slow": out of fuel = still on board, crawling; requireMounted stations ----
+  if (has.ride) {
+    const out = await page.evaluate(async () => {
+      const R = GAME.creature.ride; if (!R || R.empty !== "slow" || !mounted) return { skipped: true };
+      const need = R.fatigueNeed; mounted[need] = 0;
+      const x0 = player.x; player.x = x0;
+      await new Promise((res) => setTimeout(res, 800));
+      return { stillMounted: !!mounted, empty: rideEmpty(mounted), mul: rideEmptyMul() };
+    });
+    if (!out.skipped) check(out.stillMounted && out.empty && out.mul < 1, "ride: an empty ride should stay mounted and slow down");
+    const gas = await page.evaluate(async () => {
+      const st = (GAME.stations || []).find((s) => s.requireMounted); if (!st || !mounted) return { skipped: true };
+      const need = GAME.creature.ride.fatigueNeed;
+      player.x = st.x; player.y = st.y + 110; await new Promise((res) => setTimeout(res, 300));
+      const targeted = activeTarget === st;
+      interact({ type: st.type, station: true });
+      return { targeted, refilled: mounted[need] > 50, notEmpty: rideEmptyMul() === 1 };
+    });
+    if (!gas.skipped) check(gas.targeted && gas.refilled && gas.notEmpty, "station: a ride-only station did not serve the mounted ride");
+    r.empty = { out, gas };
   }
 
   // ---- race (mounted) ----
@@ -111,9 +141,9 @@ module.exports = async (page) => {
     await wait(page, 400); await shot(page, "sys-mission");
     const done = await page.evaluate(async () => {
       const st = GAME.missions.stat || "missions", before = state.stats[st] || 0, coins = state.coins;
-      player.x = state.mission.x; player.y = state.mission.y;
-      await new Promise((res) => setTimeout(res, 300));
-      return { cleared: !state.mission, counted: (state.stats[st] || 0) === before + 1, paid: state.coins - coins };
+      const twoLegs = state.mission.stage === "pickup";
+      await window.__finishMission();
+      return { twoLegs, cleared: !state.mission, counted: (state.stats[st] || 0) === before + 1, paid: state.coins - coins };
     });
     out.done = done;
     check(out.offers > 0 && out.taken, "missions: could not take one");
@@ -125,7 +155,8 @@ module.exports = async (page) => {
         if (i < 0) return { skipped: "no hot offer" };
         state.mission = null; clearHeat(); openMissions(); choicePick(i);
         await new Promise((res) => setTimeout(res, 1500));
-        const o = { heatBefore: state.heat, unitsBefore: chasers.length };
+        if (state.mission.stage === "pickup") { const g = missionGoal(state.mission); player.x = g.x; player.y = g.y; await new Promise((res) => setTimeout(res, 1500)); }
+        const o = { heatBefore: state.heat, unitsBefore: chasers.length, carrying: !document.getElementById("chip-cargo") || !document.getElementById("chip-cargo").classList.contains("hidden") };
         player.x = state.mission.x; player.y = state.mission.y;
         await new Promise((res) => setTimeout(res, 2500));
         o.heatAfter = state.heat; o.unitsAfter = chasers.length; o.chip = !document.getElementById("chip-heat").classList.contains("hidden");

@@ -47,7 +47,7 @@ window.GAME = {
       };
     } },
     audience: { minAge: 9, notes: "kids 9–10, girls AND boys, cute but NOT manga, horses & riding, no scary content, light reading" },
-    assetVersion: "v6",
+    assetVersion: "v7",
     theme: { home: "#bfe6f5", play: "#7cbf5a", closeup: "#e9f6ff" },
 
     showCoins: true,
@@ -220,7 +220,7 @@ window.GAME = {
         closeup: {
           bg: "flank_brown", bgDone: "flank_brown_done",          // per coat: variant.closeupBg / closeupBgDone
           spotSprites: ["mud_1", "mud_2", "straw"], brush: "curry", brushTip: { x: 0.379, y: 0.392 },
-          spots: { base: 3, growEvery: 3, max: 7, rubs: 3, size: 110, minGap: 0.07, area: [{ x: 0.466, y: 0.474, w: 0.126, h: 0.168 }, { x: 0.592, y: 0.6, w: 0.14, h: 0.168 }] },
+          spots: { base: 3, growEvery: 3, max: 7, rubs: 3, size: 110, minGap: 0.11, area: [{ x: 0.466, y: 0.474, w: 0.126, h: 0.168 }, { x: 0.592, y: 0.6, w: 0.14, h: 0.168 }] },
           finishParticles: ["sparkle", "star", "heart"], popParticles: ["sparkle"],
           foam: { colors: ["#ffffff", "#f3ead8", "#e8dcc4"] },
         },

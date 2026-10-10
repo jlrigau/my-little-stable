@@ -344,7 +344,7 @@ function moodColor(m) {
 function save() {
   if (!state) return;
   state.idCounter = idCounter;
-  const skip = { obj: 1, bodyT: 1, heartT: 1, wantT: 1, nameT: 1, shadowT: 1 };
+  const skip = { obj: 1, bodyT: 1, heartT: 1, wantT: 1, nameT: 1, shadowT: 1, _scEmptyWarned: 1 };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(state, (k, v) => skip[k] ? undefined : v)); } catch (e) {}
 }
 function load() {
@@ -680,9 +680,11 @@ function buildHud() {
   if (META.showDay !== false) html += chip("chip-day", "calendar", T("dayLabel", "Day"), "hud-day");
   if (CREATURE && META.showCreatureCount !== false) html += chip("chip-cap", CREATURE.icon || "heart", CREATURE.label || "creatures", "hud-cap");
   if (LEVELS.length) html += chip("chip-level", "trophy", T("levelLabel", "Level"), "hud-level");
+  if (G.missions && G.missions.pickups) html += `<span class="resource cargo hidden" id="chip-cargo" title="${esc(stripIcons(G.missions.cargoLabel || ""))}"><span class="r-ico">${iconHTML(G.missions.cargoIcon || G.missions.marker || "gift")}</span><b>1</b></span>`;
   if (G.chase) html += `<span class="resource heat hidden" id="chip-heat" title="${esc(stripIcons(G.chase.label || ""))}"><span class="heat-icons"></span></span>`;
   bar.innerHTML = html;
   if (G.chase) refreshHeat();
+  if (G.missions && state) refreshCargo();
   bar.classList.toggle("hidden", !html);
   const pa = $("place-avatar");
   if (pa && state && state.player) pa.innerHTML = `<img src="${thumbSrc(charDef(state.player.avatar))}" alt="" />`;
@@ -1755,7 +1757,7 @@ function sceneUpdate(time, delta) {
   let mvx = 0, mvy = 0;
   if (!jumpRunning) {
     const sp = (G.player && G.player.speed) || { walk: 200, run: 370, rideWalk: 340, rideRun: 560 };
-    const spd = mounted ? (running ? sp.rideRun : sp.rideWalk) * (mounted.speedMul || 1) : (running ? sp.run : sp.walk);
+    const spd = mounted ? (running ? sp.rideRun : sp.rideWalk) * (mounted.speedMul || 1) * rideEmptyMul() : (running ? sp.run : sp.walk);
     if (vx || vy) {
       moveTarget = null; navPath = []; pendingInteract = null; running = false;
       const n = Math.hypot(vx, vy); mvx = vx / n; mvy = vy / n;
@@ -1810,7 +1812,11 @@ function sceneUpdate(time, delta) {
       if (rideFatigueAcc >= 1) {
         const dn = Math.floor(rideFatigueAcc); rideFatigueAcc -= dn;
         mounted[RIDE.fatigueNeed] = clamp01(mounted[RIDE.fatigueNeed] - dn);
-        if (mounted[RIDE.fatigueNeed] <= 0) dismount(mounted, true);
+        if (mounted[RIDE.fatigueNeed] > 0) mounted._scEmptyWarned = false;
+        if (mounted[RIDE.fatigueNeed] <= 0) {
+          if (RIDE.empty === "slow") rideEmptyWarn(mounted);     // stay on board, crawling (e.g. out of fuel)
+          else dismount(mounted, true);
+        }
       }
     }
   } else if (!mounted) {
@@ -2035,8 +2041,11 @@ function refreshInteraction() {
     return;
   }
   let best = null, dmin = Infinity;
-  if (mounted) best = mounted;
-  else {
+  if (mounted) {
+    best = mounted;
+    // station.whileRiding: reachable without getting off (e.g. a gas station you drive into)
+    STATIONS.forEach((s) => { if (!s.whileRiding && !s.requireMounted) return; const d = distPlayer(s.x, s.y); if (d < (s.reach || 110) * 1.4 && d < dmin) { dmin = d; best = s; } });
+  } else {
     STATIONS.forEach((s) => { const d = distPlayer(s.x, s.y); if (d < (s.reach || 110) && d < dmin) { dmin = d; best = s; } });
     state.creatures.forEach((c) => { if (c.departing || c.celebrating || c.leaving || c.arriving) return; const d = distPlayer(c.x, c.y); if (d < 95 && d < dmin) { dmin = d; best = c; } });
   }
@@ -2265,6 +2274,7 @@ function interact(target) {
   const st = STATIONS.find((x) => x.type === target.type);
   if (!st) return;
   lastInputT = nowMs();
+  if (st.requireMounted && !mounted) { Sound.play("error"); message(st.needMountMessage || "Come back riding!"); return; }
   if (st.action === "nextDay") nextDay();
   else if (st.action === "spawn") spawnCreatures(st);
   else if (st.action === "openShop") openShop();
@@ -2315,12 +2325,22 @@ function creatureAction(actionId) {
   refreshBars(c); refreshHud();
 }
 
+// ride.empty:"slow" → when the fatigue need hits 0 the rider stays on board but the ride crawls
+// at ride.emptySpeed (default 0.25) — e.g. a car out of fuel you drive to the gas station.
+function rideEmpty(c) { const R = CREATURE && CREATURE.ride; return !!(c && R && R.empty === "slow" && R.fatigueNeed && (c[R.fatigueNeed] || 0) <= 0); }
+function rideEmptyMul() { return rideEmpty(mounted) ? ((CREATURE.ride.emptySpeed != null) ? CREATURE.ride.emptySpeed : 0.25) : 1; }
+function rideEmptyWarn(c) {
+  if (c._scEmptyWarned) return;
+  c._scEmptyWarned = true; Sound.play("error");
+  message((CREATURE.ride.emptyMessage || CREATURE.ride.exhaustedMessage || "{name} is running on empty!").replace("{name}", c.name));
+}
 function toggleRide(c) {
   const RIDE = CREATURE.ride; if (!RIDE) return;
   if (mounted === c) { dismount(c, false); return; }
   if (RIDE.adultsOnly && isYoung(c)) { message((RIDE.tooYoung || "{name} is too young to ride.").replace("{name}", c.name)); return; }
-  if (RIDE.minEnergy && RIDE.fatigueNeed && (c[RIDE.fatigueNeed] || 0) < RIDE.minEnergy) { message((RIDE.tooTired || "{name} is too tired.").replace("{name}", c.name)); return; }
-  mounted = c; state.lastRide = c.id;
+  if (RIDE.empty !== "slow" && RIDE.minEnergy && RIDE.fatigueNeed && (c[RIDE.fatigueNeed] || 0) < RIDE.minEnergy) { message((RIDE.tooTired || "{name} is too tired.").replace("{name}", c.name)); return; }
+  mounted = c; c._scEmptyWarned = false;
+  if (rideEmpty(c)) setTimeout(() => rideEmptyWarn(c), 900); state.lastRide = c.id;
   if (RIDE.onMount) Object.keys(RIDE.onMount).forEach((k) => (c[k] = clamp01((c[k] || 0) + RIDE.onMount[k])));
   state.actionsSinceRest = (state.actionsSinceRest || 0) + 1;
   if (statKeys().includes("ride")) state.stats.ride = (state.stats.ride || 0) + 1;
@@ -3108,7 +3128,7 @@ function runMenuItem(st, it) {
 }
 // The helper API handed to config callbacks (station.onUse, menu item onPick).
 function stationApi() {
-  return { message, refreshHud, save, earn, spend, addHeat, clearHeat, fx: (x, y) => emitBurst(x, y, { shape: "star", colors: ["#fff2a8", "#ffffff"], count: 8, y0: 40, spread: 40 }) };
+  return { ride: mounted, message, refreshHud, save, earn, spend, addHeat, clearHeat, fx: (x, y) => emitBurst(x, y, { shape: "star", colors: ["#fff2a8", "#ffffff"], count: 8, y0: 40, spread: 40 }) };
 }
 
 /* ---- Restyle: change the look (variant) of the creature you last rode, for a price ---- */
@@ -3151,46 +3171,84 @@ function openMissions() {
     onPick: () => { closeModal(); takeMission(of); },
   })));
 }
+// With missions.pickups, a mission has two legs: first go and pick the cargo up (marker =
+// missions.marker), then bring it to the destination (a ground target = missions.target).
+// A "hot" offer starts its chase once the cargo is picked up.
+function missionGoal(m) { return m.stage === "pickup" ? { x: m.px, y: m.py, name: m.pname } : { x: m.x, y: m.y, name: m.name }; }
+function farPick(list, from, avoid) {
+  const far = list.filter((d) => Math.hypot(d.x - from.x, d.y - from.y) > 300 && (!avoid || Math.hypot(d.x - avoid.x, d.y - avoid.y) > 300));
+  return pick(far.length ? far : list);
+}
 function takeMission(of) {
-  const ds = (MISSIONS.dests || []).filter((d) => Math.hypot(d.x - player.x, d.y - player.y) > 300);
-  const d = pick(ds.length ? ds : (MISSIONS.dests || [{ x: WORLD.w / 2, y: WORLD.h / 2, name: "" }]));
+  const dests = MISSIONS.dests || [{ x: WORLD.w / 2, y: WORLD.h / 2, name: "" }];
+  const pk = MISSIONS.pickups && MISSIONS.pickups.length ? farPick(MISSIONS.pickups, player) : null;
+  const d = farPick(dests, pk || player, pk);
   state.mission = { x: d.x, y: d.y, name: d.name || "", pay: of.pay || 30, heat: of.heat || 0 };
-  buildMissionVisual();
+  if (pk) Object.assign(state.mission, { stage: "pickup", px: pk.x, py: pk.y, pname: pk.name || "" });
+  buildMissionVisual(); refreshCargo();
   Sound.play("open");
-  if (of.heat) { addHeat(of.heat); message((MISSIONS.hotMessage || MISSIONS.takenMessage || "Go to {d}!").replace("{d}", state.mission.name)); }
-  else message((MISSIONS.takenMessage || "Go to {d}!").replace("{d}", state.mission.name));
+  const fill = (t) => t.replace("{d}", state.mission.name).replace("{p}", state.mission.pname || "");
+  if (pk) message(fill(MISSIONS.takenMessage || "Pick up the cargo at {p}!"));
+  else if (of.heat) { addHeat(of.heat); message(fill(MISSIONS.hotMessage || MISSIONS.takenMessage || "Go to {d}!")); }
+  else message(fill(MISSIONS.takenMessage || "Go to {d}!"));
   refreshHud(); save();
+}
+function pickUpCargo() {
+  const m = state.mission; if (!m) return;
+  m.stage = "deliver";
+  buildMissionVisual(); refreshCargo();
+  Sound.play("reward");
+  emitBurst(player.x, player.y, { shape: "star", colors: ["#fff2a8", "#ffffff"], count: 8, y0: 50, spread: 40 });
+  const t = (m.heat ? (MISSIONS.hotPickedMessage || MISSIONS.pickedMessage) : MISSIONS.pickedMessage) || "Now deliver it to {d}!";
+  message(t.replace("{d}", m.name));
+  if (m.heat) addHeat(m.heat);
+  refreshHud(); save();
+}
+// HUD chip while carrying the cargo (missions.cargoIcon).
+function refreshCargo() {
+  const el = $("chip-cargo"); if (!el) return;
+  el.classList.toggle("hidden", !(state.mission && state.mission.stage === "deliver"));
 }
 function clearMissionVisual() { [msRing, msMarker, msArrow].forEach((o) => o && o.destroy()); msRing = msMarker = msArrow = null; }
 function buildMissionVisual() {
   clearMissionVisual(); if (!state.mission || !sc || !MISSIONS) return;
-  const col = hexInt(MISSIONS.color || "#4fe0a0"), m = state.mission;
+  const col = hexInt(MISSIONS.color || "#4fe0a0"), m = state.mission, g = missionGoal(m);
   msRing = sc.add.graphics().setDepth(-15);
-  if (MISSIONS.marker && sc.textures.exists(MISSIONS.marker)) {
-    msMarker = sc.add.image(m.x, m.y, MISSIONS.marker).setOrigin(0.5, 0.9).setScale((MISSIONS.markerScale || 1) / RES(MISSIONS.marker)).setDepth(m.y + 1);
+  const deliver = m.stage === "deliver" || !m.stage;
+  const tgt = deliver && MISSIONS.target && sc.textures.exists(MISSIONS.target) ? MISSIONS.target : null;
+  const key = tgt || (MISSIONS.marker && sc.textures.exists(MISSIONS.marker) ? MISSIONS.marker : null);
+  if (key) {
+    msMarker = sc.add.image(g.x, g.y, key).setOrigin(0.5, tgt ? 0.5 : 0.9).setScale((tgt ? (MISSIONS.targetScale || 1) : (MISSIONS.markerScale || 1)) / RES(key)).setDepth(tgt ? -14 : g.y + 1);
+    msMarker._scGround = !!tgt;
   }
   msArrow = sc.add.image(0, 0, ensureShape("arrow")).setTint(col).setScale(0.6).setDepth(99996);
 }
 function missionTick(dt, now) {
   const m = state.mission; if (!m || !sc || !player) return;
   if (!msRing) buildMissionVisual();
+  const g = missionGoal(m);
   const col = hexInt(MISSIONS.color || "#4fe0a0"), R = (MISSIONS.radius || 80);
   const r = R * 0.8 + Math.sin(now / 260) * 6;
   msRing.clear();
-  msRing.fillStyle(col, 0.16); msRing.fillEllipse(m.x, m.y, r * 2.2, r * 1.2);
-  msRing.lineStyle(5, col, 0.9); msRing.strokeEllipse(m.x, m.y, r * 2.2, r * 1.2);
-  if (msMarker) msMarker.y = m.y - 6 + Math.sin(now / 300) * 6;
-  const ang = Math.atan2(m.y - player.y, m.x - player.x), dist = Math.hypot(m.x - player.x, m.y - player.y);
+  if (!(msMarker && msMarker._scGround)) {
+    msRing.fillStyle(col, 0.16); msRing.fillEllipse(g.x, g.y, r * 2.2, r * 1.2);
+    msRing.lineStyle(5, col, 0.9); msRing.strokeEllipse(g.x, g.y, r * 2.2, r * 1.2);
+  }
+  if (msMarker) {
+    if (msMarker._scGround) { const k = (MISSIONS.targetScale || 1) / RES(MISSIONS.target) * (1 + Math.sin(now / 300) * 0.05); msMarker.setScale(k); }
+    else msMarker.y = g.y - 6 + Math.sin(now / 300) * 6;
+  }
+  const ang = Math.atan2(g.y - player.y, g.x - player.x), dist = Math.hypot(g.x - player.x, g.y - player.y);
   if (msArrow) {
     msArrow.setVisible(dist > R * 1.4);
     msArrow.x = player.x + Math.cos(ang) * 70; msArrow.y = player.y - 40 + Math.sin(ang) * 46;
     msArrow.rotation = ang - Math.PI / 2;                    // the arrow shape points down (+y)
   }
-  if (dist < R) completeMission();
+  if (dist < R) { if (m.stage === "pickup") pickUpCargo(); else completeMission(); }
 }
 function completeMission() {
   const m = state.mission; if (!m) return;
-  state.mission = null; clearMissionVisual();
+  state.mission = null; clearMissionVisual(); refreshCargo();
   earn(m.pay); flyReward(player.x, player.y - 60, "+" + m.pay + " " + coinTok());
   const st = MISSIONS.stat || "missions";
   state.stats[st] = (state.stats[st] || 0) + 1;
@@ -3280,7 +3338,7 @@ function chaseTick(dt) {
 function caught() {
   const fine = Math.min(state.coins, CHASE.fine || 40);
   state.coins -= fine;
-  if (state.mission) { state.mission = null; clearMissionVisual(); }
+  if (state.mission) { state.mission = null; clearMissionVisual(); refreshCargo(); }
   clearHeat(); Sound.play("error");
   if (sc) sc.cameras.main.shake(260, 0.006);
   message((CHASE.caughtMessage || "Caught! −{f}").replace("{f}", fine));
@@ -3368,7 +3426,8 @@ function startRace() {
   const T = RACE.track || {};
   R3.pos = R3.prevPos = R3.playerX = R3.speed = 0;
   R3.grip = mounted.grip || 1;
-  R3.maxSpeed = R3.segLen * 60 * (T.speed || 1) * (mounted.speedMul || 1);
+  R3.baseMax = R3.segLen * 60 * (T.speed || 1) * (mounted.speedMul || 1);
+  R3.maxSpeed = R3.baseMax * rideEmptyMul(); R3.drainAcc = 0;
   R3.time = RACE.time || 60; R3.over = false; R3.shake = R3.hitFlash = 0;
   R3.input = { left: false, right: false };
   const kd = (e) => r3Key(e, true), ku = (e) => r3Key(e, false);
@@ -3434,6 +3493,13 @@ function r3Update(dt) {
   if (R3.over) return;
   const T = RACE.track || {};
   R3.time -= dt; R3.prevPos = R3.pos;
+  // race.drain (per second, default 2.4 like running): the ride's fatigue need burns while racing
+  const RD = CREATURE && CREATURE.ride;
+  if (RD && RD.fatigueNeed && mounted && RACE.drain !== 0) {
+    R3.drainAcc += dt * (RACE.drain != null ? RACE.drain : 2.4) * (mounted.drainMul || 1);
+    if (R3.drainAcc >= 1) { const dn = Math.floor(R3.drainAcc); R3.drainAcc -= dn; mounted[RD.fatigueNeed] = clamp01((mounted[RD.fatigueNeed] || 0) - dn); }
+    if (rideEmpty(mounted)) { R3.maxSpeed = R3.baseMax * rideEmptyMul(); rideEmptyWarn(mounted); }
+  }
   R3.speed += (R3.maxSpeed - R3.speed) * Math.min(1, dt * 0.8);
   if (Math.abs(R3.playerX) > 1) R3.speed *= (1 - dt * 1.1);              // off-road drag
   R3.pos += R3.speed * dt;
