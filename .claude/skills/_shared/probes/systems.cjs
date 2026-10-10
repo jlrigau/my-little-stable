@@ -257,8 +257,17 @@ module.exports = async (page) => {
       const d = GAME.decor[0], b = state.decors.length, z = (GAME.zones || []).find((q) => q.home);
       // stand in a free spot: left of the home zone, away from stations
       if (mounted) dismount(mounted);
-      moveTarget = null; navPath = [];
-      player.x = z ? z.rect.x - 160 : player.x; player.y = z ? z.rect.y + z.rect.h / 2 : player.y;
+      // clear anything left by earlier blocks that could still move the player (a creature being followed,
+      // a pending interaction, a running hop / jump tween)
+      moveTarget = null; navPath = []; followCreature = null; followAuto = false; pendingInteract = null;
+      sc.tweens.killTweensOf(player); jumpRunning = false;
+      // a free spot outside the home zone where a decoration may go (no obstacle under the player or the ghost)
+      const cands = [];
+      for (let k = 0; k < 40; k++) cands.push({ x: 200 + Math.random() * (WORLD.w - 400), y: 200 + Math.random() * (WORLD.h - 400) });
+      const okSpot = (p) => freeAt(p.x, p.y) && freeAt(p.x + 60, p.y + 6) && !placementError(d, p.x + 60, p.y + 6) &&
+        !COLLISIONS.some((m) => p.x + 80 > m.x && p.x - 20 < m.x + m.w && p.y + 20 > m.y && p.y - 20 < m.y + m.h);
+      const spot = (z ? [{ x: z.rect.x - 160, y: z.rect.y + z.rect.h / 2 }] : []).concat(cands).find(okSpot) || { x: player.x, y: player.y };
+      player.x = spot.x; player.y = spot.y;
       playerFacing = "right"; buyDecor(d.id); const ghost = !!ghostDecor;   // ghost on the zone side (never over a station)
       await new Promise((res) => setTimeout(res, 200));
       const g = ghostXY(), err = placementError(d, g.x, g.y);
@@ -266,7 +275,7 @@ module.exports = async (page) => {
       return { ghost, placed: state.decors.length - b, placing: !!placingDecor, at: [Math.round(player.x), Math.round(player.y)], err, mounted: !!mounted };
     });
     if (out.placing) await page.evaluate(() => cancelPlacement());
-    check(out.ghost && out.placed === 1, "decor: buy + place failed");
+    check(out.ghost && out.placed === 1, "decor: buy + place failed (" + JSON.stringify(out) + ")");
     await shot(page, "sys-decor");
     r.decor = out;
   }
