@@ -3198,6 +3198,12 @@ function completeMission() {
   emitBurst(player.x, player.y, { shape: "star", colors: ["#fff2a8", "#ffd24a", "#ffffff"], count: 12, y0: 50, spread: 50 });
   Sound.play("goal");
   message((MISSIONS.doneMessage || "{i:check} +{p}").replace("{p}", m.pay));
+  // A delivered mission ends the chase it started: pursuers drive off and fade out
+  // (missions.clearsChase:false keeps them on your tail).
+  if (CHASE && MISSIONS.clearsChase !== false && (state.heat || 0) > 0) {
+    clearHeat(true);
+    if (MISSIONS.chaseEndMessage || CHASE.escapedMessage) message(MISSIONS.chaseEndMessage || CHASE.escapedMessage);
+  }
   refreshHud(); save();
 }
 
@@ -3211,7 +3217,7 @@ const CHASE = G.chase || null;
 let chasers = [], catchT = 0, evadeT = 0;
 function chaseMax() { return (CHASE && CHASE.maxLevel) || 3; }
 function addHeat(n) { if (!CHASE || !n) return; state.heat = clamp((state.heat || 0) + n, 0, chaseMax()); evadeT = 0; refreshHeat(); }
-function clearHeat() { if (!state) return; state.heat = 0; clearChasers(); catchT = 0; evadeT = 0; refreshHeat(); }
+function clearHeat(fade) { if (!state) return; state.heat = 0; clearChasers(fade); catchT = 0; evadeT = 0; refreshHeat(); }
 function refreshHeat() {
   const el = $("chip-heat"); if (!el) return;
   const h = (state && state.heat) || 0;
@@ -3219,7 +3225,17 @@ function refreshHeat() {
   const html = Array.from({ length: chaseMax() }, (_, i) => iconHTML(CHASE.icon || "star", i < h ? "on" : "off")).join("");
   const box = el.querySelector(".heat-icons"); if (box && box.dataset.h !== html) { box.innerHTML = html; box.dataset.h = html; }
 }
-function clearChasers() { chasers.forEach((u) => u.obj && u.obj.destroy()); chasers = []; }
+// fade=true: each pursuer drives away from the player while fading out (no pop out).
+function clearChasers(fade) {
+  chasers.forEach((u) => {
+    if (!u.obj) return;
+    if (!fade || !sc) { u.obj.destroy(); return; }
+    const a = Math.atan2(u.y - player.y, u.x - player.x);
+    sc.tweens.add({ targets: u.obj, x: u.x + Math.cos(a) * 260, y: u.y + Math.sin(a) * 260, alpha: 0, duration: 900, ease: "Quad.easeIn",
+      onComplete: () => u.obj.destroy() });
+  });
+  chasers = [];
+}
 function chaserFrame(u) {
   if (!CHASE.dirSheet) return 0;
   const cols = CHASE.dirSheet.cols || 2;

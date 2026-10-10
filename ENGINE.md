@@ -462,7 +462,8 @@ which also counts the `earned` stat when it is listed in `objectives.extraStats`
 ```
 missions: { title, subtitle, stat:"missions", radius:80, color, marker:"<image key>", markerScale,
   offers:[{ label, sub, icon, pay, heat? }], dests:[{ x, y, name }],
-  takenMessage("{d}"), hotMessage("{d}"), doneMessage("{p}"), busyMessage }
+  takenMessage("{d}"), hotMessage("{d}"), doneMessage("{p}"), busyMessage,
+  clearsChase:true, chaseEndMessage }   // completing a mission ends the chase (pursuers drive off + fade)
 ```
 Taken at a station (`action:"missions"` or a menu item): a pulsing ring + bobbing marker
 appear at a random destination (not the nearest one) and an arrow orbits the player towards

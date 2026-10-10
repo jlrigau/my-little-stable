@@ -118,6 +118,23 @@ module.exports = async (page) => {
     out.done = done;
     check(out.offers > 0 && out.taken, "missions: could not take one");
     check(done.cleared && done.counted && done.paid > 0, "missions: reaching the destination did not complete it");
+    // a "hot" mission (heat > 0) brings a chase; delivering it must end the chase
+    if (has.chase) {
+      const hot = await page.evaluate(async () => {
+        const i = (GAME.missions.offers || []).findIndex((o) => o.heat);
+        if (i < 0) return { skipped: "no hot offer" };
+        state.mission = null; clearHeat(); openMissions(); choicePick(i);
+        await new Promise((res) => setTimeout(res, 1500));
+        const o = { heatBefore: state.heat, unitsBefore: chasers.length };
+        player.x = state.mission.x; player.y = state.mission.y;
+        await new Promise((res) => setTimeout(res, 2500));
+        o.heatAfter = state.heat; o.unitsAfter = chasers.length; o.chip = !document.getElementById("chip-heat").classList.contains("hidden");
+        return o;
+      });
+      out.hot = hot;
+      if (!hot.skipped) check(hot.heatBefore > 0 && hot.unitsBefore > 0 && hot.heatAfter === 0 && hot.unitsAfter === 0 && !hot.chip,
+        "missions: delivering a hot mission did not end the chase");
+    }
     r.missions = out;
   }
 
