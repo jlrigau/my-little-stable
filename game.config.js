@@ -47,7 +47,7 @@ window.GAME = {
       };
     } },
     audience: { minAge: 9, notes: "kids 9–10, girls AND boys, cute but NOT manga, horses & riding, no scary content, light reading" },
-    assetVersion: "v4",
+    assetVersion: "v5",
     theme: { home: "#bfe6f5", play: "#7cbf5a", closeup: "#e9f6ff" },
 
     showCoins: true,

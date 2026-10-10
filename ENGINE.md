@@ -381,6 +381,16 @@ height:var(--app-h)` and makes the panel `absolute` inside `#screen-game`. New f
 layers must be added to that rule. Test: `_shared/ios-standalone-check.cjs` (launch +
 corrected + Safari must print identical values).
 
+#### Freeze watchdog (iPhone)
+On phones the world can stop being drawn while the DOM still works (help opens, the player
+"won't move"): the Phaser loop not woken after the app returns from the background, or a
+WebGL context lost by iOS and never restored. `engine.js` wakes the loop on pageshow /
+focus / visibility / touch, and a DOM timer checks frames advance and the context is
+alive; if not (5 s frozen / 3 s context lost) it saves and reloads straight back into the
+game (`sessionStorage["engine-resume"]` → auto-continue). Test: `probes/watchdog.cjs`.
+The close-up's finish timer only closes ITS close-up and the reward is applied exactly
+once, even if the player closes it by hand first.
+
 #### World loading screen
 While Phaser loads the world, `#world` shows the edge colour and a DOM loader (the
 player's character thumbnail floating over a rounded `--primary` gauge, `.world-loader`);

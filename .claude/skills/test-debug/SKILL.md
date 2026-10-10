@@ -85,6 +85,15 @@ node .claude/skills/_shared/playtest.cjs --engine webkit --device "iPhone 13" --
 Before **map-verify** (map visuals) and **release-deploy** (publish).
 Called by the **feedback-session** orchestrator for each item.
 
+## "The player is stuck / nothing moves" (phones)
+1. Monkey-test: `STEPS=80 SEED=n OUT=/tmp/s node .claude/skills/_shared/playtest.cjs --engine
+   webkit --device "iPhone 13" --probe .claude/skills/_shared/probes/stress.cjs` — random
+   fast play (close-up closed mid-zoom, double taps, panel actions…), asserts the world
+   still responds after every step and dumps the engine flags on a freeze. Try several seeds.
+2. If the logic never freezes but players report it, suspect the CANVAS freezing (loop
+   asleep after background, WebGL context lost): `probes/watchdog.cjs` checks the engine's
+   recovery. A frozen frame mid-animation (e.g. camera stuck zoomed) is the tell-tale sign.
+
 ## On-screen error bar (red, "tap to dismiss")
 `engine.js` shows uncaught errors from the game's own files with file:line — screenshot
 requests from players are actionable. Opaque errors ("Script error.", no file) and errors

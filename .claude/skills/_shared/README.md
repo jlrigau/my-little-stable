@@ -16,6 +16,8 @@ run by Claude Code through the **Bash** tool.
 | `icon-kit.cjs` | Illustrated UI icon set (star, heart, sound, help, avatar, goals, close, play, resume, check, calendar, gift, hand, sparkle, moon, bell, refresh, arrow, trophy, palette, ball, battery, faces…) themed by a palette: `IK.jobs(PAL, names, "assets/ui/icons")` in a game's art module. |
 | `art-check.cjs` | Automated art QA over `GAME.assets`: clipping at frame edges, empty frames, walk-cycle feet/centre jitter, detached parts; writes 2× review sheets on a checkerboard. Used by **visual-review**. |
 | `probes/reveal.cjs` | Filmstrip of an unlock's entrance (`REVEAL=<id>`, frame every 80 ms) + close-up progress bar at the easiest and max level: same width + no overlap with the close button. Used by **visual-review**. |
+| `probes/stress.cjs` | Monkey-test (`STEPS`, `SEED`): random fast play, asserts the world still responds after every step, dumps flags on a freeze. Used by **test-debug**. |
+| `probes/watchdog.cjs` | Freeze recovery: sleeping loop woken, frozen world / lost WebGL context → save + reload into the game, no spurious reload. |
 | `ios-standalone-check.cjs` | Simulates the iOS home-screen viewport bug in WebKit (viewport short by the status bar) and checks every full-screen layer reaches the real screen bottom. Used by **ios-pwa-check**. |
 | `contact-sheet.py` | Labelled contact sheet(s) of a folder of screenshots: `python3 contact-sheet.py DIR`. |
 | `probes/systems.cjs` | Functional checks of the optional systems a game enables (ride + facing, jump, station menu + restyle, missions, chase, models, race, legacy save) with a screenshot each; blocks skip themselves when a system is off. |

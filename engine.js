@@ -498,6 +498,9 @@ function init() {
     openCreate({ avatar: CHARACTERS[0].id }, () => newGame(placeNameTmp, pendingPlayer));
   });
   $("btn-continue").addEventListener("click", continueGame);
+  let resume = false;
+  try { resume = sessionStorage.getItem("engine-resume") === "1"; sessionStorage.removeItem("engine-resume"); } catch (_) {}
+  if (resume && load()) setTimeout(continueGame, 0);       // back from a freeze-recovery reload
   const br = $("btn-refresh"); if (br) br.addEventListener("click", clearCacheAndReload);
   $("place-name-input").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-start").click(); });
   if (load()) { $("home-msg").textContent = T("continueHint", "A saved game exists: tap “Continue”."); $("btn-continue").classList.add("btn-pulse"); }
@@ -931,7 +934,38 @@ function startPhaser() {
     if (window.ResizeObserver) new ResizeObserver(fit).observe(worldEl);
     window.addEventListener("resize", fit);
     window.addEventListener("orientationchange", () => setTimeout(fit, 200));
+    startWatchdog();
   });
+}
+
+// Freeze watchdog. On iPhone the world can stop being drawn while the DOM still works
+// (help opens, the player "won't move"): the game loop isn't woken after the app comes
+// back from the background, or iOS drops the WebGL context and never restores it.
+// 1) wake the loop explicitly on every return to the foreground / touch;
+// 2) a DOM timer (independent of Phaser) checks frames still advance; if the world stays
+//    frozen, save and reload straight back into the game (no detour via the home screen).
+function startWatchdog() {
+  if (startWatchdog.on) return; startWatchdog.on = true;
+  const wake = () => { try { if (game && game.loop && !game.loop.running) game.loop.wake(); } catch (_) {} };
+  ["pageshow", "focus"].forEach((ev) => window.addEventListener(ev, wake));
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) wake(); });
+  $("world").addEventListener("pointerdown", wake);
+  let last = -1, stale = 0, lostFor = 0, done = false;
+  const recover = () => {
+    if (done) return; done = true;
+    try { save(); sessionStorage.setItem("engine-resume", "1"); } catch (_) {}
+    location.reload();
+  };
+  setInterval(() => {
+    if (!game || !game.loop || document.hidden) { stale = 0; lostFor = 0; return; }
+    // the loop keeps ticking while a lost WebGL context draws nothing → check it separately
+    lostFor = game.renderer && game.renderer.contextLost ? lostFor + 1 : 0;
+    if (lostFor >= 3) return recover();
+    const f = game.loop.frame;
+    if (f !== last) { last = f; stale = 0; return; }
+    stale++; wake();
+    if (stale >= 5) recover();
+  }, 1000);
 }
 
 let baseZoom = 1;
@@ -2972,7 +3006,10 @@ function cuFinish() {
   const brush = $("closeup-brush"); if (brush) brush.classList.add("hidden");
   for (let i = 0; i < 18; i++) cuEmoji((8 + Math.random() * 84) + "%", (15 + Math.random() * 60) + "%", [parts[i % parts.length]], true);
   Sound.play("celebrate");
-  setTimeout(() => { closeCloseup(); cuApply(c, a); }, cfg.finishDelay || (reveal ? 1900 : 1100));
+  // Apply the outcome once, and close only THIS close-up: the player may already have
+  // closed it by hand (then the reward is applied right away) or opened another one.
+  const st = cuState; st.finished = true;
+  st.finishTimer = setTimeout(() => { if (cuState === st) closeCloseup(); }, cfg.finishDelay || (reveal ? 1900 : 1100));
 }
 
 // Apply the action's outcome — mirrors the tail of creatureAction().
@@ -2997,6 +3034,8 @@ function clearSelection() {
 }
 
 function closeCloseup() {
+  const done = cuState && cuState.finished ? cuState : null;
+  if (done) clearTimeout(done.finishTimer);
   cuReleaseCapture();
   const root = $("closeup"); if (root) { root.classList.add("hidden"); root.classList.remove("cu-enter"); root.style.backgroundImage = ""; }
   const stage = $("closeup-stage"); if (stage) stage.querySelectorAll(".cu-spot, .cu-emoji, .cu-foam, .cu-hint, .cu-ring").forEach((n) => n.remove());
@@ -3016,8 +3055,13 @@ function closeCloseup() {
   if (sc && player) {
     const cam = sc.cameras.main;
     cam.startFollow(player, true, RENDER.cameraLerp || 0.12, RENDER.cameraLerp || 0.12);
-    if (zoomFx) { cam.zoomTo(baseZoom, 420, "Sine.easeOut", true, (_c, p) => { if (p >= 1) zoomFx = false; }); }
+    if (zoomFx) {
+      cam.zoomTo(baseZoom, 420, "Sine.easeOut", true, (_c, p) => { if (p >= 1) zoomFx = false; });
+      // safety net: an interrupted zoom tween must never leave the camera zoomed in
+      setTimeout(() => { if (zoomFx && !closeupOpen && sc) { sc.cameras.main.setZoom(baseZoom); zoomFx = false; } }, 700);
+    }
   }
+  if (done) cuApply(done.c, done.a);                     // a finished scrub always pays out, exactly once
 }
 
 /* ===================== Choice menus (generic modal list) ===================== */
