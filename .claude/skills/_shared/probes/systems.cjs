@@ -1,7 +1,8 @@
 /*
  * systems — functional checks of the optional engine systems a game enables:
  * ride (+ rideSheet / hideRider / dirSheet facing), jump, station menus + restyle,
- * missions, chase, models, race, legacy save migration. Each block runs only when the
+ * missions, chase, models, race, shop (resource / capacity / creature), decoration
+ * placement, spawn station, breeding, legacy save migration. Each block runs only when the
  * game's config has that system, so it is safe on any game.
  *
  *   OUT=/tmp/shots node .claude/skills/_shared/playtest.cjs --viewport 390x844 \
@@ -16,6 +17,8 @@ module.exports = async (page) => {
   const has = await page.evaluate(() => ({
     ride: !!(GAME.creature && GAME.creature.ride), race: !!GAME.race, missions: !!GAME.missions, chase: !!GAME.chase,
     models: !!GAME.models, menu: (GAME.stations || []).some((s) => s.action === "menu"), legacy: !!(GAME.meta && GAME.meta.legacySave),
+    shop: !!GAME.shop, decor: !!(GAME.decor && GAME.decor.length), spawn: (GAME.stations || []).some((s) => s.action === "spawn"),
+    breeding: !!(GAME.creature && GAME.creature.breeding && GAME.creature.breeding.enabled),
   }));
   r.has = has;
   await page.evaluate(() => { state.coins = 5000; refreshHud();
@@ -69,7 +72,9 @@ module.exports = async (page) => {
     const gas = await page.evaluate(async () => {
       const st = (GAME.stations || []).find((s) => s.requireMounted && s.action === "custom"); if (!st || !mounted) return { skipped: true };
       const need = GAME.creature.ride.fatigueNeed;
-      player.x = st.x; player.y = st.y + 110; await new Promise((res) => setTimeout(res, 300));
+      moveTarget = null; navPath = [];
+      player.x = st.x; player.y = st.y + 110;
+      for (let k = 0; k < 15 && activeTarget !== st; k++) await new Promise((res) => setTimeout(res, 100));   // slow WebKit frames
       const targeted = activeTarget === st;
       interact({ type: st.type, station: true }); closeModal();
       return { targeted, refilled: mounted[need] > 50, notEmpty: rideEmptyMul() === 1 };
@@ -228,6 +233,69 @@ module.exports = async (page) => {
     await shot(page, "sys-models");
     check(out.bought && out.model && out.ownedDisabled, "models: buying failed or not marked owned");
     r.models = out;
+  }
+
+  // ---- shop: buy a resource, a capacity upgrade and a creature ----
+  if (has.shop) {
+    const out = await page.evaluate(async () => {
+      if (mounted) dismount(mounted);
+      state.coins = 5000; const S = GAME.shop, o = {};
+      const res = (S.resources || [])[0];
+      if (res) { const b = state.resources[res.id] || 0; buy("res:" + res.id); o.resource = (state.resources[res.id] || 0) - b; }
+      if (S.capacity) { const b = state.capacity; buy("capacity"); o.capacity = state.capacity - b; }
+      if (S.buyCreature) { const b = state.creatures.length; buy("creature"); o.creature = state.creatures.length - b; }
+      o.modal = !document.getElementById("modal").classList.contains("hidden");
+      closeModal(); return o;
+    });
+    check(out.resource !== 0 && out.capacity !== 0 && out.creature !== 0, "shop: a purchase did not apply");
+    r.shop = out;
+  }
+
+  // ---- decoration: buy → ghost follows → place it (outside the home zone) ----
+  if (has.decor) {
+    const out = await page.evaluate(async () => {
+      const d = GAME.decor[0], b = state.decors.length, z = (GAME.zones || []).find((q) => q.home);
+      // stand in a free spot: left of the home zone, away from stations
+      if (mounted) dismount(mounted);
+      moveTarget = null; navPath = [];
+      player.x = z ? z.rect.x - 160 : player.x; player.y = z ? z.rect.y + z.rect.h / 2 : player.y;
+      playerFacing = "right"; buyDecor(d.id); const ghost = !!ghostDecor;   // ghost on the zone side (never over a station)
+      await new Promise((res) => setTimeout(res, 200));
+      const g = ghostXY(), err = placementError(d, g.x, g.y);
+      placeDecor();
+      return { ghost, placed: state.decors.length - b, placing: !!placingDecor, at: [Math.round(player.x), Math.round(player.y)], err, mounted: !!mounted };
+    });
+    if (out.placing) await page.evaluate(() => cancelPlacement());
+    check(out.ghost && out.placed === 1, "decor: buy + place failed");
+    await shot(page, "sys-decor");
+    r.decor = out;
+  }
+
+  // ---- spawn station: brings creatures in (up to its cap) ----
+  if (has.spawn) {
+    const out = await page.evaluate(async () => {
+      const st = GAME.stations.find((s) => s.action === "spawn");
+      state.capacity = Math.max(state.capacity, state.creatures.length + 2);
+      const b = state.creatures.length; spawnCreatures(st);
+      await new Promise((res) => setTimeout(res, 600));
+      return { added: state.creatures.length - b };
+    });
+    check(out.added >= 1, "spawn: no creature arrived");
+    r.spawn = out;
+  }
+
+  // ---- breeding: two happy adults + room + no young → a baby overnight ----
+  if (has.breeding) {
+    const out = await page.evaluate(() => {
+      const mood = GAME.creature.moodNeed;
+      state.creatures.forEach((c) => { c.age = 20; if (mood) c[mood] = 100; });
+      state.capacity = state.creatures.length + 2; state.lastBirth = -99;
+      const b = state.creatures.length, births = state.stats.births || 0;
+      applyDay();
+      return { born: state.creatures.length - b, births: (state.stats.births || 0) - births };
+    });
+    check(out.born === 1 && out.births === 1, "breeding: no baby after a happy night");
+    r.breeding = out;
   }
 
   // ---- legacy save migration ----

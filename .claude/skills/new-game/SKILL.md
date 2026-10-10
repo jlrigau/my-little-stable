@@ -18,6 +18,12 @@ riding/obstacles, breeding, decorations, trail loops OFF until the user asks. Us
 `meta.showCoins:false` when there's no economy; omit `objectives` to hide goals. The
 engine stays fully capable — you're choosing what to enable, not removing anything.
 
+**Two references, two roles:** `references/minimal-seed.config.js` is the small seed to
+START from (one pen, 3 needs, 4 actions, one rest station, one level). The shipped demo
+`game.config.js` (Nebula Nursery) is the **full showcase** that turns on every engine
+system — read it to see how a feature is wired when the user later asks for it, but never
+copy it whole into a new game.
+
 ## Step 1 — Interview (AskUserQuestion)
 Ask only what changes the output. Bundle into 1–2 `AskUserQuestion` calls:
 - **Theme / subject**: what is the game about? (e.g. space pets, plant garden, robot
@@ -49,7 +55,8 @@ over-ask. Bias toward the smallest playable game.
 
 ## Step 2 — Author `game.config.js`
 Write a new `game.config.js` (the **whole** game) following the schema in **`ENGINE.md`**.
-Start from the demo as a template and replace, section by section:
+Start from `references/minimal-seed.config.js` (NOT the full showcase demo) and replace,
+section by section:
 - `meta` (title, icons, logo, save key, theme colours, **audience**, UI strings incl.
   `meta.strings` for engine labels, language)
 - `render` (pixelArt:false, vignette, label pills, ambient particles), `audio` (music mood)

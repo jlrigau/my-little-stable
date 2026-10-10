@@ -2,9 +2,11 @@
 
 The engine (`engine.js`) is **data-driven** and contains no game content. A game is a
 single global object `window.GAME` defined in `game.config.js`, plus its assets. This
-file documents every field and the engine capabilities they drive. Use `game.config.js`
-(the minimal "Nebula Nursery" demo) as a working template. The demo only uses a subset
-of the fields below — every system is optional, so start small and add as you iterate.
+file documents every field and the engine capabilities they drive. The shipped
+`game.config.js` ("Nebula Nursery") is the **showcase**: it turns on nearly every system
+below, so it is the working example of how each one is wired. Every system is optional —
+a new game starts small from `.claude/skills/new-game/references/minimal-seed.config.js`
+and adds systems as it iterates.
 
 > Load order in `index.html`: `engine.css` → `style.css` (theme) → `vendor/phaser.min.js` →
 > `game.config.js` → `engine.js`.
@@ -227,8 +229,9 @@ moodFrom: ["food","energy","clean","joy"],   // needs averaged into the mood hea
 showBars: true,                        // false → hide the per-need bars in the panel (kid-friendly)
 moodDay: { base, lowPenalty, lowAt, highBonus, highAt },   // overnight mood rule
 needs: [ { id, icon, label, start, perDay } ],      // perDay = overnight delta (0..100 bars)
-variants: [ { id, name, color, tint?, sheet?, happySheet?, closeupBg?, closeupBgDone?, thumb?, fixedName? } ],
+variants: [ { id, name, color, tint?, sheet?, happySheet?, closeupBg?, closeupBgDone?, thumb?, fixedName?, raceSprite? } ],
    // sheet = a dedicated, animated spritesheet for this variant (else base sheet + optional tint);
+   // raceSprite = this variant's own rear-view image in the race (else race.sprite tinted by `tint`);
    // thumb = image path shown in the customize preview; fixedName = the variant IS a person
    // (new creatures of this variant take its name; new spawns prefer variants not on screen)
 actions: [ {
@@ -437,6 +440,7 @@ zones[].floor: "<image key>"          // an image stretched over the rect (rug, 
 zones[].labelLift: 14                  // label offset above the rect
 stations: [ { type, x, y, sprite, label, labelY?, scale?, box?, action, actionLabel,
               onUse?, spawn?, menu?, glow?, anim?, reach?:110, tapRadius?:80, sfx?, icon?, color?, hint? } ]
+// box: {dx,dy,w,h} collision footprint (default 140×75 above the anchor); box:false → no collision (a pad you walk onto)
 // action: "nextDay" | "spawn" | "openShop" | "menu" | "missions" | "models" | "restyle" | "custom"
 // action:"restyle" → restyle: { price, title, subtitle, clearsChase, message, chaseMessage } (same fields as the menu item)
 // While riding, other stations refuse (station.onFootMessage, else meta.strings.dismountFirst), and you
@@ -451,6 +455,7 @@ stations: [ { type, x, y, sprite, label, labelY?, scale?, box?, action, actionLa
 //   subtitle("{name}"), clearsChase, message("{name}","{v}"), chaseMessage, noneMessage
 // action:"spawn" → brings a random number of fresh creatures up to a cap:
 //   spawn: { min, max, cap, from?:{x,y}, message?("{n}"), fullMessage? }   // from = they walk in from a door
+//   cap:"capacity" → the room bought in the shop (state.capacity) instead of a fixed number
 ```
 
 ### `economy` / `shop` / `decor`
@@ -504,7 +509,8 @@ stats; `stats` renders `{i:icon} NN%` per key (`invert` for lower-is-better, e.g
 A mounted action `type:"race"` covers the world with a full-screen canvas: the road recedes
 to a horizon, your ride (`sprite`, multiplied by its variant tint) sits at the bottom, and
 you steer (left/right half of the screen, or arrow keys) to reach the finish before the timer
-runs out while dodging obstacles (hit where they reach the car on screen, not at the camera). The ride's `speedMul` / `grip` change top speed / steering.
+runs out while dodging obstacles (hit where they reach the car on screen, not at the camera).
+A variant with its own `raceSprite` (e.g. creatures drawn as separate sheets) uses it instead of the tinted `race.sprite`. The ride's `speedMul` / `grip` change top speed / steering.
 The HUD (timer, distance, speed, quit, steering hints) is DOM with the game's icons.
 ```
 race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys], roadsideScale:3.4, spriteZoom,   // sprite width = road half-width × scale × spriteZoom

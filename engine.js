@@ -1519,8 +1519,8 @@ function buildWorld() {
     if (s.anim) animateScenery(b, s.anim);
     if (s.label) worldLabel(s.x, s.y + (s.labelY != null ? s.labelY : 44), s.label, 99990, 20);
     s.obj = b;
-    const box = s.box || { dx: -70, dy: -60, w: 140, h: 75 };
-    COLLISIONS.push({ x: s.x + box.dx, y: s.y + box.dy, w: box.w, h: box.h });
+    const box = s.box === false ? null : (s.box || { dx: -70, dy: -60, w: 140, h: 75 });   // box:false → walk onto it (a pad)
+    if (box) COLLISIONS.push({ x: s.x + box.dx, y: s.y + box.dy, w: box.w, h: box.h });
   });
 
   buildDecors();
@@ -2014,7 +2014,7 @@ function removeCreature(c) {
 // spawn.from = {x,y} → they walk in from there (a door) instead of popping in place.
 function spawnCreatures(st) {
   const sp = st.spawn || {};
-  const cap = sp.cap || 8;
+  const cap = sp.cap === "capacity" ? state.capacity : (sp.cap || 8);   // "capacity" → the shop-upgradable room
   const active = state.creatures.filter((c) => !c.departing).length;
   const room = cap - active;
   if (room <= 0) { message(sp.fullMessage || "Full!"); Sound.play("error"); return; }
@@ -3441,8 +3441,9 @@ function startRace() {
   if (!cv) { cv = document.createElement("canvas"); cv.id = "race3d"; cv.className = "race3d"; document.body.appendChild(cv); }
   R3.canvas = cv; R3.ctx = cv.getContext("2d");
   R3.img = { roadside: (RACE.roadside || []).map(r3Img).filter(Boolean), obst: (RACE.obstacles || []).map((o) => r3Img(o.sprite)) };
-  const base = r3Img(RACE.sprite), v = variantDef(variantId(mounted)) || {};
-  R3.car = base ? r3Tint(base, v.tint || null) : null;
+  // variant.raceSprite: a dedicated rear view per variant (variants drawn as separate sheets, not tints)
+  const v = variantDef(variantId(mounted)) || {}, base = r3Img(v.raceSprite || RACE.sprite);
+  R3.car = base ? r3Tint(base, v.raceSprite ? null : (v.tint || null)) : null;
   r3Track();
   const T = RACE.track || {};
   R3.pos = R3.prevPos = R3.playerX = R3.speed = 0;
