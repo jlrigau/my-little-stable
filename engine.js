@@ -1040,13 +1040,19 @@ function buildAnims() {
 // instead of one side-view strip flipped left/right (e.g. vehicles seen from above).
 const DIR_SHEET = CREATURE && CREATURE.dirSheet ? (CREATURE.dirSheet === true ? {} : CREATURE.dirSheet) : null;
 function dirCols() { const w = (CREATURE && CREATURE.walk) || {}; return (DIR_SHEET && DIR_SHEET.cols) || ((w.end != null ? w.end : 3) + 1); }
-function dirOf(dx, dy) { return Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down"); }
+function dirOf(dx, dy, cur) {
+  const ax = Math.abs(dx), ay = Math.abs(dy);
+  // hysteresis: near 45° keep the current axis (a diagonal used to flip rows every frame = flicker)
+  if (cur === "left" || cur === "right") { if (ax >= ay * 0.75) return dx < 0 ? "left" : dx > 0 ? "right" : cur; }
+  else if (cur === "up" || cur === "down") { if (ay >= ax * 0.75) return dy < 0 ? "up" : dy > 0 ? "down" : cur; }
+  return ax > ay ? (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down");
+}
 // Turn a creature towards a direction of travel (or towards something it looks at).
 function faceCreature(c, dx, dy) {
   if (!c || !c.bodyT) return;
   if (!DIR_SHEET) { if (dx) c.bodyT.setFlipX(dx > 0); return; }
   if (!dx && !dy) return;
-  const dir = dirOf(dx, dy);
+  const dir = dirOf(dx, dy, c.facing);
   if (c.facing === dir) return;
   c.facing = dir;
   const k = creatureWalkKey(c), playing = c.bodyT.anims.isPlaying;
@@ -1304,12 +1310,14 @@ function pushOut(o, hw, hh) {
     }
   });
 }
-function blockObstacles() { pushOut(player, mounted ? 30 : 15, mounted ? 18 : 10); }
+// Riding: the body box = the clearance the path planner keeps (NAV.hw/hh) — a wider box made
+// rides bump into gaps the planner thought were free, re-plan, bump again: visible jitter.
+function blockObstacles() { pushOut(player, mounted ? NAV.hw : 15, mounted ? NAV.hh : 10); }
 
 /* ===================== Navigation (A* on a grid built from COLLISIONS) ===================== */
 // Tap-to-move walks AROUND obstacles instead of pushing into them, and creatures only
 // pick wander targets they can actually reach.
-const NAV = { cell: 20, cols: 0, rows: 0, grid: null, hw: 16, hh: 11 };
+const NAV = { cell: 20, cols: 0, rows: 0, grid: null, hw: 20, hh: 12 };
 function buildNav() {
   NAV.cell = (G.nav && G.nav.cell) || 20;
   const c = NAV.cell;
@@ -1688,8 +1696,8 @@ function animatePlayer(mvx, mvy, t) {
   const ps = ((G.player && G.player.scale) || 1.7) / RES(sheet);
   if (mounted) {
     const RIDE = (CREATURE && CREATURE.ride) || {};
-    if (DIR_SHEET) { if (mvx || mvy) playerFacing = dirOf(mvx, mvy); }       // a vehicle seen from above: 4 directions
-    else if (mvx) playerFacing = mvx < 0 ? "left" : "right";
+    if (DIR_SHEET) { if (mvx || mvy) playerFacing = dirOf(mvx, mvy, playerFacing); }       // a vehicle seen from above: 4 directions
+    else if (Math.abs(mvx) > 0.3) playerFacing = mvx < 0 ? "left" : "right";   // side-view mount: turn only on a real sideways move (no flip-flop when going up/down)
     else if (playerFacing !== "left" && playerFacing !== "right") playerFacing = "right";
     playerSprite.anims.stop();
     playerSprite.setVisible(!RIDE.hideRider);                                // e.g. a driver hidden inside the car
@@ -1709,7 +1717,7 @@ function animatePlayer(mvx, mvy, t) {
   if (playerSprite.flipX) playerSprite.setFlipX(false);
   if (!playerSprite.visible) playerSprite.setVisible(true);
   if (mvx || mvy) {
-    const dir = Math.abs(mvx) > Math.abs(mvy) * 0.9 ? (mvx < 0 ? "left" : "right") : (mvy < 0 ? "up" : "down");
+    const dir = dirOf(mvx, mvy, playerFacing);
     playerFacing = dir;
     const ak = `${sheet}-${dir}`;
     const cur = playerSprite.anims.currentAnim;
@@ -1754,7 +1762,7 @@ function sceneUpdate(time, delta) {
   }
 
   const RIDE = CREATURE && CREATURE.ride;
-  let mvx = 0, mvy = 0;
+  let mvx = 0, mvy = 0, stepMax = Infinity;
   if (!jumpRunning) {
     const sp = (G.player && G.player.speed) || { walk: 200, run: 370, rideWalk: 340, rideRun: 560 };
     const spd = mounted ? (running ? sp.rideRun : sp.rideWalk) * (mounted.speedMul || 1) * rideEmptyMul() : (running ? sp.run : sp.walk);
@@ -1763,6 +1771,7 @@ function sceneUpdate(time, delta) {
       const n = Math.hypot(vx, vy); mvx = vx / n; mvy = vy / n;
     } else if (moveTarget && !modalOpen) {
       const dx = moveTarget.x - player.x, dy = moveTarget.y - player.y, d = Math.hypot(dx, dy);
+      stepMax = d;                                   // land ON the waypoint, never past it
       if (d < 8) {
         navPath.shift();
         if (navPath.length) moveTarget = navPath[0];
@@ -1771,14 +1780,21 @@ function sceneUpdate(time, delta) {
     }
     if (mvx || mvy) {
       const ox = player.x, oy = player.y;
-      player.x += mvx * spd * dt; player.y += mvy * spd * dt;
+      const step = Math.min(spd * dt, stepMax);
+      player.x += mvx * step; player.y += mvy * step;
       player.x = clamp(player.x, 40, WORLD.w - 40);
       player.y = clamp(player.y, 40, WORLD.h - 40);
       blockObstacles();
       // stuck against something while auto-walking → re-plan the route
       if (moveTarget && Math.hypot(player.x - ox, player.y - oy) < spd * dt * 0.25) {
         player.stuck = (player.stuck || 0) + dt;
-        if (player.stuck > 0.35) { player.stuck = 0; const last = navPath[navPath.length - 1]; if (last) walkTo(last.x, last.y); }
+        if (player.stuck > 0.35) {
+          player.stuck = 0; const now = nowMs();
+          player.replans = (now - (player.replanT || 0) < 2500) ? (player.replans || 0) + 1 : 1; player.replanT = now;
+          const last = navPath[navPath.length - 1];
+          if (player.replans > 3 || !last) { moveTarget = null; navPath = []; running = false; pendingInteract = null; }   // unreachable: stop, don't shake
+          else walkTo(last.x, last.y);
+        }
       } else player.stuck = 0;
     }
     animatePlayer(mvx, mvy, time);
@@ -3325,7 +3341,7 @@ function chaseTick(dt) {
     const dx = player.x - u.x, dy = player.y - u.y, d = Math.hypot(dx, dy) || 1;
     if (d > 34) { u.x += (dx / d) * speed * dt; u.y += (dy / d) * speed * dt; }
     const o = { x: u.x, y: u.y }; pushOut(o, 18, 10); u.x = clamp(o.x, 40, WORLD.w - 40); u.y = clamp(o.y, 40, WORLD.h - 40);
-    u.dir = dirOf(dx, dy); u.blink += dt;
+    u.dir = dirOf(dx, dy, u.dir); u.blink += dt;
     u.obj.setPosition(u.x, u.y).setDepth(u.y);
     if (CHASE.dirSheet) u.obj.setFrame(chaserFrame(u)); else u.obj.setFlipX(dx > 0);
     nearest = Math.min(nearest, d);

@@ -20,6 +20,7 @@ run by Claude Code through the **Bash** tool.
 | `probes/watchdog.cjs` | Freeze recovery: sleeping loop woken, frozen world / lost WebGL context → save + reload into the game, no spurious reload. |
 | `ios-standalone-check.cjs` | Simulates the iOS home-screen viewport bug in WebKit (viewport short by the status bar) and checks every full-screen layer reaches the real screen bottom. Used by **ios-pwa-check**. |
 | `contact-sheet.py` | Labelled contact sheet(s) of a folder of screenshots: `python3 contact-sheet.py DIR`. |
+| `probes/jitter.cjs` | A ridden creature/vehicle must not shake: three tap-to-move rides at ~15 fps (CPU ×6), fails on flip-flopping facing or a destination never reached. |
 | `probes/systems.cjs` | Functional checks of the optional systems a game enables (ride + facing, jump, station menu + restyle, missions, chase, models, race, legacy save) with a screenshot each; blocks skip themselves when a system is off. |
 | `probes/tour.cjs` | The standard regression tour (home, create, tap→walk, close-up→reveal→world responsive, help, stations, unlocks, guide, save) with screenshots; `probes/lib.cjs` = helpers for your own probes. |
 | `sync-engine.sh` | Backport the engine layer (`engine.js`, `ENGINE.md`, `.claude/skills/`) FROM a game repo INTO the template; runs the separation audit + syntax check; never commits. `bash .claude/skills/_shared/sync-engine.sh <game-url|remote> [ref]`. Used by **sync-engine**. |
