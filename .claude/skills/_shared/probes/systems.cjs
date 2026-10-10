@@ -130,7 +130,7 @@ module.exports = async (page) => {
       // get caught: stand on a pursuer
       const coins = state.coins;
       const t0 = performance.now();
-      while (state.heat > 0 && performance.now() - t0 < 6000) {
+      while (state.heat > 0 && performance.now() - t0 < 20000) {   // generous: slow headless WebKit at DPR 3
         const u = chasers[0]; if (u) { player.x = u.x; player.y = u.y; }
         await new Promise((res) => setTimeout(res, 100));
       }

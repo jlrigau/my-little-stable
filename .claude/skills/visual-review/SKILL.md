@@ -69,6 +69,13 @@ Checklist:
   furniture; nothing walks through furniture; depth sorting correct.
 - **Buttons & icons proportion**: slim buttons (44–50 px pills), BIG icons (icon fills
   ~80 % of a tile, or overflows a pill). A fat button with a small icon looks amateur.
+- **Transitions** (home → create → world loading, close-up in/out): film the first
+  frames after each tap (screenshots every ~120 ms) — no black frame, no empty card/strip
+  while things load, nothing popping in place. An empty panel is hidden until it has
+  content; the canvas fades in once drawn.
+- **Icon highlights**: shines are clipped INSIDE the shape and the outline is drawn last
+  (icon-kit `glossy()`); a shine crossing the outline reads as a second shape stacked on
+  top, especially greyed out / small.
 - **Round buttons**: depth goes INSIDE the disc (inset shade) + a soft drop shadow. A hard
   offset coloured edge under a contrasting ring reads as a second disc stuck under the
   first ("double button") — check them zoomed on BOTH a light and a dark theme.

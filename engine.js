@@ -1755,6 +1755,8 @@ function sceneUpdate(time, delta) {
     mounted.obj.setDepth(player.y - 1);
     faceMount(mounted);
     playerSprite.y = (RIDE.sitY || -58) - arc; playerShadow.setVisible(false);
+    // ride.sitX: shift the rider towards the tail (side-view mounts face left by default)
+    if (RIDE.sitX && !DIR_SHEET) playerSprite.x = playerFacing === "right" ? -RIDE.sitX : RIDE.sitX;
     if (playerName) playerName.setPosition(player.x, player.y + (RIDE.nameY || -138) - arc);
     if (RIDE.fatigueNeed) {
       const rate = ((mvx || mvy) ? (running ? 2.4 : 1.1) : 0.3) * (mounted.drainMul || 1);
@@ -1766,7 +1768,7 @@ function sceneUpdate(time, delta) {
       }
     }
   } else if (!mounted) {
-    if (playerSprite.y !== 0) { playerSprite.y = 0; playerShadow.setVisible(true); }
+    if (playerSprite.y !== 0 || playerSprite.x !== 0) { playerSprite.y = 0; playerSprite.x = 0; playerShadow.setVisible(true); }
     if (playerName) playerName.setPosition(player.x, player.y + PLAYER_NAME_Y);
   }
 
@@ -2308,7 +2310,7 @@ function doJump() {
 
 function dismount(c, exhausted) {
   mounted = null; moveTarget = null; navPath = []; running = false; rideFatigueAcc = 0; jumpRunning = false;
-  if (playerSprite) { playerSprite.y = 0; playerSprite.setVisible(true); }
+  if (playerSprite) { playerSprite.x = 0; playerSprite.y = 0; playerSprite.setVisible(true); }
   if (playerShadow) playerShadow.setVisible(true);
   c.x = clamp(player.x + 135, 40, WORLD.w - 40);
   c.y = clamp(player.y, 40, WORLD.h - 40);
@@ -2524,7 +2526,7 @@ function applyDay() {
     if (lowMood || firstNeed) neglected.push(c.name);
   });
   mounted = null;
-  if (playerSprite) { playerSprite.y = 0; playerSprite.setVisible(true); }
+  if (playerSprite) { playerSprite.x = 0; playerSprite.y = 0; playerSprite.setVisible(true); }
   if (playerShadow) playerShadow.setVisible(true);
   const baby = tryBirth();
   refreshHud(); save();

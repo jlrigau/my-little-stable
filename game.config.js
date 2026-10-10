@@ -47,11 +47,12 @@ window.GAME = {
       };
     } },
     audience: { minAge: 9, notes: "kids 9–10, girls AND boys, cute but NOT manga, horses & riding, no scary content, light reading" },
-    assetVersion: "v1",
+    assetVersion: "v2",
     theme: { home: "#bfe6f5", play: "#7cbf5a", closeup: "#e9f6ff" },
 
     showCoins: true,
     coinIcon: "coin",
+    showDay: false,                    // keep the HUD on one line (the morning toast says the day)
 
     namePrompt: { label: "Le nom de ton centre :", placeholder: "Les Écuries du Pré Vert" },
     startName: "Mon Centre",
@@ -130,7 +131,7 @@ window.GAME = {
 
   /* ---- World: meadow with a sandy cross-country loop in a forest band ---- */
   world: { width: 2800, height: 2100, groundTile: "grass", bg: "#7cbf5a" },
-  camera: { fitW: 780, fitH: 820, min: 0.5, max: 0.9 },
+  camera: { fitW: 620, fitH: 700, min: 0.52, max: 0.95 },
 
   /* ---- Assets (all generated, CC0) ---- */
   assets: {
@@ -168,10 +169,10 @@ window.GAME = {
 
   /* ---- Player (a young rider) ---- */
   player: {
-    scale: 0.86,
+    scale: 1.05,
     speed: { walk: 200, run: 370, rideWalk: 340, rideRun: 560 },
     spawn: { x: 560, y: 860 },
-    nameY: -122,
+    nameY: -136,
     shadow: { w: 34, h: 12 },
   },
   characters: [
@@ -185,8 +186,8 @@ window.GAME = {
     sheet: "horse_brown",
     origin: { x: 0.5, y: 0.94 },
     headY: 132,
-    shadow: { w: 96, h: 20 },
-    spacing: 120,
+    shadow: { w: 100, h: 20 },
+    spacing: 150,
     walk: { start: 0, end: 3, frameRate: 6, idleFrame: 0, speed: 40 },
     nameY: 24, nameSize: 17,
     youngLabel: "Poulain", adultLabel: "Cheval", variantLabel: "Robe",
@@ -218,8 +219,8 @@ window.GAME = {
       { id: "brosser", type: "closeup", label: "Brosser", icon: "brush", color: "#5ab4e8",
         closeup: {
           bg: "flank_brown", bgDone: "flank_brown_done",          // per coat: variant.closeupBg / closeupBgDone
-          spotSprites: ["mud_1", "mud_2", "straw"], brush: "curry", brushTip: { x: 0.3, y: 0.3 },
-          spots: { base: 3, growEvery: 3, max: 7, rubs: 3, size: 120, minGap: 0.09, area: { x: 0.22, y: 0.42, w: 0.5, h: 0.26 } },
+          spotSprites: ["mud_1", "mud_2", "straw"], brush: "curry", brushTip: { x: 0.379, y: 0.392 },
+          spots: { base: 3, growEvery: 3, max: 7, rubs: 3, size: 110, minGap: 0.07, area: [{ x: 0.466, y: 0.474, w: 0.126, h: 0.168 }, { x: 0.592, y: 0.6, w: 0.14, h: 0.168 }] },
           finishParticles: ["sparkle", "star", "heart"], popParticles: ["sparkle"],
           foam: { colors: ["#ffffff", "#f3ead8", "#e8dcc4"] },
         },
@@ -237,7 +238,7 @@ window.GAME = {
     ],
     ride: {
       adultsOnly: true, minEnergy: 20, fatigueNeed: "energie",
-      sitY: -44, nameY: -170,
+      sitY: -58, sitX: 16, nameY: -190,
       onMount: { bonheur: 12, energie: -6 },
       tooYoung: "{name} est un poulain, trop petit pour être monté.",
       tooTired: "{name} est trop fatigué pour te porter.",
@@ -249,7 +250,7 @@ window.GAME = {
     // the joy rear: only adults, only when PLAYING brings happiness to the max
     celebrate: { mode: "rear", adultsOnly: true, actions: ["jouer"], particle: "heart", colors: ["#ff7eb6", "#7fd06f", "#ffd24a"], count: 6 },
     customize: { rename: true, variant: true },
-    aging: { adultAge: 5, scaleBaby: 0.62, scaleAdult: 1.0 },
+    aging: { adultAge: 5, scaleBaby: 0.8, scaleAdult: 1.3 },
     breeding: { enabled: true, minMood: 80, cooldown: 3, message: "{i:foal} Bonne nouvelle ! Un poulain est né : {name} !" },
     names: ["Éclair", "Tornade", "Caramel", "Étoile", "Tonnerre", "Cannelle", "Bandit", "Mistral", "Pépite", "Comète", "Bravo", "Sable"],
     startCount: 1,

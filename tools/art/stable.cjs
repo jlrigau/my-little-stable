@@ -898,17 +898,28 @@ function flank(coat, done) {
   if (done) [[520, 140, 3], [610, 210, 2.2]].forEach(([x, y, k]) => { g += `<path d="${heartPath(x, y, k)}" fill="${PINK}" ${stk(6)}/>`; });
   return job(`assets/img/flank_${coat}${done ? "_done" : ""}.png`, FB, FB, g, defs);
 }
-function mud(file, seed, col) {
-  const R = rng(seed);
-  const defs = rad("md", [[0, shade(col, 0.25)], [0.7, col], [1, shade(col, -0.15)]], 0.4, 0.35, 0.75);
-  let g = "";
-  // little droplets touching the edge of the splotch (one shape, nothing floating)
-  const drops = [[0.2, 1], [1.9, 0.8], [3.6, 1], [5.0, 0.7]];
-  const shapes = [K.blob(55, 57, 34, 30, 9, 0.18, R)];
-  drops.forEach(([a, k]) => { const x = 55 + Math.cos(a) * 36, y = 57 + Math.sin(a) * 32; shapes.push(`M${f2(x + 9 * k)} ${f2(y)} A${9 * k} ${9 * k} 0 1 0 ${f2(x - 9 * k)} ${f2(y)} A${9 * k} ${9 * k} 0 1 0 ${f2(x + 9 * k)} ${f2(y)} Z`); });
-  g += shapes.map((d) => `<path d="${d}" fill="${INK}" stroke="${INK}" stroke-width="7" stroke-linejoin="round"/>`).join("") + shapes.map((d) => `<path d="${d}" fill="url(#md)"/>`).join("");
-  g += `<ellipse cx="44" cy="44" rx="11" ry="6" fill="#fff" opacity=".35" transform="rotate(-25 44 44)"/><circle cx="66" cy="66" r="6" fill="${shade(col, -0.25)}" opacity=".5"/><circle cx="48" cy="70" r="4" fill="${shade(col, -0.25)}" opacity=".5"/>`;
-  return job(`assets/img/${file}.png`, 110, 110, g, defs);
+function mud(file, seed, col) {   // a FLAT mud splash on the coat: irregular splat + droplets
+  const R = rng(seed), cx = 55, cy = 55, rim = shade(col, -0.38);
+  const pts = [], n = 24;
+  const lobe = Array.from({ length: 8 }, () => 0.6 + R() * 0.8);
+  for (let i = 0; i < n; i++) {                                // soft round lobes = splash edge
+    const a = (i / n) * Math.PI * 2, t = (i / n) * 8, k = Math.floor(t), fr = t - k;
+    const bump = Math.sin(fr * Math.PI) * lobe[k % 8];
+    const rr = 23 + bump * 9;
+    pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.9]);
+  }
+  const splat = spline(pts, true);
+  let g = `<path d="${splat}" fill="${col}" stroke="${rim}" stroke-width="3.5" stroke-linejoin="round"/>`;
+  g += `<path d="${spline(pts.map(([x, y]) => [cx + (x - cx) * 0.62, cy + (y - cy) * 0.62 - 2]), true)}" fill="${shade(col, 0.1)}" opacity=".7"/>`;
+  // droplets flung around the splat
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + R() * 0.6, d = 41 + R() * 7, r = 3 + R() * 3;
+    g += `<circle cx="${f2(cx + Math.cos(a) * d)}" cy="${f2(cy + Math.sin(a) * d * 0.92)}" r="${f2(r)}" fill="${col}" stroke="${rim}" stroke-width="2"/>`;
+  }
+  // dust/grass speckles + a small soft highlight
+  for (let i = 0; i < 9; i++) { const x = cx - 16 + R() * 32, y = cy - 14 + R() * 28; g += `<circle cx="${f2(x)}" cy="${f2(y)}" r="${f2(1 + R() * 1.4)}" fill="${i % 3 ? rim : "#8fae5a"}" opacity=".55"/>`; }
+  g += `<ellipse cx="${cx - 9}" cy="${cy - 10}" rx="8" ry="4" fill="#fff" opacity=".35" transform="rotate(-25 ${cx - 9} ${cy - 10})"/>`;
+  return job(`assets/img/${file}.png`, 110, 110, g);
 }
 function straw() {
   const R = rng(5);
@@ -953,7 +964,7 @@ function build(jobs) {
   jobs.push(grass(), sandTile("sand", "#e6c48a", 21, false), sandTile("arena", "#f1dcae", 33, true), house(), tack(), stable(), pine(), tree(), bush(),
     hurdle(), logs(), trough(), haybale(), flowers(), ribbon(), trophy(), bench(), weathervane(), carrots(), saddleRack(), want(), fence());
   Object.keys(COATS).forEach((c) => jobs.push(horseThumb(c), flank(c, false), flank(c, true)));
-  jobs.push(mud("mud_1", 3, "#9a6a44"), mud("mud_2", 8, "#8a5e3e"), straw(), curry(), logo(), splash(),
+  jobs.push(mud("mud_1", 3, "#a9784a"), mud("mud_2", 8, "#a27046"), straw(), curry(), logo(), splash(),
     icon("assets/favicon.png", 512), icon("assets/apple-touch-icon.png", 180), icon("assets/icon-192.png", 192), icon("assets/icon-maskable.png", 512, 0.78),
     ...gameIcons(),
     ...IK.jobs(PAL, ["star", "heart", "heartEmpty", "sound", "soundOff", "help", "avatar", "goals", "close", "play", "resume", "check", "gift", "hand", "sparkle", "bell", "refresh", "arrow", "trophy", "joy", "moon", "calendar", "palette", "ball", "smile", "meh", "sad", "lock", "battery", "home"]));

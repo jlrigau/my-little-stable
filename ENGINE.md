@@ -241,8 +241,9 @@ actions: [ {
 wantBubble: { sprite, need?, below?, withMood?, scale?, lift? },  // see below — "needs action" image bubble (replaces, or with withMood sits beside, the mood shape)
 allHappy: { mood, message, celebrate? },   // day-arc reward: rest with EVERYONE happy → synchronized celebration + special morning line
 customize: { rename, variant },
-ride: { adultsOnly, minEnergy, fatigueNeed, sitY, nameY, onMount:{...}, *Message, hideRider?,
+ride: { adultsOnly, minEnergy, fatigueNeed, sitY, sitX?, nameY, onMount:{...}, *Message, hideRider?,
         jump:{ distance, cost, minEnergy, tooTired, reward?, rewardMessage?("{r}") } },
+   // sitX: px the seated rider is moved towards the tail (side-view mounts).
    // hideRider: the player disappears while riding (a driver inside a car). The jump leaps the way the
    // player faces (4 ways with dirSheet). Per-creature fields speedMul (ride speed), drainMul (fatigue
    // rate) and grip (race steering) — set by `models`, or in startCreatures — scale the ride.
