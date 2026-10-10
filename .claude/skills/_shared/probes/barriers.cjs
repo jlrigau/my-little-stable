@@ -3,7 +3,9 @@
  *   1. riding, nobody gets past a barrier at any height across the path (only the Jump action clears it);
  *   2. the Jump action clears it;
  *   3. on foot, walking into it hops over (never walks THROUGH it) and tap-to-move reaches every
- *      section between barriers (no soft-lock).
+ *      section between barriers (no soft-lock);
+ *   4. with forest.treeBox (a solid band, e.g. an asteroid belt): walking from the play area towards the
+ *      band on all 4 sides, the feet never end up inside a DRAWN band sprite (box shorter than the art).
  *   OUT=/tmp/x node .claude/skills/_shared/playtest.cjs --port 8099 --viewport 390x844 --probe .claude/skills/_shared/probes/barriers.cjs
  * Regression for: walking/riding past the rocks at the edge of the Star Ring (box shorter than the path).
  */
@@ -21,7 +23,9 @@ module.exports = async (page) => {
   if (!(await mount())) return { errors: ["could not mount"] };
   r.leaks = [];
   for (const y of ys) {
-    await page.evaluate((y) => { player.x = LOGS[0].x - 110; player.y = y; moveTarget = null; navPath = []; }, y);
+    const solid = await page.evaluate((y) => { player.x = LOGS[0].x - 110; player.y = y; moveTarget = null; navPath = [];
+      return COLLISIONS.some((m) => !m.jumpable && player.x + NAV.hw > m.x && player.x - NAV.hw < m.x + m.w && player.y + NAV.hh > m.y && player.y - NAV.hh < m.y + m.h); }, y);
+    if (solid) continue;   // a start inside a solid (band, hedge) is unreachable in play: skip it
     await page.keyboard.down("ArrowRight"); await sleep(1100); await page.keyboard.up("ArrowRight");
     const x = await page.evaluate(() => player.x - LOGS[0].x);
     if (x > 30) r.leaks.push(y);
@@ -51,6 +55,28 @@ module.exports = async (page) => {
       return { t: [Math.round(g.to.x), Math.round(g.to.y)], ok: Math.hypot(player.x - g.to.x, player.y - g.to.y) < 30 };
     }, g);
     r.sections.push(o); if (!o.ok) errors.push("on foot: could not reach the path section at " + o.t);
+  }
+  // 4. a solid band: the feet never stand inside the drawn band sprites
+  if (await page.evaluate(() => !!(GAME.environment.forest && GAME.environment.forest.treeBox))) {
+    const out = [];
+    const sides = await page.evaluate(() => { const B = BAND, W = WORLD.w, H = WORLD.h, fx = [0.25, 0.4, 0.55, 0.7], fy = [0.35, 0.5, 0.65];
+      // start well inside the play area, then walk towards the band (positions relative to the map)
+      return [{ key: "ArrowDown", pts: fx.map((f) => ({ x: W * f, y: H - B - 110 })) }, { key: "ArrowUp", pts: fx.map((f) => ({ x: W * f, y: B + 110 })) },
+              { key: "ArrowLeft", pts: fy.map((f) => ({ x: B + 110, y: H * f })) }, { key: "ArrowRight", pts: fy.map((f) => ({ x: W - B - 110, y: H * f })) }]; });
+    for (const s of sides) for (const p of s.pts) {
+      await page.evaluate((p) => { player.x = p.x; player.y = p.y; moveTarget = null; navPath = []; }, p);
+      await page.keyboard.down(s.key); await sleep(1400); await page.keyboard.up(s.key);
+      out.push(await page.evaluate((key) => {
+        // drawn rocks the player's feet overlap
+        const hit = sc.children.list.filter((o) => o.texture && o.texture.key === GAME.environment.forest.tree && o.visible).filter((o) => {
+          const w = o.displayWidth * 0.36, top = o.y - o.displayHeight * 0.8;
+          return Math.abs(player.x - o.x) < w && player.y > top && player.y < o.y + 6;
+        }).length;
+        return { key, at: [Math.round(player.x), Math.round(player.y)], insideRocks: hit };
+      }, s.key));
+    }
+  
+    r.band = out; out.filter((o) => o.insideRocks).forEach((o) => errors.push(`feet inside the drawn band at ${o.at} (${o.key})`));
   }
   return { ...r, errors };
 };
