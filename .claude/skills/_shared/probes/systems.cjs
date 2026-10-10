@@ -266,7 +266,7 @@ module.exports = async (page) => {
       return { ghost, placed: state.decors.length - b, placing: !!placingDecor, at: [Math.round(player.x), Math.round(player.y)], err, mounted: !!mounted };
     });
     if (out.placing) await page.evaluate(() => cancelPlacement());
-    check(out.ghost && out.placed === 1, "decor: buy + place failed");
+    check(out.ghost && out.placed === 1, "decor: buy + place failed (" + JSON.stringify(out) + ")");
     await shot(page, "sys-decor");
     r.decor = out;
   }

@@ -1189,7 +1189,10 @@ function buildEnvironment() {
         if (onPath(gx, gy, hedgeM)) {                          // path edge → low hedge (bush)
           if (LOGS.some((l) => Math.abs(x - l.x) < 34 && Math.abs(y - l.y) < PW)) continue;   // not ON a barrier (its box seals the edge)
           sc.add.image(x, y, bush).setOrigin(0.5, 0.9).setScale(rand(bS[0], bS[1]) / RES(bush)).setDepth(y);
-          COLLISIONS.push({ x: x + hb.dx, y: y + hb.dy, w: hb.w, h: hb.h });
+          // the edge is a WALL: one step x step box per grid cell (gapless along the top/bottom AND the sides of the
+          // loop — small per-bush boxes left gaps on the vertical sides). forest.hedgeSolid:false → old per-bush box.
+          if (f.hedgeSolid === false) COLLISIONS.push({ x: x + hb.dx, y: y + hb.dy, w: hb.w, h: hb.h });
+          else COLLISIONS.push({ x: gx - step / 2, y: gy - step / 2, w: step, h: step });
         } else {                                               // farther → forest (trees: no collision unless forest.treeBox)
           sc.add.image(x, y, tree).setOrigin(0.5, 0.95).setScale(rand(tS[0], tS[1]) / RES(tree)).setDepth(y);
           if (f.treeBox) COLLISIONS.push({ x: gx + f.treeBox.dx, y: gy + f.treeBox.dy, w: f.treeBox.w, h: f.treeBox.h });   // on the grid → no gaps
@@ -1794,11 +1797,17 @@ function sceneUpdate(time, delta) {
     if (mvx || mvy) {
       const ox = player.x, oy = player.y;
       const step = Math.min(spd * dt, stepMax);
-      player.x += mvx * step; player.y += mvy * step;
-      player.x = clamp(player.x, 40, WORLD.w - 40);
-      player.y = clamp(player.y, 40, WORLD.h - 40);
-      const hopped = !mounted && footHop(ox, oy, mvx, mvy);   // on foot: climb over a barrier
-      if (!hopped) blockObstacles();
+      // sub-steps of <= 8 px, each checked against the obstacles: a slow frame (big dt) must never carry a
+      // fast ride THROUGH a thin wall (hedge, rail) in one jump
+      const n = Math.max(1, Math.ceil(step / 8));
+      let hopped = false;
+      for (let i = 0; i < n && !hopped; i++) {
+        const sx = player.x, sy = player.y;
+        player.x = clamp(player.x + mvx * step / n, 40, WORLD.w - 40);
+        player.y = clamp(player.y + mvy * step / n, 40, WORLD.h - 40);
+        hopped = !mounted && footHop(sx, sy, mvx, mvy);   // on foot: climb over a barrier
+        if (!hopped) blockObstacles();
+      }
       // stuck against something while auto-walking → re-plan the route
       if (hopped) player.stuck = 0;
       else if (moveTarget && Math.hypot(player.x - ox, player.y - oy) < spd * dt * 0.25) {

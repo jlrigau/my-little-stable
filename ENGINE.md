@@ -527,6 +527,8 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys],
 band,                                  // forest band thickness around the world
 arena: { rect, tile, label, fence, gates:"left", gateA:0.4, gateB:0.6, obstacleSprite, obstacleScale, obstacleBox, obstacles:[{x,y}] },
 forest: { tree, bush, step, hedgeMargin, treeScale:[min,max], bushScale:[min,max], hedgeBox:{dx,dy,w,h}, treeBox?:{dx,dy,w,h} },
+   // hedges (bushes along the path) form a gapless wall: one step x step box per grid cell (hedgeSolid:false →
+   // the legacy per-bush hedgeBox, which leaves gaps on the vertical sides of the loop)
    // treeBox: give the band's "trees" a collision on the grid (≥ step wide → solid, e.g. an asteroid belt
    // nobody can walk into); omit it for a walkable forest. Make it as TALL as the drawn sprite (dy ≈ −sprite
    // height): a box shorter than the art lets the player stand "inside" the drawing (probes/barriers.cjs checks it)
