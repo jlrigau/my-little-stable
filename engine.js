@@ -1579,7 +1579,8 @@ function buildCreatureObj(c) {
   shadow.baseW = shw * 1.25; shadow.baseH = shh * 1.6;
   const tex = creatureTexture(c);
   const body = sc.add.sprite(0, 0, tex).setOrigin(orig.x, orig.y).setScale(scale / RES(tex));
-  body.play({ key: creatureWalkKey(c), startFrame: randInt(0, 3) });
+  const wk = (CREATURE.walk || {}), nFrames = Math.max(1, ((wk.end != null ? wk.end : 3) - (wk.start || 0)) + 1);
+  body.play({ key: creatureWalkKey(c), startFrame: randInt(0, nFrames - 1) });   // desync, within the strip
   applyVariantTint(body, c);
   // WANT replaces the mood shape, UNLESS wantBubble.withMood: then both coexist
   // (mood shape stays as the always-on colour gauge, want bubble pops in above it).
@@ -3337,7 +3338,7 @@ function r3Track() {
   const road = R3.img.roadside;
   if (road.length) for (let i = 18; i < N - 6; i += 7) {
     const side = rnd() < 0.5 ? -1 : 1;
-    R3.segs[i].sprites.push({ img: road[Math.floor(rnd() * road.length)], offset: side * (1.4 + rnd() * 1.7), scale: 3.4 });
+    R3.segs[i].sprites.push({ img: road[Math.floor(rnd() * road.length)], offset: side * (1.4 + rnd() * 1.7), scale: RACE.roadsideScale || 3.4 });
   }
   (RACE.obstacles || []).forEach((ob, k) => {
     const img = R3.img.obst[k]; if (!img) return;

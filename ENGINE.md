@@ -477,7 +477,7 @@ you steer (left/right half of the screen, or arrow keys) to reach the finish bef
 runs out while dodging obstacles. The ride's `speedMul` / `grip` change top speed / steering.
 The HUD (timer, distance, speed, quit, steering hints) is DOM with the game's icons.
 ```
-race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys], spriteZoom,
+race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys], roadsideScale:3.4, spriteZoom,
   track:{ segments, speed, steer, centrifugal, curveEvery, seed },
   obstacles:[{ sprite, every, phase, scale, hw, spread }],
   colors:{ sky:[top,mid,horizon], sun:[top,bottom]|false, skyline|false, ground, grass:[a,b], road:[a,b], rumble:[a,b], lane, finish:[a,b] },

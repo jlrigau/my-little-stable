@@ -225,7 +225,10 @@ function kidHair(k, cx, cy, r, view, layer) {
   if (view === "up") {
     let g = `<circle cx="${cx}" cy="${cy}" r="${r + 1.5}" fill="${H}" ${st}/>`;
     g += `<path d="M${cx - r * 0.6} ${cy - r * 0.55} Q${cx} ${cy - r * 0.95} ${cx + r * 0.6} ${cy - r * 0.55}" fill="none" stroke="${HL}" stroke-width="3" stroke-linecap="round" opacity=".6"/>`;
-    if (k.style === "ponytail") g += `<path d="${spline([[cx - 9, cy + r * 0.05], [cx - 13, cy + r * 0.7], [cx - 8, cy + r * 1.35], [cx + 1, cy + r * 1.6], [cx + 10, cy + r * 1.2], [cx + 12, cy + r * 0.6], [cx + 9, cy + r * 0.05]], true)}" fill="${H}" ${st}/><path d="M${cx - 1} ${cy + r * 0.6} Q${cx + 1} ${cy + r * 1.1} ${cx - 1} ${cy + r * 1.35}" fill="none" stroke="${HL}" stroke-width="2.4" stroke-linecap="round" opacity=".7"/><ellipse cx="${cx}" cy="${cy + r * 0.08}" rx="8" ry="5" fill="${k.tie}" ${stk(2.5)}/>`;
+    if (k.style === "ponytail") {
+      [-0.6, -0.25, 0.25, 0.6].forEach((t) => { g += `<path d="M${cx + t * r} ${cy - r * 0.85} Q${cx + t * r * 0.7} ${cy - r * 0.3} ${cx + t * 4} ${cy - r * 0.02}" fill="none" stroke="${shade(H, -0.22)}" stroke-width="2" stroke-linecap="round" opacity=".6"/>`; });
+      g += `<path d="${spline([[cx - 7, cy + r * 0.02], [cx - 9, cy + r * 0.5], [cx - 4, cy + r * 1.0], [cx + 3, cy + r * 1.2], [cx + 6, cy + r * 0.8], [cx + 7, cy + r * 0.02]], true)}" fill="${H}" ${st}/><path d="M${cx} ${cy + r * 0.3} Q${cx + 1} ${cy + r * 0.7} ${cx} ${cy + r * 0.95}" fill="none" stroke="${HL}" stroke-width="2.2" stroke-linecap="round" opacity=".7"/><rect x="${cx - 6.5}" y="${cy - r * 0.08}" width="13" height="6" rx="3" fill="${k.tie}" ${stk(2.2)}/>`;
+    }
     else g += `<path d="M${cx - r * 0.9} ${cy + r * 0.45} Q${cx} ${cy + r * 0.75} ${cx + r * 0.9} ${cy + r * 0.45}" fill="none" stroke="${shade(H, -0.2)}" stroke-width="2.5" opacity=".6"/>`;
     return g;
   }
@@ -379,7 +382,7 @@ const wrap = (x, y, fn, S = 256) => { let g = ""; for (const dx of [-S, 0, S]) f
 function grass() {
   const S = 256, R = rng(11);
   let g = `<rect width="${S}" height="${S}" fill="#9dd174"/>`;
-  for (let i = 0; i < 14; i++) { const x = R() * S, y = R() * S, rx = 30 + R() * 40, ry = 18 + R() * 24, c = R() < 0.5 ? "#a8d97e" : "#93c96b"; g += wrap(x, y, (X, Y) => `<ellipse cx="${f2(X)}" cy="${f2(Y)}" rx="${f2(rx)}" ry="${f2(ry)}" fill="${c}" opacity=".55"/>`); }
+  for (let i = 0; i < 14; i++) { const x = R() * S, y = R() * S, rx = 30 + R() * 40, ry = 18 + R() * 24, c = R() < 0.5 ? "#a8d97e" : "#93c96b"; g += wrap(x, y, (X, Y) => `<ellipse cx="${f2(X)}" cy="${f2(Y)}" rx="${f2(rx)}" ry="${f2(ry)}" fill="${c}" opacity=".3"/>`); }
   for (let i = 0; i < 70; i++) {   // little grass tufts (2–3 blades)
     const x = R() * S, y = R() * S, h = 4 + R() * 4, c = R() < 0.7 ? "#7fbd5a" : "#b6e08c";
     g += wrap(x, y, (X, Y) => `<path d="M${f2(X - 3)} ${f2(Y)} Q${f2(X - 3)} ${f2(Y - h * 0.6)} ${f2(X - 5)} ${f2(Y - h)} M${f2(X)} ${f2(Y)} Q${f2(X)} ${f2(Y - h)} ${f2(X + 1)} ${f2(Y - h * 1.25)} M${f2(X + 3)} ${f2(Y)} Q${f2(X + 3)} ${f2(Y - h * 0.6)} ${f2(X + 5)} ${f2(Y - h * 0.9)}" fill="none" stroke="${c}" stroke-width="1.6" stroke-linecap="round" opacity=".85"/>`);
@@ -393,7 +396,7 @@ function grass() {
 function sandTile(file, base, seed, raked) {
   const S = 256, R = rng(seed);
   let g = `<rect width="${S}" height="${S}" fill="${base}"/>`;
-  for (let i = 0; i < 12; i++) { const x = R() * S, y = R() * S, rx = 26 + R() * 40, ry = 14 + R() * 20, c = R() < 0.5 ? shade(base, 0.12) : shade(base, -0.05); g += wrap(x, y, (X, Y) => `<ellipse cx="${f2(X)}" cy="${f2(Y)}" rx="${f2(rx)}" ry="${f2(ry)}" fill="${c}" opacity=".5"/>`); }
+  for (let i = 0; i < 12; i++) { const x = R() * S, y = R() * S, rx = 26 + R() * 40, ry = 14 + R() * 20, c = R() < 0.5 ? shade(base, 0.12) : shade(base, -0.05); g += wrap(x, y, (X, Y) => `<ellipse cx="${f2(X)}" cy="${f2(Y)}" rx="${f2(rx)}" ry="${f2(ry)}" fill="${c}" opacity=".32"/>`); }
   if (raked) for (let y = 8; y < S; y += 16) { let d = `M0 ${y}`; for (let x = 0; x <= S; x += 32) d += ` Q${x + 16} ${y + (((x / 32) % 2) ? 2 : -2)} ${x + 32} ${y}`; g += `<path d="${d}" fill="none" stroke="${shade(base, -0.09)}" stroke-width="2" opacity=".55"/><path d="${d}" transform="translate(0 2.5)" fill="none" stroke="${shade(base, 0.25)}" stroke-width="1.4" opacity=".6"/>`; }
   for (let i = 0; i < 90; i++) { const x = R() * S, y = R() * S, r = 0.8 + R() * 1.6, c = R() < 0.6 ? shade(base, -0.16) : shade(base, 0.3); g += wrap(x, y, (X, Y) => `<ellipse cx="${f2(X)}" cy="${f2(Y)}" rx="${f2(r * 1.3)}" ry="${f2(r)}" fill="${c}" opacity=".7"/>`); }
   if (!raked) for (let i = 0; i < 10; i++) { const x = R() * S, y = R() * S, r = 2.5 + R() * 2; g += wrap(x, y, (X, Y) => `<ellipse cx="${f2(X)}" cy="${f2(Y)}" rx="${f2(r * 1.3)}" ry="${f2(r)}" fill="${shade(base, -0.12)}"/><ellipse cx="${f2(X - 0.6)}" cy="${f2(Y - 0.8)}" rx="${f2(r * 0.7)}" ry="${f2(r * 0.45)}" fill="${shade(base, 0.25)}"/>`); }
@@ -658,7 +661,7 @@ function weathervane() {
   [[14, 92], [56, 92], [35, 104]].forEach(([x, y]) => { g += `<circle cx="${x}" cy="${y}" r="4" fill="${GOLD}" ${stk(2)}/>`; });
   // the horse silhouette (shared horse drawing, flat iron colour)
   const h = horse("bai", { legs: { fn: [30, 1], ff: [24, 1], hn: [-28, 0], hf: [-22, 0] }, head: -2, tail: 6 }, "wv", { flat: IRON, sw: 3 });
-  g += `<g transform="translate(35 52) scale(0.3) translate(-104 -150)">${h.body}</g>`;
+  g += `<g transform="translate(35 61) scale(0.3) translate(-104 -150)">${h.body}</g>`;
   g += `<path d="M10 62 H60 L66 58 L60 54 M10 62 L4 56 M10 62 L4 68" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
   g += `<circle cx="35" cy="62" r="4" fill="${GOLD}" ${stk(2)}/>`;
   return job("assets/img/weathervane.png", W, H, g, h.defs);
@@ -670,7 +673,7 @@ function carrots() {
   const W = 80, H = 60;
   const defs = lin("bk", [[0, "#e6b878"], [1, "#b8864e"]]);
   let g = shadowEl(40, 54, 34, 5);
-  g += carrotShape(28, 18, 26, -18) + carrotShape(42, 14, 28, 4) + carrotShape(54, 18, 24, 22);
+  g += carrotShape(28, 21, 24, -18) + carrotShape(42, 18, 26, 4) + carrotShape(54, 21, 22, 22);
   g += `<path d="M10 28 H70 L64 52 Q63 55 59 55 H21 Q17 55 16 52 Z" fill="url(#bk)" ${stk(3)}/>`;
   for (let y = 34; y < 54; y += 7) g += `<path d="M14 ${y} H66" stroke="#9a6a3a" stroke-width="1.6" opacity=".6"/>`;
   for (let x = 20; x < 64; x += 8) g += `<path d="M${x} 29 V54" stroke="#f2cf98" stroke-width="1.4" opacity=".6"/>`;
@@ -715,6 +718,225 @@ function fence() {
   return job("assets/sheet/fence.png", 256, 64, sheet([f0, f1, f2_, f3], 64, 64, 4));
 }
 
+/* ======================= The friendly 3/4 horse head (mascot) ======================= */
+// Drawn in a local box (ears ≈ y -86, muzzle bottom ≈ +51, neck bottom ≈ +112), placed at
+// (cx,cy) with scale s. o: sw (outline in px), mood smile|happy, noNeck, foal, tilt
+function head3q(coatId, cx, cy, s, u, o = {}) {
+  const c = COATS[coatId], sw = (o.sw || 3) / s, ink = c.ink || INK, st = stk(sw, ink), tilt = o.tilt != null ? o.tilt : -6;
+  const F = o.foal ? 1 : 0;
+  const defs = rad(`${u}g`, [[0, shade(c.body, 0.22)], [0.6, c.body], [1, shade(c.body, c.shadeAmt != null ? c.shadeAmt : -0.16)]], 0.42, 0.3, 0.75) +
+    lin(`${u}n`, [[0, shade(c.body, 0.05)], [1, shade(c.body, -0.18)]], 0, 0, 1, 0) + lin(`${u}m`, [[0, shade(c.mane, 0.15)], [1, shade(c.mane, -0.15)]]) +
+    rad(`${u}z`, [[0, shade(c.muzzle, 0.18)], [1, c.muzzle]], 0.45, 0.35, 0.7) +
+    `<clipPath id="${u}hc"><path d="M0 -58 C28 -58 43 -42 41 -18 C39 0 31 10 30 24 L-30 24 C-31 10 -39 0 -41 -18 C-43 -42 -28 -58 0 -58 Z"/></clipPath>`;
+  let g = `<g transform="translate(${cx} ${cy}) scale(${s}) rotate(${tilt})">`;
+  if (!o.noNeck) g += `<path d="M-26 0 C-30 36 -42 62 -52 80 Q-34 102 4 102 Q42 102 60 80 C50 56 42 22 32 -16 Z" fill="url(#${u}n)" ${st}/><path d="M-14 62 Q2 72 20 66" fill="none" stroke="#fff" stroke-width="${sw * 1.1}" stroke-linecap="round" opacity=".3"/>`;
+  // mane falling down the right side of the neck
+  const mane = o.noNeck ? [[10, -56], [32, -44], [42, -18], [44, 6], [36, 0], [30, -16], [16, -34]]
+    : (F ? [[10, -56], [32, -44], [40, -14], [46, 14], [50, 44], [40, 40], [34, 16], [26, -10], [14, -34]]
+         : [[10, -58], [36, -46], [46, -14], [52, 18], [60, 48], [66, 76], [52, 90], [48, 66], [40, 42], [34, 14], [26, -14], [12, -36]]);
+  g += `<path d="${spline(mane, true)}" fill="url(#${u}m)" ${st}/>`;
+  if (!o.noNeck && !F) g += `<path d="M38 -24 Q48 10 52 40 Q56 58 58 72" fill="none" stroke="${shade(c.mane, 0.35)}" stroke-width="${sw}" stroke-linecap="round" opacity=".5"/>`;
+  // ears
+  const es = F ? 0.82 : 1;
+  [-1, 1].forEach((d) => {
+    g += `<path d="M${d * 8} -46 Q${d * 12 * es} ${-86 * es} ${d * 30 * es} ${-88 * es} Q${d * 36} ${-60} ${d * 30} -38 Z" fill="url(#${u}g)" ${st}/>`;
+    g += `<path d="M${d * 14} -48 Q${d * 17 * es} ${-76 * es} ${d * 28 * es} ${-78 * es} Q${d * 31} -60 ${d * 27} -46 Z" fill="${mix(c.body, "#ff9fa8", 0.5)}" opacity=".85"/>`;
+  });
+  // head
+  g += `<path d="M0 -58 C28 -58 43 -42 41 -18 C39 0 31 10 30 24 L-30 24 C-31 10 -39 0 -41 -18 C-43 -42 -28 -58 0 -58 Z" fill="url(#${u}g)" ${st}/>`;
+  g += `<g clip-path="url(#${u}hc)">`;
+  if (c.blaze === "blaze") g += `<path d="M-6 -46 Q0 -50 6 -46 Q4 -20 7 20 L-7 20 Q-4 -20 -6 -46 Z" fill="#fffaf0"/>`;
+  if (c.blaze === "star") g += `<path d="${star(0, -34, 8, 3.4, 4)}" fill="#fffaf0"/>`;
+  if (c.dapple) [[-20, -36, 4], [18, -40, 3.4], [24, -8, 3.6], [-26, -6, 3]].forEach(([x, y, r]) => { g += `<circle cx="${x}" cy="${y}" r="${r}" fill="${shade(c.body, 0.3)}" opacity=".8"/>`; });
+  g += `<path d="M-24 -40 Q-12 -52 4 -52" fill="none" stroke="#fff" stroke-width="${sw * 1.4}" stroke-linecap="round" opacity="${c.sheen || 0.42}"/>`;
+  g += `</g>`;
+  // muzzle
+  g += `<ellipse cx="0" cy="${30 - F * 4}" rx="${31 - F * 3}" ry="${22 - F * 3}" fill="url(#${u}z)" ${st}/>`;
+  g += `<ellipse cx="-10" cy="${22 - F * 4}" rx="9" ry="4" fill="#fff" opacity=".3"/>`;
+  [-1, 1].forEach((d) => { g += `<ellipse cx="${d * 12}" cy="${28 - F * 4}" rx="3.6" ry="5" fill="${shade(c.muzzle, -0.5)}" transform="rotate(${d * 20} ${d * 12} ${28 - F * 4})"/>`; });
+  const my = 41 - F * 6;
+  if (o.mood === "happy") g += `<path d="M-12 ${my - 1} Q0 ${my + 9} 12 ${my - 1} Q0 ${my + 3} -12 ${my - 1} Z" fill="#9b3a4e" ${stk(sw * 0.8, shade(c.muzzle, -0.5))}/>`;
+  else g += `<path d="M-9 ${my} Q0 ${my + 6} 9 ${my}" fill="none" stroke="${shade(c.muzzle, -0.5)}" stroke-width="${sw * 0.85}" stroke-linecap="round"/>`;
+  // halter (noseband + cheek straps)
+  if (!F) {
+    const hp = "M-31 12 Q0 20 31 12 M-31 12 Q-38 -4 -40 -22 M31 12 Q38 -4 40 -22";
+    g += `<path d="${hp}" fill="none" ${stk(sw * 2 + 4.5, ink)}/><path d="${hp}" fill="none" stroke="${HALTER}" stroke-width="4.5" stroke-linecap="round"/>`;
+    g += `<circle cx="-31" cy="12" r="4" fill="${GOLD}" ${stk(sw * 0.7, ink)}/><circle cx="31" cy="12" r="4" fill="${GOLD}" ${stk(sw * 0.7, ink)}/>`;
+  }
+  // eyes + cheeks
+  const er = F ? 1.2 : 1;
+  [-1, 1].forEach((d) => {
+    const ex = d * 19, ey = -16;
+    if (o.mood === "happy") g += `<path d="M${ex - 7} ${ey + 2} Q${ex} ${ey - 8} ${ex + 7} ${ey + 2}" fill="none" ${stk(sw * 1.1, "#2a1c18")}/>`;
+    else g += `<ellipse cx="${ex}" cy="${ey}" rx="${6.4 * er}" ry="${8.2 * er}" fill="#2a1c18"/><circle cx="${ex - 2.2}" cy="${ey - 3}" r="${2.6 * er}" fill="#fff"/><circle cx="${ex + 2.4}" cy="${ey + 3}" r="${1.2 * er}" fill="#fff" opacity=".8"/>`;
+    g += `<ellipse cx="${d * 27}" cy="0" rx="6" ry="3.6" fill="#ff8f9a" opacity=".45"/>`;
+  });
+  // forelock
+  g += `<path d="${spline(F ? [[-12, -54], [0, -62], [12, -54], [6, -44], [0, -40], [-6, -46]] : [[-14, -54], [0, -64], [15, -54], [10, -44], [4, -38], [-1, -44], [-8, -40], [-12, -46]], true)}" fill="url(#${u}m)" ${st}/>`;
+  g += `</g>`;
+  return { defs, body: g };
+}
+function horseThumb(coat) { const h = head3q(coat, 62, 62, 0.6, "t", { sw: 3 }); return job(`assets/ui/horse_${coat}.png`, 128, 128, h.body, h.defs); }
+
+/* ======================= UI icons ======================= */
+const PAL = { ink: INK, pink: PINK, red: "#ff6b6b", teal: "#3ea8b6", blue: "#5ab4f0", purple: "#b08cf0", gold: GOLD, green: "#6cc47a", orange: "#ff9f43" };
+const ICN = (name, body, defs) => IK.job(`assets/ui/icons/${name}.png`, body, defs || "");
+function gameIcons() {
+  const out = [];
+  const F = (c) => IK.fill(c), st = (w) => stk(w || 7);
+  { const h = head3q("bai", 64, 68, 0.64, "ih", { sw: 6, noNeck: true, tilt: 0 }); out.push(ICN("horse", h.body, h.defs)); }
+  { const h = head3q("palomino", 64, 70, 0.64, "if", { sw: 6, noNeck: true, foal: true, mood: "happy", tilt: 0 }); out.push(ICN("foal", h.body, h.defs)); }
+  { const [d, f] = F(GOLD); out.push(ICN("coin", `<circle cx="64" cy="64" r="50" fill="${f}" ${st()}/><circle cx="64" cy="64" r="36" fill="none" stroke="#e0a020" stroke-width="5"/>${horseshoe(64, 68, 1.25, "#fff2b8", 4)}<path d="M30 46 Q36 30 52 24" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".7"/>`, d)); }
+  { const [d, f] = F("#ffd86a"); let g = `<path d="M20 44 Q64 30 108 44 L104 100 Q64 114 24 100 Z" fill="${f}" ${st()}/>`; const R = rng(3); for (let i = 0; i < 12; i++) { const x = 30 + R() * 66, y = 50 + R() * 44; g += `<path d="M${f2(x)} ${f2(y)} l${f2(8 + R() * 6)} ${f2(R() * 4 - 2)}" stroke="#d9a440" stroke-width="3" stroke-linecap="round"/>`; } g += `<path d="M44 38 Q42 70 44 106 M84 38 Q86 70 84 106" fill="none" stroke="${INK}" stroke-width="13"/><path d="M44 38 Q42 70 44 106 M84 38 Q86 70 84 106" fill="none" stroke="${CORAL}" stroke-width="6"/><path d="M24 40 l-6 -14 M40 34 l0 -14 M62 32 l4 -16 M88 34 l6 -14 M104 40 l10 -10" stroke="${INK}" stroke-width="9" stroke-linecap="round"/><path d="M24 40 l-6 -14 M40 34 l0 -14 M62 32 l4 -16 M88 34 l6 -14 M104 40 l10 -10" stroke="#ffd86a" stroke-width="4" stroke-linecap="round"/>`; out.push(ICN("hay", g, d)); }
+  out.push(ICN("carrot", `<g transform="translate(64 64) scale(2.0) translate(-60 -58)">${carrotShape(64, 44, 32, -35, 1.45)}</g>`));
+  { const [d, f] = F("#c98a54"); out.push(ICN("brush", `<g transform="rotate(-30 64 64)"><rect x="18" y="58" width="92" height="38" rx="14" fill="#7a5a44" ${st()}/>${[0, 1, 2, 3, 4, 5, 6].map((i) => `<path d="M${28 + i * 12} 62 V92" stroke="#e8d6b8" stroke-width="5" stroke-linecap="round"/>`).join("")}<path d="M14 62 Q14 30 64 30 Q114 30 114 62 Z" fill="${f}" ${st()}/><path d="M38 44 Q64 34 92 44" fill="none" stroke="${CORAL}" stroke-width="9" stroke-linecap="round"/><path d="M30 50 Q36 38 52 36" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".6"/></g>`, d)); }
+  { const [d, f] = F("#a0643c"); out.push(ICN("saddle", `<path d="M20 60 Q18 92 36 96 H96 Q112 92 110 60 Z" fill="${CORAL}" ${st(6)}/><path d="M28 88 H102" stroke="#fff" stroke-width="3" stroke-dasharray="6 6" opacity=".8"/>` +
+    `<path d="M42 66 Q36 98 50 108 H74 Q86 100 82 66 Z" fill="#7a4628" ${st(6)}/>` +
+    `<path d="M18 52 Q14 34 28 32 Q40 56 64 58 Q92 58 104 30 Q120 26 116 48 Q112 70 90 72 H40 Q20 70 18 52 Z" fill="${f}" ${st()}/>` +
+    `<path d="M62 72 V102" stroke="${INK}" stroke-width="5"/><path d="M52 102 H72 L70 116 H54 Z" fill="#c9ced6" ${st(5)}/><path d="M34 48 Q50 62 70 62" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".45"/>`, d)); }
+  out.push(ICN("horseshoe", horseshoe(64, 62, 2.7, GOLD, 6)));
+  { const h = horse("bai", { legs: { fn: [62, 1], ff: [56, 1], hn: [-50, 0], hf: [-44, 0] }, head: -2, tail: 6 }, "ij", { sw: 3.6, dy: 0 });
+    let g = `<rect x="14" y="100" width="12" height="20" rx="4" fill="#fffaf2" ${st(5)}/><rect x="102" y="100" width="12" height="20" rx="4" fill="#fffaf2" ${st(5)}/><rect x="16" y="98" width="96" height="10" rx="5" fill="${CORAL}" ${st(5)}/>`;
+    g += `<g transform="translate(64 60) rotate(-16) scale(0.66) translate(-104 -100)">${h.body}</g>`;
+    out.push(ICN("jump", g, h.defs)); }
+  { const [d, f] = F("#fff1d8"); const [d2, f2_] = F("#7488a8"); out.push(ICN("house", `<rect x="26" y="58" width="76" height="56" rx="6" fill="${f}" ${st()}/><path d="M12 64 L64 18 L116 64 Z" fill="${f2_}" ${st()}/><rect x="54" y="80" width="22" height="34" rx="6" fill="#4f9fc0" ${st(5)}/><rect x="80" y="26" width="14" height="22" fill="#d06a52" ${st(5)}/>`, d + d2)); }
+  { const [d, f] = F("#d29a60"); const [d2, f2_] = F("#cf6a52"); out.push(ICN("shop", `<rect x="22" y="58" width="84" height="58" rx="6" fill="${f}" ${st()}/><path d="M10 64 L64 16 L118 64 Z" fill="${f2_}" ${st()}/><rect x="44" y="78" width="40" height="38" fill="#7a4f32" ${st(5)}/><path d="M48 82 L80 112 M80 82 L48 112" stroke="#fff6e6" stroke-width="4"/>${horseshoe(64, 50, 0.6, GOLD, 3)}`, d + d2)); }
+  { const [d, f] = F(GOLD); out.push(ICN("energy", `<path d="M74 10 L26 72 H58 L48 118 L102 50 H68 Z" fill="${f}" ${st()}/><path d="M66 24 L44 54" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".6"/>`, d)); }
+  { const [d, f] = F("#5ab4f0"); out.push(ICN("clean", `<path d="M56 12 Q90 52 90 78 A34 34 0 0 1 22 78 Q22 52 56 12 Z" fill="${f}" ${st()}/><path d="M38 76 Q38 92 52 98" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".7"/><path d="${star(100, 34, 20, 6, 4)}" fill="${GOLD}" ${st(5)}/><path d="${star(104, 92, 11, 3.6, 4)}" fill="#fff" ${st(4)}/>`, d)); }
+  { const [d, f] = F("#ffd86a"); out.push(ICN("food", `<path d="M14 70 Q50 56 86 70 L82 110 Q50 122 18 110 Z" fill="${f}" ${st()}/><path d="M24 78 l12 0 M44 92 l14 -2 M30 100 l10 2 M60 80 l12 1" stroke="#d9a440" stroke-width="3" stroke-linecap="round"/><g transform="translate(78 54) scale(1.9) translate(-64 -50)">${carrotShape(64, 40, 28, 30, 1)}</g>`, d)); }
+  { const [d, f] = F(GOLD); const [d2, f2_] = F("#fff1d8"); out.push(ICN("rest", `<rect x="16" y="70" width="64" height="46" rx="6" fill="${f2_}" ${st()}/><path d="M6 76 L48 38 L90 76 Z" fill="#7488a8" ${st()}/><rect x="38" y="88" width="20" height="28" rx="5" fill="#4f9fc0" ${st(5)}/><path d="M92 12 A28 28 0 1 0 120 56 A22 22 0 1 1 92 12 Z" fill="${f}" ${st(6)}/>`, d + d2)); }
+  { out.push(ICN("stall", `<rect x="18" y="14" width="92" height="104" rx="8" fill="#fff6e6" ${st()}/><rect x="28" y="24" width="72" height="34" rx="4" fill="#3e2a22" ${st(5)}/><path d="M34 54 Q46 42 56 54 Q66 40 78 54 Q88 46 94 54" fill="#e9c66a" ${st(4)}/><rect x="28" y="64" width="72" height="44" rx="4" fill="#6fae60" ${st(5)}/><path d="M32 68 L96 104 M96 68 L32 104" stroke="#fff6e6" stroke-width="7"/><path d="M18 61 H110" stroke="${INK}" stroke-width="5"/>`)); }
+  return out;
+}
+
+/* ======================= Logo, splash, app icons ======================= */
+function logo() {
+  const W = 460, H = 300;
+  const h = head3q("bai", 230, 140, 1.12, "lg", { sw: 7, noNeck: true, mood: "smile" });
+  const defs = h.defs + glow("lgl", 5) + rad("lh", [[0, "#ffffff", 0.9], [1, "#ffffff", 0]]);
+  let g = `<ellipse cx="230" cy="160" rx="220" ry="138" fill="url(#lh)"/>`;
+  g += horseshoe(230, 150, 6.6, GOLD, 7);
+  g += rosette(96, 196, 1.15, CORAL, GOLD) + rosette(364, 196, 1.15, SKY, GOLD);
+  g += h.body;
+  [[60, 60, 16], [400, 70, 14], [36, 250, 10], [424, 250, 12]].forEach(([x, y, r], i) => { g += `<path d="${star(x, y, r, r * 0.33, 4)}" fill="${i % 2 ? PINK : GOLD}" filter="url(#lgl)"/>`; });
+  return job("assets/img/logo.png", W, H, g, defs);
+}
+function splash() {
+  const W = 900, H = 1600;
+  let defs = lin("sky", [[0, "#7cc6f0"], [0.6, "#bfe6fb"], [1, "#e9f7e0"]]) + lin("hill", [[0, "#a6dc7c"], [1, "#86c662"]]) + lin("hill2", [[0, "#8fcf6a"], [1, "#74b955"]]) +
+    lin("mead", [[0, "#a3d879"], [1, "#86c463"]]) + rad("sun", [[0, "#fffbe0"], [0.5, "#ffe48a"], [1, "#ffd24a"]]) + glow("sg", 6) + rad("sh", [[0, "#ffffff", 0.7], [1, "#ffffff", 0]]);
+  let g = `<rect width="${W}" height="${H}" fill="url(#sky)"/>`;
+  g += `<circle cx="700" cy="230" r="150" fill="url(#sh)"/><circle cx="700" cy="230" r="70" fill="url(#sun)"/>`;
+  const cloud = (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})" fill="#fff"><circle cx="-40" cy="10" r="30"/><circle cx="0" cy="-6" r="42"/><circle cx="44" cy="12" r="28"/><rect x="-70" y="10" width="140" height="30" rx="15"/></g>`;
+  g += cloud(180, 220, 1.1) + cloud(560, 400, 0.8) + cloud(820, 120, 0.7);
+  // hills, tree line, distant stable
+  g += `<path d="M0 640 Q220 520 470 610 Q680 520 900 600 V1600 H0 Z" fill="url(#hill)"/>`;
+  g += `<path d="M0 720 Q300 640 600 700 Q780 660 900 690 V1600 H0 Z" fill="url(#hill2)"/>`;
+  g += `<g transform="translate(560 512) scale(0.5)">${stable().svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}</g>`;
+  [[120, 600, 0.55], [190, 620, 0.42], [820, 610, 0.5]].forEach(([x, y, k]) => { g += `<g transform="translate(${x - 64 * k} ${y - 186 * k}) scale(${k})">${pine().svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}</g>`; });
+  g += `<rect x="0" y="780" width="${W}" height="${H - 780}" fill="url(#mead)"/><path d="M0 790 Q450 760 900 790 V800 H0 Z" fill="#9fd676"/>`;
+  // paddock fence across the meadow
+  const fy = 820; for (let x = -20; x < W + 40; x += 90) g += `<rect x="${x - 9}" y="${fy - 70}" width="18" height="84" rx="4" fill="#fffaf0" ${stk(5)}/>`;
+  g += `<rect x="-10" y="${fy - 54}" width="${W + 20}" height="14" fill="#fffaf0" ${stk(5)}/><rect x="-10" y="${fy - 24}" width="${W + 20}" height="14" fill="#fffaf0" ${stk(5)}/>`;
+  for (let x = -20; x < W + 40; x += 90) g += `<rect x="${x - 9}" y="${fy - 72}" width="18" height="10" rx="3" fill="#fffaf0" ${stk(5)}/>`;
+  // flowers in the grass
+  const R = rng(9); for (let i = 0; i < 26; i++) { const x = R() * W, y = 1190 + R() * 380, c = [PINK, "#fff", GOLD, CORAL][i % 4]; g += flowerHead(+f2(x), +f2(y), 11, c); }
+  // the happy horse, the foal and the two kids (subjects between y 420 and 1150; crop x 80–820)
+  const big = horse("bai", 0, "sph", { sw: 3 }), foal = horse("palomino", 0, "spf", { sw: 3, foal: true });
+  defs += big.defs + foal.defs;
+  g += `<ellipse cx="400" cy="1042" rx="190" ry="24" fill="#2a3a1a" opacity=".16"/><ellipse cx="650" cy="1072" rx="100" ry="16" fill="#2a3a1a" opacity=".16"/>`;
+  g += `<g transform="translate(400 1040) scale(2.7) translate(-104 -150)">${big.body}</g>`;
+  g += `<g transform="translate(650 1070) scale(2.0) translate(-${104} -150) translate(208 0) scale(-1 1)">${foal.body}</g>`;
+  const kidsA = [["fille", 210, 1160, 2.2], ["garcon", 560, 1170, 2.2]];
+  kidsA.forEach(([id, x, y, sc], i) => { const r = kid(KIDS[id], "down", 0, false, "sk" + i, "happy"); defs += r.defs; g += `<ellipse cx="${x}" cy="${y - 2}" rx="56" ry="12" fill="#2a3a1a" opacity=".16"/><g transform="translate(${x} ${y}) scale(${sc}) translate(-64 -120)">${r.body}</g>`; });
+  [[120, 470, 22], [790, 520, 18]].forEach(([x, y, r]) => { g += `<path d="${heartPath(x, y, r / 9)}" fill="${PINK}" ${stk(4)}/>`; });
+  return K.job("assets/img/splash.png", W, H, g, defs);
+}
+// App icon (home screen): 512 grid; `safe` < 1 shrinks the subject into the maskable safe zone.
+function icon(file, size, safe = 1) {
+  const S = 512, k = safe;
+  const h = head3q("bai", 256, 230, 2.2, "ic", { sw: 12, noNeck: false });
+  const defs = h.defs + rad("ib", [[0, "#ffd9a0"], [0.55, "#ffb27a"], [1, "#f08a6a"]], 0.5, 0.35, 0.85) + glow("ig", 10) + rad("ih", [[0, "#ffffff", 0.7], [1, "#ffffff", 0]]);
+  let g = `<rect width="${S}" height="${S}" fill="url(#ib)"/>`;
+  for (let i = 0; i < 16; i++) { const a0 = (i / 16) * Math.PI * 2, a1 = a0 + Math.PI / 16; g += `<path d="M256 250 L${256 + Math.cos(a0) * 520} ${250 + Math.sin(a0) * 520} L${256 + Math.cos(a1) * 520} ${250 + Math.sin(a1) * 520} Z" fill="#ffffff" opacity=".08"/>`; }
+  g += `<circle cx="256" cy="262" r="${220 * k}" fill="url(#ih)"/>`;
+  g += `<g transform="translate(256 262) scale(${k}) translate(-256 -262)">`;
+  g += horseshoe(256, 270, 11.5, GOLD, 12);
+  g += `<g transform="translate(256 512) scale(0.92) translate(-256 -512)">${h.body}</g>`;
+  g += `</g>`;
+  [[90, 100, 30, "#fff6b8"], [430, 420, 22, "#ffffff"], [80, 410, 18, "#ffffff"]].forEach(([x, y, r, c]) => { g += `<path d="${star(x, y, r * k, r * 0.33 * k, 4)}" fill="${c}" filter="url(#ig)"/>`; });
+  return Object.assign(job(file, S, S, g, defs), { scale: size / S });
+}
+
+/* ======================= Close-up: brushing the horse ======================= */
+// 1000×1000 backdrop (cover-fit on a phone shows roughly x 0.27–0.73). The side body comes
+// from horse() scaled ×FS, the friendly head from head3q() turned toward the player.
+const FB = 1000, FS = 7, FTX = 60, FTY = 40;
+const toImg = (p) => [p[0] * FS + FTX, p[1] * FS + FTY];
+function spotAreas() {   // neck + shoulder/barrel regions (fractions of the backdrop)
+  const r = (x0, y0, x1, y1) => { const a = toImg([x0, y0]), b = toImg([x1, y1]); return { x: +(a[0] / FB).toFixed(3), y: +(a[1] / FB).toFixed(3), w: +((b[0] - a[0]) / FB).toFixed(3), h: +((b[1] - a[1]) / FB).toFixed(3) }; };
+  return [r(58, 62, 76, 86), r(76, 80, 96, 104)];
+}
+function flank(coat, done) {
+  const c = COATS[coat];
+  const body = horse(coat, 0, "fb", { sw: 1.5, noHead: true, dy: 0 });
+  const hd = head3q(coat, 440, 270, 2.9, "fh", { sw: 11, noNeck: true, mood: done ? "happy" : "smile", tilt: -8 });
+  let defs = body.defs + hd.defs + lin("bg", [[0, "#bfe6fb"], [0.55, "#e6f6d6"], [1, "#b9e08f"]]) + glow("sp", 8) + rad("halo", [[0, "#ffffff", 0.85], [1, "#ffffff", 0]]) + rad("bok", [[0, "#ffffff", 0.6], [1, "#ffffff", 0]]);
+  let g = `<rect width="${FB}" height="${FB}" fill="url(#bg)"/>`;
+  // soft background: distant fence + bokeh
+  g += `<rect x="0" y="560" width="${FB}" height="440" fill="#a9d986" opacity=".55"/>`;
+  for (let x = 30; x < FB; x += 150) g += `<rect x="${x}" y="470" width="22" height="120" rx="6" fill="#fffaf0" opacity=".7"/>`;
+  g += `<rect x="0" y="494" width="${FB}" height="16" fill="#fffaf0" opacity=".7"/><rect x="0" y="540" width="${FB}" height="16" fill="#fffaf0" opacity=".7"/>`;
+  const R = rng(coat.length * 17); for (let i = 0; i < 18; i++) g += `<circle cx="${f2(R() * FB)}" cy="${f2(R() * 520)}" r="${f2(14 + R() * 30)}" fill="url(#bok)"/>`;
+  if (done) g += `<circle cx="520" cy="560" r="520" fill="url(#halo)"/>`;
+  g += `<g transform="translate(${FTX} ${FTY}) scale(${FS})">${body.body}</g>`;
+  if (done) {   // gleaming coat: long glossy streaks on the barrel + neck
+    g += `<g transform="translate(${FTX} ${FTY}) scale(${FS})" fill="none" stroke="#fff" stroke-linecap="round" opacity=".55"><path d="M92 84 Q118 80 140 82" stroke-width="2.6"/><path d="M100 92 Q120 90 134 92" stroke-width="1.6"/><path d="M70 70 Q66 62 64 56" stroke-width="2.2"/></g>`;
+  }
+  g += hd.body;
+  if (done) [[520, 640, 40], [700, 600, 30], [430, 520, 26], [180, 160, 38], [820, 220, 34], [610, 760, 22], [300, 700, 28]].forEach(([x, y, s2]) => { g += `<path d="${star(x, y, s2, s2 * 0.3, 4)}" fill="#fff6b8" filter="url(#sp)"/>`; });
+  if (done) [[520, 140, 3], [610, 210, 2.2]].forEach(([x, y, k]) => { g += `<path d="${heartPath(x, y, k)}" fill="${PINK}" ${stk(6)}/>`; });
+  return job(`assets/img/flank_${coat}${done ? "_done" : ""}.png`, FB, FB, g, defs);
+}
+function mud(file, seed, col) {
+  const R = rng(seed);
+  const defs = rad("md", [[0, shade(col, 0.25)], [0.7, col], [1, shade(col, -0.15)]], 0.4, 0.35, 0.75);
+  let g = "";
+  // little droplets touching the edge of the splotch (one shape, nothing floating)
+  const drops = [[0.2, 1], [1.9, 0.8], [3.6, 1], [5.0, 0.7]];
+  const shapes = [K.blob(55, 57, 34, 30, 9, 0.18, R)];
+  drops.forEach(([a, k]) => { const x = 55 + Math.cos(a) * 36, y = 57 + Math.sin(a) * 32; shapes.push(`M${f2(x + 9 * k)} ${f2(y)} A${9 * k} ${9 * k} 0 1 0 ${f2(x - 9 * k)} ${f2(y)} A${9 * k} ${9 * k} 0 1 0 ${f2(x + 9 * k)} ${f2(y)} Z`); });
+  g += shapes.map((d) => `<path d="${d}" fill="${INK}" stroke="${INK}" stroke-width="7" stroke-linejoin="round"/>`).join("") + shapes.map((d) => `<path d="${d}" fill="url(#md)"/>`).join("");
+  g += `<ellipse cx="44" cy="44" rx="11" ry="6" fill="#fff" opacity=".35" transform="rotate(-25 44 44)"/><circle cx="66" cy="66" r="6" fill="${shade(col, -0.25)}" opacity=".5"/><circle cx="48" cy="70" r="4" fill="${shade(col, -0.25)}" opacity=".5"/>`;
+  return job(`assets/img/${file}.png`, 110, 110, g, defs);
+}
+function straw() {
+  const R = rng(5);
+  const defs = rad("dust", [[0, "#f6e6c4", 0.95], [1, "#e9cf98", 0.85]]);
+  let g = `<path d="${K.blob(55, 56, 36, 30, 10, 0.15, R)}" fill="url(#dust)" ${stk(4, "#b8935a")}/>`;
+  [[30, 40, 80, 64], [34, 72, 84, 44], [52, 30, 62, 84], [26, 56, 70, 52], [44, 78, 86, 70]].forEach(([x1, y1, x2, y2]) => { g += `<path d="M${x1} ${y1} L${x2} ${y2}" stroke="${INK}" stroke-width="8" stroke-linecap="round"/><path d="M${x1} ${y1} L${x2} ${y2}" stroke="#ffd86a" stroke-width="4" stroke-linecap="round"/><path d="M${x1 + 2} ${y1} L${(x1 + x2) / 2} ${(y1 + y2) / 2}" stroke="#fff6c8" stroke-width="1.6" stroke-linecap="round"/>`; });
+  return job("assets/img/straw.png", 110, 110, g, defs);
+}
+// round grooming brush held at an angle, bristles toward the top-left
+const CURRY = { W: 150, rot: -45, cx: 78, cy: 80, tip: [0, -30] };
+function curryTip() { const a = CURRY.rot * Math.PI / 180, [x, y] = CURRY.tip; return { x: +((CURRY.cx + x * Math.cos(a) - y * Math.sin(a)) / CURRY.W).toFixed(3), y: +((CURRY.cy + x * Math.sin(a) + y * Math.cos(a)) / CURRY.W).toFixed(3) }; }
+function curry() {
+  const defs = lin("cw", [[0, "#e0a86e"], [1, "#a8703e"]]) + glow("cg", 2);
+  let g = `<g transform="translate(${CURRY.cx} ${CURRY.cy}) rotate(${CURRY.rot})">`;
+  g += `<rect x="-46" y="-36" width="92" height="26" rx="10" fill="#6a4a3a" ${stk(4.5)}/>`;
+  for (let i = 0; i < 9; i++) g += `<path d="M${-38 + i * 9.5} -34 V-14" stroke="${i % 2 ? "#f4e2c2" : "#e2c89c"}" stroke-width="5" stroke-linecap="round"/>`;
+  g += `<path d="M-52 -10 Q-56 -4 -50 4 Q-30 24 0 24 Q30 24 50 4 Q56 -4 52 -10 Z" fill="url(#cw)" ${stk(4.5)}/>`;
+  g += `<path d="M-30 14 Q-34 40 0 42 Q34 40 30 14" fill="none" stroke="${INK}" stroke-width="15" stroke-linecap="round"/><path d="M-30 14 Q-34 40 0 42 Q34 40 30 14" fill="none" stroke="${CORAL}" stroke-width="8" stroke-linecap="round"/>`;
+  g += `<path d="M-38 -4 Q-20 6 6 6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".5"/>${horseshoe(26, -2, 0.42, GOLD, 1.4)}`;
+  g += `</g>`;
+  g += `<path d="${star(34, 30, 9, 3, 4)}" fill="#fff6b8" filter="url(#cg)"/>`;
+  return job("assets/img/curry.png", CURRY.W, CURRY.W, g, defs);
+}
+if (require.main === module) {
+  console.log("closeup.spots.area =", JSON.stringify(spotAreas()));
+  console.log("closeup.brushTip   =", JSON.stringify(curryTip()));
+}
+
 module.exports = () => K.hidpi(build([]), HIDPI);
 const HIDPI = [
   [/favicon|apple-touch|icon-192|icon-maskable/, { keep: true }],
@@ -730,5 +952,10 @@ function build(jobs) {
   Object.keys(KIDS).forEach((id) => jobs.push(kidSheet(id), rideJob(id), kidThumb(id)));
   jobs.push(grass(), sandTile("sand", "#e6c48a", 21, false), sandTile("arena", "#f1dcae", 33, true), house(), tack(), stable(), pine(), tree(), bush(),
     hurdle(), logs(), trough(), haybale(), flowers(), ribbon(), trophy(), bench(), weathervane(), carrots(), saddleRack(), want(), fence());
+  Object.keys(COATS).forEach((c) => jobs.push(horseThumb(c), flank(c, false), flank(c, true)));
+  jobs.push(mud("mud_1", 3, "#9a6a44"), mud("mud_2", 8, "#8a5e3e"), straw(), curry(), logo(), splash(),
+    icon("assets/favicon.png", 512), icon("assets/apple-touch-icon.png", 180), icon("assets/icon-192.png", 192), icon("assets/icon-maskable.png", 512, 0.78),
+    ...gameIcons(),
+    ...IK.jobs(PAL, ["star", "heart", "heartEmpty", "sound", "soundOff", "help", "avatar", "goals", "close", "play", "resume", "check", "gift", "hand", "sparkle", "bell", "refresh", "arrow", "trophy", "joy", "moon", "calendar", "palette", "ball", "smile", "meh", "sad", "lock", "battery", "home"]));
   return jobs;
 }

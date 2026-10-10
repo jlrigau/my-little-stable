@@ -1,5 +1,18 @@
 # Crédits des assets graphiques
 
+## Art actuel (vectoriel) — original, CC0
+Toute la nouvelle illustration du jeu (chevaux et poulain, enfants, bâtiments, décor,
+obstacles, sols, clôture, gros plan de pansage, icônes, logo, écran d'accueil, icônes
+d'application) est **originale**, générée en SVG paramétrique par `tools/art/stable.cjs`
+(rendu WebP/PNG via `.claude/skills/_shared/render-svg.cjs`). Elle est placée sous
+**CC0 1.0** (domaine public) — aucune attribution requise. Les icônes génériques
+proviennent du kit partagé `.claude/skills/_shared/icon-kit.cjs` (également original, CC0).
+Police : Fredoka (OFL), vendorisée.
+
+## Anciens assets pixel-art (LPC) — en cours de retrait
+Les fichiers de `assets/lpc/` et `assets/sprite/` ci-dessous ne sont plus la source de l'art
+du jeu ; ils restent listés tant qu'ils sont présents dans le dépôt.
+
 Le jeu utilise des assets pixel-art de l'univers **LPC (Liberated Pixel Cup)**,
 tous **libres et gratuits**. La plupart sont sous licence **CC-BY** ou
 **CC-BY-SA** : l'attribution ci-dessous est donc **obligatoire**. Merci aux auteurs ! 🙏
