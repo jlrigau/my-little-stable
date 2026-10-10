@@ -1187,10 +1187,12 @@ function buildEnvironment() {
         if (onPath(gx, gy, 6)) continue;                      // keep the path clear
         const x = gx + randInt(-7, 7), y = gy + randInt(-6, 6);
         if (onPath(gx, gy, hedgeM)) {                          // path edge → low hedge (bush)
+          if (LOGS.some((l) => Math.abs(x - l.x) < 34 && Math.abs(y - l.y) < PW)) continue;   // not ON a barrier (its box seals the edge)
           sc.add.image(x, y, bush).setOrigin(0.5, 0.9).setScale(rand(bS[0], bS[1]) / RES(bush)).setDepth(y);
           COLLISIONS.push({ x: x + hb.dx, y: y + hb.dy, w: hb.w, h: hb.h });
-        } else {                                               // farther → forest (trees, no tight collision)
+        } else {                                               // farther → forest (trees: no collision unless forest.treeBox)
           sc.add.image(x, y, tree).setOrigin(0.5, 0.95).setScale(rand(tS[0], tS[1]) / RES(tree)).setDepth(y);
+          if (f.treeBox) COLLISIONS.push({ x: gx + f.treeBox.dx, y: gy + f.treeBox.dy, w: f.treeBox.w, h: f.treeBox.h });   // on the grid → no gaps
         }
       }
     }
@@ -1205,9 +1207,14 @@ function buildEnvironment() {
     }
     // jumpable logs across the horizontal sides — centred on the visible path
     if (p.logs) {
-      const sprite = p.logs.sprite || "logs", scale = p.logs.scale || 1.3, lb = p.logs.box || { dx: -22, dy: -50, w: 44, h: 100 };
+      const sprite = p.logs.sprite || "logs", scale = p.logs.scale || 1.3;
       LOGS.forEach((r) => {
         sc.add.image(r.x, r.y, sprite).setOrigin(0.5, 0.5).setScale(scale / RES(sprite)).setDepth(r.y + (p.logs.depthLift != null ? p.logs.depthLift : 30));
+        // default: the barrier blocks the WHOLE width of the path, out to the hedge rows (sand edges and the
+        // corridor between sand and hedges included) — nobody slips around it
+        const seg = r.y < WORLD.h / 2 ? LOOP_SEG[0] : LOOP_SEG[1], bw = p.logs.boxW || 44;
+        const ext = Math.max(SAND, (ENV.forest && ENV.forest.hedgeMargin) || 80);
+        const lb = p.logs.box || { dx: -bw / 2, dy: seg.y - ext - r.y, w: bw, h: seg.h + 2 * ext };
         COLLISIONS.push({ x: r.x + lb.dx, y: r.y + lb.dy, w: lb.w, h: lb.h, jumpable: true });
       });
     }
@@ -1333,14 +1340,15 @@ function buildNav() {
     for (let r = Math.max(0, Math.floor(y0 / c)); r <= Math.min(NAV.rows - 1, Math.floor(y1 / c)); r++) {
       const cy = r * c + c / 2; if (cy <= y0 || cy >= y1) continue;
       for (let q = Math.max(0, Math.floor(x0 / c)); q <= Math.min(NAV.cols - 1, Math.floor(x1 / c)); q++) {
-        const cx = q * c + c / 2; if (cx > x0 && cx < x1) NAV.grid[r * NAV.cols + q] = 1;
+        const cx = q * c + c / 2, k = r * NAV.cols + q;
+        if (cx > x0 && cx < x1) NAV.grid[k] = b.jumpable ? (NAV.grid[k] || 2) : 1;   // 2 = a barrier you can hop on foot
       }
     }
   });
   COLLISIONS_DIRTY = false;
 }
 function navCell(x, y) { return { q: clamp(Math.floor(x / NAV.cell), 0, NAV.cols - 1), r: clamp(Math.floor(y / NAV.cell), 0, NAV.rows - 1) }; }
-function navFree(q, r) { return q >= 0 && r >= 0 && q < NAV.cols && r < NAV.rows && !NAV.grid[r * NAV.cols + q]; }
+function navFree(q, r) { if (q < 0 || r < 0 || q >= NAV.cols || r >= NAV.rows) return false; const v = NAV.grid[r * NAV.cols + q]; return !v || (v === 2 && NAV.hop); }
 function freeAt(x, y) { if (!NAV.grid) return true; const p = navCell(x, y); return navFree(p.q, p.r); }
 function nearestFree(q, r, maxR) {
   if (navFree(q, r)) return { q, r };
@@ -1359,7 +1367,12 @@ function lineFree(x0, y0, x1, y1) {
   for (let i = 1; i <= n; i++) { if (!freeAt(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n)) return false; }
   return true;
 }
-function findPath(sx, sy, tx, ty) {
+// hop: plan THROUGH jumpable barriers (the player on foot hops over them, see footHop)
+function findPath(sx, sy, tx, ty, hop) {
+  NAV.hop = !!hop;
+  try { return findPathIn(sx, sy, tx, ty); } finally { NAV.hop = false; }
+}
+function findPathIn(sx, sy, tx, ty) {
   if (COLLISIONS_DIRTY || !NAV.grid) buildNav();
   const C = NAV.cols, cell = NAV.cell;
   const s0 = navCell(sx, sy), t0 = navCell(tx, ty);
@@ -1404,7 +1417,7 @@ function findPath(sx, sy, tx, ty) {
 // Walk the player to (x,y) along a path (falls back to a straight line).
 function walkTo(x, y) {
   x = clamp(x, 40, WORLD.w - 40); y = clamp(y, 40, WORLD.h - 40);
-  const p = findPath(player.x, player.y, x, y);
+  const p = findPath(player.x, player.y, x, y, !mounted);
   navPath = p && p.length ? p : [{ x, y }];
   moveTarget = navPath[0];
 }
@@ -1784,9 +1797,11 @@ function sceneUpdate(time, delta) {
       player.x += mvx * step; player.y += mvy * step;
       player.x = clamp(player.x, 40, WORLD.w - 40);
       player.y = clamp(player.y, 40, WORLD.h - 40);
-      blockObstacles();
+      const hopped = !mounted && footHop(ox, oy, mvx, mvy);   // on foot: climb over a barrier
+      if (!hopped) blockObstacles();
       // stuck against something while auto-walking → re-plan the route
-      if (moveTarget && Math.hypot(player.x - ox, player.y - oy) < spd * dt * 0.25) {
+      if (hopped) player.stuck = 0;
+      else if (moveTarget && Math.hypot(player.x - ox, player.y - oy) < spd * dt * 0.25) {
         player.stuck = (player.stuck || 0) + dt;
         if (player.stuck > 0.35) {
           player.stuck = 0; const now = nowMs();
@@ -1802,7 +1817,7 @@ function sceneUpdate(time, delta) {
     animatePlayer(0, 0, time);
   }
   playerMoving = !!(mvx || mvy) || jumpRunning;
-  player.setDepth(player.y);
+  player.setDepth(player.y + (jumpRunning ? 400 : 0));     // in the air: drawn over the barrier it clears
 
   // Decor placement: ghost stays beside the player, red if the spot is forbidden.
   if (placingDecor && ghostDecor) {
@@ -1816,7 +1831,7 @@ function sceneUpdate(time, delta) {
   if (mounted && RIDE) {
     const arc = jumpAnim.h * 70;
     mounted.obj.x = player.x; mounted.obj.y = player.y - arc; mounted.x = player.x; mounted.y = player.y;
-    mounted.obj.setDepth(player.y - 1);
+    mounted.obj.setDepth(player.y - 1 + (jumpRunning ? 400 : 0));
     faceMount(mounted);
     playerSprite.y = (RIDE.sitY || -58) - arc; playerShadow.setVisible(false);
     // ride.sitX: shift the rider towards the tail (side-view mounts face left by default)
@@ -1836,7 +1851,8 @@ function sceneUpdate(time, delta) {
       }
     }
   } else if (!mounted) {
-    if (playerSprite.y !== 0 || playerSprite.x !== 0) { playerSprite.y = 0; playerSprite.x = 0; playerShadow.setVisible(true); }
+    if (footHopping) { playerSprite.y = -jumpAnim.h * 34; playerSprite.x = 0; }        // little hop over a barrier
+    else if (playerSprite.y !== 0 || playerSprite.x !== 0) { playerSprite.y = 0; playerSprite.x = 0; playerShadow.setVisible(true); }
     if (playerName) playerName.setPosition(player.x, player.y + PLAYER_NAME_Y);
   }
 
@@ -2371,6 +2387,32 @@ function toggleRide(c) {
   panelId = PANEL_DIRTY; refreshInteraction(); refreshHud();
 }
 
+// On foot, a jumpable barrier (logs, rocks, hurdles) is never walked THROUGH: walking into it makes the
+// character climb over with a small hop (so nobody gets stuck between two barriers either). Riding,
+// the barrier blocks and only the Jump action clears it.
+let footHopping = false;
+function footHop(ox, oy, mvx, mvy) {
+  if (jumpRunning || !sc) return false;
+  const hw = 15, hh = 10, hit = (x, y, m) => x + hw > m.x && x - hw < m.x + m.w && y + hh > m.y && y - hh < m.y + m.h;
+  const m = COLLISIONS.find((b) => b.jumpable && hit(player.x, player.y, b) && !hit(ox, oy, b));
+  if (!m) return false;
+  let tx = player.x, ty = player.y;
+  if (Math.abs(mvx) >= Math.abs(mvy)) tx = mvx > 0 ? m.x + m.w + hw + 6 : m.x - hw - 6;
+  else ty = mvy > 0 ? m.y + m.h + hh + 6 : m.y - hh - 6;
+  if (COLLISIONS.some((b) => b !== m && hit(tx, ty, b))) { player.x = ox; player.y = oy; return true; }   // no room behind: stay
+  player.x = ox; player.y = oy;
+  jumpRunning = true; footHopping = true; moveTarget = moveTarget && navPath.length ? moveTarget : null;
+  Sound.play("whoosh");
+  jumpAnim.h = 0;
+  sc.tweens.add({ targets: jumpAnim, h: 1, duration: 200, yoyo: true, ease: "Sine.easeOut" });
+  sc.tweens.add({ targets: player, x: tx, y: ty, duration: 400, ease: "Sine.easeInOut", onComplete: () => {
+    jumpRunning = false; footHopping = false; jumpAnim.h = 0;
+    // drop route waypoints on (or just around) the barrier we cleared, so we never hop back
+    const pad = 34; while (navPath.length && navPath[0].x > m.x - pad && navPath[0].x < m.x + m.w + pad && navPath[0].y > m.y - pad && navPath[0].y < m.y + m.h + pad) navPath.shift();
+    if (moveTarget) moveTarget = navPath[0] || null;
+  } });
+  return true;
+}
 function doJump() {
   const RIDE = CREATURE.ride, J = RIDE && RIDE.jump;
   if (!mounted || jumpRunning || !sc || !J) return;

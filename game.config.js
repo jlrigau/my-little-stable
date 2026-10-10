@@ -47,7 +47,7 @@ window.GAME = {
       };
     } },
     audience: { minAge: 9, notes: "kids 9–10, girls AND boys, cute but NOT manga, horses & riding, no scary content, light reading" },
-    assetVersion: "v12",
+    assetVersion: "v13",
     theme: { home: "#bfe6f5", play: "#7cbf5a", closeup: "#e9f6ff" },
 
     showCoins: true,
@@ -305,7 +305,7 @@ window.GAME = {
     forest: { tree: "pine", bush: "bush", step: 44, hedgeMargin: 80, treeScale: [0.95, 1.2], bushScale: [0.75, 0.95], hedgeBox: { dx: -22, dy: -10, w: 44, h: 14 } },
     path: { width: 240, sand: 46, inset: 90, tile: "sand", label: "Parcours de cross", labelY: 300,
             openings: [{ x: 200, y: 1320, w: 430, h: 220 }, { x: 2170, y: 1320, w: 430, h: 220 }],
-            logs: { xs: [520, 820, 1120, 1700, 2000, 2300], dec: 14, sprite: "logs", scale: 1 } },
+            logs: { xs: [520, 820, 1120, 1700, 2000, 2300], dec: 0, sprite: "logs", scale: 1 } },
   },
 
   /* ---- Scenery around the centre ---- */

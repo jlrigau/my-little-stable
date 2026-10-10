@@ -22,6 +22,7 @@ run by Claude Code through the **Bash** tool.
 | `contact-sheet.py` | Labelled contact sheet(s) of a folder of screenshots: `python3 contact-sheet.py DIR`. |
 | `probes/jitter.cjs` | A ridden creature/vehicle must not shake: three tap-to-move rides at ~15 fps (CPU ×6), fails on flip-flopping facing or a destination never reached. |
 | `probes/racehud.cjs` | Race HUD on one row: time / distance / speed chips never wrap, overlap or spill their value, even with the longest values. Run on 390, 360 and 320 px wide devices. |
+| `probes/barriers.cjs` | Trail-loop barriers seal the path: riding, nothing gets past at any height (only Jump clears it); on foot the character hops over and tap-to-move reaches every section (no soft-lock). |
 | `probes/systems.cjs` | Functional checks of the optional systems a game enables (ride + facing, jump, station menu + restyle, missions, chase, models, race, legacy save) with a screenshot each; blocks skip themselves when a system is off. |
 | `probes/tour.cjs` | The standard regression tour (home, create, tap→walk, close-up→reveal→world responsive, help, stations, unlocks, guide, save) with screenshots; `probes/lib.cjs` = helpers for your own probes. |
 | `sync-engine.sh` | Backport the engine layer (`engine.js`, `ENGINE.md`, `.claude/skills/`) FROM a game repo INTO the template; runs the separation audit + syntax check; never commits. `bash .claude/skills/_shared/sync-engine.sh <game-url|remote> [ref]`. Used by **sync-engine**. |

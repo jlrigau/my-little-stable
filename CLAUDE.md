@@ -53,6 +53,9 @@ Whenever the engine gains a capability, **add it to Nebula too** (it must show e
   (`node .claude/skills/_shared/playtest.cjs`) for screenshots, walkability and page
   errors. The harness points Chromium at `HTTPS_PROXY` when set; Phaser is vendored so
   tests don't need a CDN. **Always validate visually before pushing.**
+- Several games served at once: target one with `--port N` (game-engine 8099, dr-smile 8100, gta7 8101,
+  my-little-stable 8102). The harness refuses unknown options — an ignored `--url` once made every
+  "other game" regression silently test Nebula.
 
 ## 6. Engine capabilities (all config-gated — see ENGINE.md)
 Tiled world + smooth camera + adaptive zoom + HiDPI canvas (pixel-art or smooth hi-res

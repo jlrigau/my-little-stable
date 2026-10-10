@@ -43,6 +43,11 @@ function arg(name, def) {
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : def;
 }
 const has = (name) => process.argv.includes(name);
+// Refuse unknown flags: a silently ignored option (e.g. --url) once made every "other game" test
+// run against the default port's game instead. --url http://localhost:N/ is accepted as --port N.
+const KNOWN = ["--device", "--engine", "--eval", "--out", "--port", "--probe", "--shots", "--viewport", "--walk", "--url"];
+process.argv.slice(2).forEach((a) => { if (a.startsWith("--") && !KNOWN.includes(a)) { console.error(`PLAYTEST FAILED: unknown option ${a} (known: ${KNOWN.join(" ")})`); process.exit(2); } });
+{ const u = arg("--url", ""); if (u) { const m = u.match(/:(\d+)/); if (!m) { console.error("PLAYTEST FAILED: --url needs a port, e.g. http://localhost:8100/"); process.exit(2); } const i = process.argv.indexOf("--port"); if (i >= 0) process.argv[i + 1] = m[1]; else process.argv.push("--port", m[1]); } }
 
 (async () => {
   const pw = loadPlaywright();

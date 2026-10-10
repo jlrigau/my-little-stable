@@ -526,9 +526,14 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys],
 ```
 band,                                  // forest band thickness around the world
 arena: { rect, tile, label, fence, gates:"left", gateA:0.4, gateB:0.6, obstacleSprite, obstacleScale, obstacleBox, obstacles:[{x,y}] },
-forest: { tree, bush, step, hedgeMargin, treeScale:[min,max], bushScale:[min,max], hedgeBox:{dx,dy,w,h} },
+forest: { tree, bush, step, hedgeMargin, treeScale:[min,max], bushScale:[min,max], hedgeBox:{dx,dy,w,h}, treeBox?:{dx,dy,w,h} },
+   // treeBox: give the band's "trees" a collision on the grid (step × step → solid, e.g. an asteroid belt
+   // nobody can walk into); omit it for a walkable forest
 path: { width, sand, inset, tile, label, labelY,
-        openings:[{x,y,w,h}], logs:{ xs:[...], dec, sprite, scale, box:{dx,dy,w,h}, depthLift } },
+        openings:[{x,y,w,h}], logs:{ xs:[...], dec, sprite, scale, boxW:44, box?:{dx,dy,w,h}, depthLift } },
+   // logs: jumpable barriers across the top/bottom sides. Without `box`, each one blocks the WHOLE path width
+   // out to the hedge rows (path ± max(sand, forest.hedgeMargin)) so nobody walks around it — draw the sprite as long as the path is wide.
+   // Make the hedge (forest.hedgeBox) as wide as forest.step so the path edge has no gap to slip out by.
 ```
 See the **place-scatter** skill for the single-rule vegetation system.
 

@@ -622,18 +622,18 @@ function hurdleV() {  // the same show-jumping obstacle turned ACROSS a left↔r
   g += wing(108, 50, 24);                     // near wing in front
   return job("assets/img/hurdle_v.png", W, H, g);
 }
-function logs() {     // log-pile jump lying ACROSS a horizontal path (long axis vertical)
-  const W = 80, H = 150;
+function logs() {     // log-pile jump lying ACROSS the whole cross path (long axis vertical: path 240 + sand 2×46 = 332)
+  const W = 80, H = 350;
   const defs = lin("lg", [[0, "#8a5a36"], [0.5, "#b07a4a"], [1, "#7a4e30"]], 0, 0, 1, 0) + rad("lc", [[0, "#f6deb0"], [1, "#d9b07a"]]);
-  let g = shadowEl(40, 142, 34, 7);
+  let g = shadowEl(40, H - 8, 34, 7);
   const log = (x, y0, y1, w) => {
     let s = `<rect x="${x - w / 2}" y="${y0}" width="${w}" height="${y1 - y0}" rx="${w / 2}" fill="url(#lg)" ${stk(3)}/>`;
     for (let y = y0 + 16; y < y1 - 18; y += 22) s += `<path d="M${x - w * 0.3} ${y} q${w * 0.15} 6 0 12" fill="none" stroke="#6a4228" stroke-width="2" opacity=".6"/><path d="M${x + w * 0.2} ${y + 10} q${w * 0.1} 5 0 10" fill="none" stroke="#6a4228" stroke-width="2" opacity=".6"/>`;
     s += `<ellipse cx="${x}" cy="${y1 - w * 0.42}" rx="${w / 2 - 1}" ry="${w * 0.42}" fill="url(#lc)" ${stk(3)}/><ellipse cx="${x}" cy="${y1 - w * 0.42}" rx="${w * 0.26}" ry="${w * 0.22}" fill="none" stroke="#c9955a" stroke-width="1.8"/><circle cx="${x}" cy="${y1 - w * 0.42}" r="2" fill="#c9955a"/>`;
     return s;
   };
-  g += log(28, 14, 140, 24) + log(52, 14, 140, 24) + log(40, 6, 128, 22);
-  g += `<path d="M36 18 V96" stroke="#fff" stroke-width="3" opacity=".3" stroke-linecap="round"/>`;
+  g += log(28, 14, H - 10, 24) + log(52, 14, H - 10, 24) + log(40, 6, H - 22, 22);
+  g += `<path d="M36 18 V${H - 60}" stroke="#fff" stroke-width="3" opacity=".3" stroke-linecap="round"/>`;
   return job("assets/img/logs.png", W, H, g, defs);
 }
 function trough() {
