@@ -366,7 +366,14 @@ input[type="text"]::placeholder { color: var(--muted); opacity: 0.65; }
 .race3d { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 30; touch-action: none; background: #000; }
 .race-hud { position: fixed; inset: 0; z-index: 31; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
   padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); }
-.rh-top { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding-left: 8px; }
+.rh-top { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; padding-left: 8px; }
+/* one line, whatever the values: compact chips that scale with the screen + fixed-width digits (no jump, no wrap) */
+.rh-top .resource { flex: 0 1 auto; min-width: 0; margin-left: 4px; height: 32px; padding: 0 9px 0 28px; font-size: clamp(.7rem, 3.3vw, 1.05rem); font-variant-numeric: tabular-nums; }
+.rh-top .resource .r-ico { left: -10px; width: 38px; height: 38px; }
+.rh-top .resource .r-ico .ico { width: 36px; height: 36px; }
+.rh-top .resource b { display: inline-block; text-align: right; }
+#rh-time b { min-width: 3em; } #rh-dist b { min-width: 3.6em; } #rh-speed b { min-width: 4.5em; }
+@media (max-width: 359px) { .rh-top .resource { padding: 0 7px 0 26px; } .rh-top .resource b { min-width: 0 !important; } .rh-top { gap: 2px; } }
 .rh-top .resource.warn { border-color: var(--bad); animation: heatPulse .6s ease-in-out infinite; }
 .rh-quit { margin-left: auto; pointer-events: auto; }
 .rh-steer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

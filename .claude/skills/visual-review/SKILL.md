@@ -88,7 +88,8 @@ Checklist:
   and look at the frames in order — no flicker / disappear-reappear, no two tweens on the
   same property, item lands and settles before its idle loop.
 - **Worst case HUD**: the close-up at max spots (`reveal.cjs` asserts the progress bar
-  never overlaps the close button); longest names; short screen.
+  never overlaps the close button); the race HUD at its longest values on 390 / 360 / 320 px
+  (`racehud.cjs`: one row, no overlap, values inside their pills); longest names; short screen.
 - **Feedback**: every tap/action has a visible + audible response.
 
 ## 4. Report
