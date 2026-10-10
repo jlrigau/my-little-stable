@@ -437,7 +437,8 @@ zones[].floor: "<image key>"          // an image stretched over the rect (rug, 
 zones[].labelLift: 14                  // label offset above the rect
 stations: [ { type, x, y, sprite, label, labelY?, scale?, box?, action, actionLabel,
               onUse?, spawn?, menu?, glow?, anim?, reach?:110, tapRadius?:80, sfx?, icon?, color?, hint? } ]
-// action: "nextDay" | "spawn" | "openShop" | "menu" | "missions" | "models" | "custom"
+// action: "nextDay" | "spawn" | "openShop" | "menu" | "missions" | "models" | "restyle" | "custom"
+// action:"restyle" → restyle: { price, title, subtitle, clearsChase, message, chaseMessage } (same fields as the menu item)
 // whileRiding / requireMounted: the station can be used without getting off (requireMounted: ONLY
 //   when riding — on foot it says needMountMessage); api.ride = the ridden creature.
 // action:"custom" → onUse(state, api) with api = { ride, message, refreshHud, save, earn(n), spend(n)→bool,

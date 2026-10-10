@@ -2279,6 +2279,7 @@ function interact(target) {
   else if (st.action === "spawn") spawnCreatures(st);
   else if (st.action === "openShop") openShop();
   else if (st.action === "menu") openStationMenu(st);
+  else if (st.action === "restyle") openRestyle(Object.assign({ label: st.label }, st.restyle || {}));
   else if (st.action === "missions") openMissions();
   else if (st.action === "models") openModels();
   else if (st.action === "custom" && typeof st.onUse === "function") st.onUse(state, stationApi());

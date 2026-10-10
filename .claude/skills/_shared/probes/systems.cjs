@@ -67,11 +67,11 @@ module.exports = async (page) => {
     });
     if (!out.skipped) check(out.stillMounted && out.empty && out.mul < 1, "ride: an empty ride should stay mounted and slow down");
     const gas = await page.evaluate(async () => {
-      const st = (GAME.stations || []).find((s) => s.requireMounted); if (!st || !mounted) return { skipped: true };
+      const st = (GAME.stations || []).find((s) => s.requireMounted && s.action === "custom"); if (!st || !mounted) return { skipped: true };
       const need = GAME.creature.ride.fatigueNeed;
       player.x = st.x; player.y = st.y + 110; await new Promise((res) => setTimeout(res, 300));
       const targeted = activeTarget === st;
-      interact({ type: st.type, station: true });
+      interact({ type: st.type, station: true }); closeModal();
       return { targeted, refilled: mounted[need] > 50, notEmpty: rideEmptyMul() === 1 };
     });
     if (!gas.skipped) check(gas.targeted && gas.refilled && gas.notEmpty, "station: a ride-only station did not serve the mounted ride");
@@ -127,6 +127,27 @@ module.exports = async (page) => {
     check(out.items > 0, "menu: no items");
     if (out.restyle) { check(out.restyle.changed, "restyle: variant unchanged"); }
     r.menu = out;
+  }
+
+  // ---- station action "restyle" (e.g. a paint shop you drive into) ----
+  {
+    const out = await page.evaluate(async () => {
+      const st = (GAME.stations || []).find((s) => s.action === "restyle"); if (!st || !GAME.creature || !GAME.creature.ride) return null;
+      const c = state.creatures[0]; if (mounted && mounted !== c) dismount(mounted, false);
+      if (!mounted) { player.x = c.x - 60; player.y = c.y; activeTarget = c; creatureAction(GAME.creature.actions.find((a) => a.type === "ride").id); }
+      const foot = st.requireMounted;
+      player.x = st.x; player.y = st.y + 110; await new Promise((r) => setTimeout(r, 300));
+      const before = mounted.variant; interact({ type: st.type, station: true });
+      const opts = document.querySelectorAll("#modal-body .choice").length;
+      choicePick(choiceOpts.findIndex((x) => !x.disabled));
+      const changed = mounted.variant !== before; dismount(mounted, false);
+      // on foot it must refuse when requireMounted
+      await new Promise((r) => setTimeout(r, 200)); interact({ type: st.type, station: true });
+      const refusedOnFoot = !foot || document.getElementById("modal").classList.contains("hidden");
+      closeModal();
+      return { opts, changed, refusedOnFoot };
+    });
+    if (out) { check(out.changed && out.refusedOnFoot, "restyle station: did not repaint the ridden creature / did not refuse on foot"); r.restyleStation = out; }
   }
 
   // ---- missions ----

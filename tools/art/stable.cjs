@@ -570,6 +570,30 @@ function hurdle() {   // show-jumping obstacle: two striped wings + a striped po
   g += `<path d="M22 32 H90" stroke="#fff" stroke-width="2" opacity=".7" stroke-linecap="round"/>`;
   return job("assets/img/hurdle.png", W, H, g);
 }
+function hurdleV() {  // the same show-jumping obstacle turned ACROSS a left↔right run: far wing at the
+  // top, two striped poles running down the screen, near wing in front (3/4 view, like the log pile)
+  const W = 72, H = 170;
+  let g = `<ellipse cx="36" cy="150" rx="24" ry="7" fill="#3a2a1e" opacity=".18"/><path d="M20 30 Q14 92 20 150 H52 Q58 92 52 30 Z" fill="#3a2a1e" opacity=".1"/>`;
+  const wing = (y0, h, w) => {
+    const x = 36 - w / 2;
+    let s = `<rect x="${x}" y="${y0}" width="${w}" height="${h}" rx="4" fill="#fffaf2" ${stk(3)}/>`;
+    for (let yy = y0 + 5; yy < y0 + h - 8; yy += 12) s += `<rect x="${x + 2}" y="${yy}" width="${w - 4}" height="6" fill="${CORAL}"/>`;
+    s += `<rect x="${x}" y="${y0}" width="${w}" height="${h}" rx="4" fill="none" ${stk(3)}/>`;
+    s += `<rect x="${x - 5}" y="${y0 + h - 6}" width="${w + 10}" height="8" rx="3" fill="${WOOD}" ${stk(3)}/>`;
+    s += `<circle cx="${x + w / 2}" cy="${y0 - 3}" r="${w > 20 ? 5 : 4}" fill="${GOLD}" ${stk(2.5)}/>`;
+    return s;
+  };
+  const pole = (x, y0, y1, id) => {
+    let s = `<rect x="${x}" y="${y0}" width="9" height="${y1 - y0}" rx="4.5" fill="#fffaf2" ${stk(3)}/><clipPath id="${id}"><rect x="${x}" y="${y0}" width="9" height="${y1 - y0}" rx="4.5"/></clipPath><g clip-path="url(#${id})">`;
+    for (let y = y0; y < y1; y += 16) s += `<path d="M${x} ${y} L${x + 9} ${y + 6} V${y + 13} L${x} ${y + 7} Z" fill="${SKY}"/>`;
+    return s + `</g><rect x="${x}" y="${y0}" width="9" height="${y1 - y0}" rx="4.5" fill="none" ${stk(3)}/>`;
+  };
+  g += wing(10, 44, 26);                      // far wing (smaller: further away)
+  g += pole(24, 34, 128, "hv1") + pole(39, 40, 136, "hv2");
+  g += `<path d="M28 42 V120" stroke="#fff" stroke-width="2" opacity=".7" stroke-linecap="round"/>`;
+  g += wing(108, 50, 24);                     // near wing in front
+  return job("assets/img/hurdle_v.png", W, H, g);
+}
 function logs() {     // log-pile jump lying ACROSS a horizontal path (long axis vertical)
   const W = 80, H = 150;
   const defs = lin("lg", [[0, "#8a5a36"], [0.5, "#b07a4a"], [1, "#7a4e30"]], 0, 0, 1, 0) + rad("lc", [[0, "#f6deb0"], [1, "#d9b07a"]]);
@@ -962,7 +986,7 @@ function build(jobs) {
   Object.keys(COATS).forEach((c) => jobs.push(horseSheet(c)));
   Object.keys(KIDS).forEach((id) => jobs.push(kidSheet(id), rideJob(id), kidThumb(id)));
   jobs.push(grass(), sandTile("sand", "#e6c48a", 21, false), sandTile("arena", "#f1dcae", 33, true), house(), tack(), stable(), pine(), tree(), bush(),
-    hurdle(), logs(), trough(), haybale(), flowers(), ribbon(), trophy(), bench(), weathervane(), carrots(), saddleRack(), want(), fence());
+    hurdle(), hurdleV(), logs(), trough(), haybale(), flowers(), ribbon(), trophy(), bench(), weathervane(), carrots(), saddleRack(), want(), fence());
   Object.keys(COATS).forEach((c) => jobs.push(horseThumb(c), flank(c, false), flank(c, true)));
   jobs.push(mud("mud_1", 3, "#a9784a"), mud("mud_2", 8, "#a27046"), straw(), curry(), logo(), splash(),
     icon("assets/favicon.png", 512), icon("assets/apple-touch-icon.png", 180), icon("assets/icon-192.png", 192), icon("assets/icon-maskable.png", 512, 0.78),
