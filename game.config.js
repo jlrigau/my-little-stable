@@ -47,7 +47,7 @@ window.GAME = {
       };
     } },
     audience: { minAge: 9, notes: "kids 9–10, girls AND boys, cute but NOT manga, horses & riding, no scary content, light reading" },
-    assetVersion: "v3",
+    assetVersion: "v4",
     theme: { home: "#bfe6f5", play: "#7cbf5a", closeup: "#e9f6ff" },
 
     showCoins: true,
@@ -238,7 +238,7 @@ window.GAME = {
     ],
     ride: {
       adultsOnly: true, minEnergy: 20, fatigueNeed: "energie",
-      sitY: -58, sitX: 16, nameY: -190,
+      sitY: -58, sitX: 32, nameY: -190,
       onMount: { bonheur: 12, energie: -6 },
       tooYoung: "{name} est un poulain, trop petit pour être monté.",
       tooTired: "{name} est trop fatigué pour te porter.",
