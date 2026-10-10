@@ -27,6 +27,8 @@ module.exports = async (page) => {
     jumpRunning, footHopping: typeof footHopping !== "undefined" ? footHopping : null, mounted: mounted ? mounted.name : null,
     race: typeof R3 !== "undefined" ? !!R3.on : null, placing: !!placingDecor, screen: document.documentElement.dataset.screen,
     raceDom: !!document.querySelector(".race3d:not(.hidden)"), stuck: player.stuck || 0, replans: player.replans || 0,
+    inside: COLLISIONS.filter((m) => player.x + 15 > m.x && player.x - 15 < m.x + m.w && player.y + 10 > m.y && player.y - 10 < m.y + m.h).map((m) => [m.x, m.y, m.w, m.h, m.jumpable ? "J" : ""]),
+    navHere: typeof freeAt === "function" ? freeAt(player.x, player.y) : null,
   }));
   // a free point on the canvas, ~110-170 px from the player, away from creatures
   const freePoint = () => page.evaluate((a) => {
@@ -43,6 +45,7 @@ module.exports = async (page) => {
     }
     return null;
   }, rnd() * 6.28);
+  let lastTap = null;
   const responds = async () => {
     let f = await flags();
     // a race in progress is its own screen (taps steer, they don't walk): leave it with its quit button first
@@ -51,11 +54,12 @@ module.exports = async (page) => {
     for (let tries = 0; tries < 2; tries++) {
       const pt = await freePoint(); if (!pt) return { ok: true, skip: "no free point" };
       const before = (await flags()).player;
+      lastTap = await page.evaluate((pt) => { const w = sc.cameras.main.getWorldPoint(pt.x * DPR, pt.y * DPR); const p = findPath(player.x, player.y, w.x, w.y, !mounted); return { screen: pt, world: [Math.round(w.x), Math.round(w.y)], free: freeAt(w.x, w.y), path: p ? p.length : null }; }, pt).catch(() => null);
       await tap(pt.x, pt.y); await wait(page, 900);
       const after = await flags();
       if (Math.hypot(after.player[0] - before[0], after.player[1] - before[1]) > 6 || after.moveTarget) return { ok: true };
     }
-    return { ok: false, flags: await flags() };
+    return { ok: false, flags: { ...(await flags()), lastTap } };
   };
   const closeCloseupBtn = async () => { const b = await page.$("#closeup-close"); if (b) await b.click().catch(() => {}); };
   const ACTIONS = {

@@ -307,6 +307,21 @@ module.exports = async (page) => {
     r.breeding = out;
   }
 
+  // ---- texts: no raw markup visible in any choice window (e.g. a "<br>" printed as text) ----
+  {
+    const out = await page.evaluate(() => {
+      const seen = [], raw = /<\/?[a-z][a-z0-9]*[^<>]*>|&lt;|&gt;|&amp;|\{i:[a-z0-9_]*\}/i;
+      const look = (name, open) => { try { open(); } catch (e) { return; } const t = document.getElementById("modal").innerText || ""; const m = t.match(raw); if (m) seen.push(name + ": " + m[0]); closeModal(); };
+      if (GAME.shop) look("shop", () => openShop());
+      if (GAME.models) look("models", () => openModels());
+      if (GAME.missions && !state.mission) look("missions", () => openMissions());
+      (GAME.stations || []).filter((st) => st.action === "menu").forEach((st) => look("menu " + st.type, () => openStationMenu(st)));
+      return seen;
+    });
+    out.forEach((m) => r.errors.push("raw markup shown as text in " + m));
+    r.texts = out;
+  }
+
   // ---- legacy save migration ----
   if (has.legacy) {
     const out = await page.evaluate(() => {

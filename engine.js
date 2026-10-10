@@ -3183,7 +3183,7 @@ function openChoice(title, subtitle, items) {
     const right = o.tag ? `<span class="ch-tag">${iconHTML(o.tag)}</span>`
       : (o.price != null ? `<span class="ch-price">${iconHTML(META.coinIcon || "star")}<b>${o.price}</b></span>` : "");
     html += `<button class="choice${o.accent ? " accent" : ""}${o.disabled ? " off" : ""}" data-choice="${i}"${o.disabled ? " disabled" : ""}${o.color ? ` style="--c:${o.color}"` : ""}>
-      <span class="ch-ico">${ico}</span><span class="ch-txt"><b>${fmt(o.label)}</b>${o.sub ? `<small>${fmt(o.sub)}</small>` : ""}</span>${right}</button>`;
+      <span class="ch-ico">${ico}</span><span class="ch-txt"><b>${fmt(o.label)}</b>${o.sub ? `<small>${fmt(o.sub).replace(/\n/g, "<br>")}</small>` : ""}</span>${right}</button>`;
   });
   openModal(title, html + `</div>`);
 }
@@ -3442,7 +3442,7 @@ function openModels() {
     const v = variantDef(m.variant);
     const statTxt = (MODELS.stats || []).map((s) => `{i:${s.icon}} ${Math.round((m[s.key] != null ? (s.invert ? 2 - m[s.key] : m[s.key]) : 1) * 100)}%`).join("  ");
     return {
-      label: m.name, sub: statTxt + (m.desc ? "<br>" + m.desc : ""), img: m.img || (v && v.thumb), icon: m.icon || (CREATURE && CREATURE.icon), color: v && v.color,
+      label: m.name, sub: statTxt + (m.desc ? "\n" + m.desc : ""), img: m.img || (v && v.thumb), icon: m.icon || (CREATURE && CREATURE.icon), color: v && v.color,
       price: owned ? null : m.price, tag: owned ? (MODELS.ownedTag || "check") : null, disabled: owned,
       onPick: () => buyModel(m),
     };

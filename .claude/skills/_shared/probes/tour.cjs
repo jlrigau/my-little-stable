@@ -75,6 +75,9 @@ module.exports = async (page) => {
       });
       await page.mouse.click(tgt.x, tgt.y); await wait(page, 1200);
       const a2 = await page.evaluate(() => [player.x, player.y]);
+      if (!(Math.hypot(a2[0] - b2[0], a2[1] - b2[1]) > 10)) r.afterCloseupFlags = await page.evaluate((t) => ({ tgt: t, jumpRunning, moveTarget: !!moveTarget, nav: navPath.length,
+        closeupOpen, modal: !document.getElementById("modal").classList.contains("hidden"), input: sc.input.enabled, zoomFx, player: [Math.round(player.x), Math.round(player.y)],
+        under: (document.elementFromPoint(t.x, t.y) || {}).id || (document.elementFromPoint(t.x, t.y) || {}).tagName, fps: Math.round(game.loop.actualFps) }), tgt);
       check(Math.hypot(a2[0] - b2[0], a2[1] - b2[1]) > 10, "world unresponsive after the close-up");
       r.spots = s1.total; r.coinsGained = (await page.evaluate(() => state.coins)) - coins0;
     }
