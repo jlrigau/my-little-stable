@@ -213,6 +213,12 @@ input[type="text"]::placeholder { color: var(--muted); opacity: 0.65; }
 #world { width: 100%; height: 100%; touch-action: none; cursor: pointer; background: var(--edge-game, var(--deep)); }
 #world canvas { opacity: 0; transition: opacity .35s ease; }     /* revealed by engine.js once drawn */
 #world.ready canvas { opacity: 1; }
+/* World loading screen (engine.js showWorldLoader): character + rounded gauge */
+.world-loader { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; pointer-events: none; transition: opacity .35s ease; }
+.world-loader.done { opacity: 0; }
+.world-loader img { width: 112px; height: 112px; object-fit: contain; animation: float 1.6s ease-in-out infinite; filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.22)); }
+.wl-bar { width: min(200px, 52%); height: 16px; border-radius: 99px; overflow: hidden; background: rgba(0, 0, 0, 0.16); border: 2px solid rgba(255, 255, 255, 0.55); box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.2); }
+.wl-bar i { display: block; width: 0; height: 100%; border-radius: 99px; background: var(--gloss), var(--primary); transition: width .2s ease; }
 #world canvas { display: block; touch-action: none; }
 .btn-action { display: none; }
 

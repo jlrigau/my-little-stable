@@ -381,6 +381,12 @@ height:var(--app-h)` and makes the panel `absolute` inside `#screen-game`. New f
 layers must be added to that rule. Test: `_shared/ios-standalone-check.cjs` (launch +
 corrected + Safari must print identical values).
 
+#### World loading screen
+While Phaser loads the world, `#world` shows the edge colour and a DOM loader (the
+player's character thumbnail floating over a rounded `--primary` gauge, `.world-loader`);
+the canvas fades in once its first frame is drawn (`game.events` `postrender`), and the
+action panel stays hidden (empty + idle) until it has content.
+
 #### iOS: no scroll, edge colours, stale page
 - The document never scrolls: `body{position:fixed}` + `overscroll-behavior:none`, and
   `engine.js` snaps back to (0,0) on scroll / focusout / visualViewport resize / pageshow.

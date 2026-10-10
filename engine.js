@@ -956,12 +956,10 @@ function scenePreload() {
     const r = s.res || 1;   // frame sizes are LOGICAL in the config; the file holds res x pixels
     this.load.spritesheet(k, av(s.path), { frameWidth: s.frameWidth * r, frameHeight: s.frameHeight * r });
   });
-  // A simple loading bar (the canvas is otherwise blank while assets stream in).
-  const W = this.scale.width, H = this.scale.height;
-  const bg = this.add.rectangle(W / 2, H / 2, W * 0.5, 14 * DPR, 0xffffff, 0.18).setScrollFactor(0);
-  const bar = this.add.rectangle(W / 4, H / 2, 1, 10 * DPR, 0xffffff, 0.9).setOrigin(0, 0.5).setScrollFactor(0);
-  this.load.on("progress", (v) => { bar.width = Math.max(1, W * 0.5 * v); });
-  this.load.on("complete", () => { bg.destroy(); bar.destroy(); });
+  // Loading screen (DOM, themed): the player's character floating over a rounded
+  // progress gauge; hidden by the canvas reveal in sceneCreate.
+  const ld = showWorldLoader(), fillEl = ld.querySelector(".wl-bar i");
+  this.load.on("progress", (v) => { if (fillEl) fillEl.style.width = Math.round(v * 100) + "%"; });
 }
 
 // Animations: player walk (4 directions) and creature side-walk.
@@ -1376,6 +1374,20 @@ function freeSpotIn(r, m) {
   return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
 }
 
+function showWorldLoader() {
+  const zone = $("world").parentNode;
+  let el = $("world-loader");
+  if (!el) { el = document.createElement("div"); el.id = "world-loader"; el.className = "world-loader"; zone.appendChild(el); }
+  const th = state && state.player ? thumbSrc(charDef(state.player.avatar)) : "";
+  el.innerHTML = `${th ? `<img src="${th}" alt="" draggable="false" />` : ""}<div class="wl-bar"><i></i></div>`;
+  el.classList.remove("done");
+  return el;
+}
+function hideWorldLoader() {
+  const el = $("world-loader"); if (!el) return;
+  el.classList.add("done"); setTimeout(() => el.remove(), 450);
+}
+
 function sceneCreate() {
   sc = this;
   computeEnvironment();
@@ -1385,7 +1397,7 @@ function sceneCreate() {
   this.cameras.main.setBackgroundColor((G.world && G.world.bg) || "#6fae4f");
   // Reveal the canvas only once the world has been drawn (no black first frame while
   // loading; #world shows the edge colour meanwhile, then the world fades in).
-  const wEl = $("world"), reveal = () => wEl && wEl.classList.add("ready");
+  const wEl = $("world"), reveal = () => { if (wEl) wEl.classList.add("ready"); hideWorldLoader(); };
   this.game.events.once("postrender", () => requestAnimationFrame(reveal));
   setTimeout(reveal, 2500);
   buildAnims();
