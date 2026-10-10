@@ -24,6 +24,9 @@ module.exports = async (page) => {
     zoom: +sc.cameras.main.zoom.toFixed(2), active: !!activeTarget, moveTarget: !!moveTarget, follow: !!followCreature,
     pending: typeof pendingInteract !== "undefined" ? !!pendingInteract : null, player: [Math.round(player.x), Math.round(player.y)],
     paused: sc.scene.isPaused ? sc.scene.isPaused() : null, loopRunning: sc.game.loop.running,
+    jumpRunning, footHopping: typeof footHopping !== "undefined" ? footHopping : null, mounted: mounted ? mounted.name : null,
+    race: typeof R3 !== "undefined" ? !!R3.on : null, placing: !!placingDecor, screen: document.documentElement.dataset.screen,
+    raceDom: !!document.querySelector(".race3d:not(.hidden)"), stuck: player.stuck || 0, replans: player.replans || 0,
   }));
   // a free point on the canvas, ~110-170 px from the player, away from creatures
   const freePoint = () => page.evaluate((a) => {
@@ -41,7 +44,9 @@ module.exports = async (page) => {
     return null;
   }, rnd() * 6.28);
   const responds = async () => {
-    const f = await flags();
+    let f = await flags();
+    // a race in progress is its own screen (taps steer, they don't walk): leave it with its quit button first
+    if (f.race) { const q = await page.$("#rh-quit"); if (q) await q.click().catch(() => {}); await wait(page, 600); f = await flags(); if (f.race) return { ok: false, flags: f, why: "race could not be quit" }; }
     if (f.closeupOpen || f.modal || f.nightRunning) return { ok: true, skip: true };
     for (let tries = 0; tries < 2; tries++) {
       const pt = await freePoint(); if (!pt) return { ok: true, skip: "no free point" };
