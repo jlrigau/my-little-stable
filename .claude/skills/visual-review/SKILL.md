@@ -39,6 +39,10 @@ Checklist — answer each explicitly (write down the defects you find):
   its shape (e.g. a tongue outside the mouth) — clip inner details to their container.
 - **Silhouette readable at the in-game size** (a phone shows sprites at ~40–90 px).
 - **Walk cycles**: feet stay on the same line, no sliding, arms/legs alternate.
+- **Facing**: a side-view walker / mount (flipped left↔right by the engine) must LOOK where it
+  goes — draw its walk strip with the face turned ~3/4 towards the left (eye, mouth, cheeks
+  shifted; e.g. `critter({look, turn})` in nebula.cjs), never a straight front face. Check a
+  ridden one going left AND right (rider and mount face the same way).
 - **Variants** differ clearly (colour, hair…) but share the same anatomy.
 - **Sharpness (no blur)**: crop at the DPR-3 (iPhone) resolution — art must be rendered at
   ≥ 2× its displayed size (`svg-kit` `hidpi()` rules + `res` in `GAME.assets`, see ENGINE.md
