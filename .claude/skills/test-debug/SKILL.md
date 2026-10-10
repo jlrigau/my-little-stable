@@ -1,52 +1,93 @@
 ---
 name: test-debug
-description: Tester et déboguer ce qui a été implémenté dans le jeu « Mon Centre Équestre », avec preuves, avant de publier. À utiliser pour valider une nouvelle fonctionnalité de bout en bout, ou pour reproduire/corriger un bug décrit (ex. « telle action ne fait rien », « telle lettre ne s'écrit pas »). Combine vérif statique, exécution headless (Playwright), assertions sur l'état du jeu, et boucle repro→cause→correctif→non-régression. Déclencheurs : « teste », « débogue », « vérifie que ça marche », « ça ne marche pas », « reproduis le bug ».
+description: Test and debug what was implemented in a game built on this engine, with proof, before publishing. Use to validate a new feature end-to-end, or to reproduce/fix a described bug (e.g. "this action does nothing", "this letter won't type"). Combines static checks, headless execution (Playwright), assertions on game state, and a repro→cause→fix→regression loop. Triggers: "test", "debug", "check it works", "it doesn't work", "reproduce the bug".
 ---
 
 # test-debug
 
-Prouver qu'une fonctionnalité **marche vraiment**, ou reproduire+corriger un bug —
-jamais « ça devrait marcher ». Pré-requis : `python3`, `node` + Playwright.
+Prove a feature **really works**, or reproduce+fix a bug — never "it should work".
+Requirements: `python3`, `node` + Playwright.
 
-## Procédure (outils Claude Code)
+## Procedure (Claude Code tools)
 
-1. **Vérif statique** — Bash : `node --check game.js` (+ validité JSON du manifest s'il a changé).
+1. **Static check** — Bash: `node --check engine.js && node --check game.config.js`
+   (+ JSON validity of the manifest if it changed).
 
-2. **Servir le jeu** — Bash : `bash .claude/skills/_shared/serve.sh 8099`.
+2. **Serve** — Bash: `bash .claude/skills/_shared/serve.sh 8099`.
 
-3. **Vérif runtime + assertions** — Bash, via le harnais `playtest.cjs` :
+3. **Standard regression tour** (always, in addition to your own scenario) — it asserts
+   the core loop and screenshots every screen; then LOOK at them (skill **visual-review**):
    ```bash
-   # lire une valeur d'état
-   node .claude/skills/_shared/playtest.cjs --eval "etat.chevaux.length"
-   # capturer une zone
+   OUT=/tmp/tour node .claude/skills/_shared/playtest.cjs --viewport 390x844 \
+     --probe .claude/skills/_shared/probes/tour.cjs && python3 .claude/skills/_shared/contact-sheet.py /tmp/tour
+   ```
+   `probe.errors` must be empty. Reusable helpers for your own probes are in
+   `_shared/probes/lib.cjs` (`visibleCreature`, `scrubAll`, `shot`). Tap a creature with a
+   real click at `worldToScreen(c.x, c.y)` — and pick one that is ON screen.
+
+4. **Runtime + assertions** — Bash, via the `playtest.cjs` harness:
+   ```bash
+   # read a state value
+   node .claude/skills/_shared/playtest.cjs --eval "state.creatures.length"
+   # capture a zone
    node .claude/skills/_shared/playtest.cjs --shots "spawn:560:860:0.9"
-   # scénario complet de la feature (assertions libres)
+   # full feature scenario (free assertions)
    node .claude/skills/_shared/playtest.cjs --probe ./scenario.cjs
    ```
-   Un *probe* = module `.cjs` exportant `async (page) => {…}` qui pilote la page
-   (clics, `page.keyboard.type`, `page.evaluate`) et renvoie un objet d'assertions.
-   Le harnais **remonte toujours les `pageErrors`** (exit ≠ 0 s'il y en a).
-   - Globales accessibles dans `page.evaluate` : `etat`, `joueur`, `COLLISIONS`,
-     `WORLD`, `CHEMINS`, `LOOP_SEG`, `OUVERTURES`, `sc`, `onPointer`, …
-   - **Test clavier réel** : `page.focus("#champ")` puis `page.keyboard.type("AZ…")`
-     (et NON `page.fill`, qui court-circuite l'événement et ne testerait pas le bug).
+   A *probe* = a `.cjs` module exporting `async (page) => {…}` that drives the page
+   (clicks, `page.keyboard.type`, `page.evaluate`) and returns an assertions object.
+   The harness **always reports `pageErrors`** (exit ≠ 0 if any).
+   - Globals in `page.evaluate`: `GAME`, `state`, `player`, `COLLISIONS`, `WORLD`,
+     `PATHS`, `LOOP_SEG`, `OPENINGS`, `sc`, `onPointer`, `creatureAction`, …
+   - **Real keyboard test**: `page.focus("#field")` then `page.keyboard.type("abc…")`
+     (NOT `page.fill`, which bypasses the event and wouldn't exercise the bug).
 
-4. **Regarder les captures** — outil **Read** sur les PNG (`/tmp/mce-shots/*.png`)
-   pour valider visuellement (Claude Code affiche les images).
+4. **Look at the screenshots** — **Read** the PNGs (`/tmp/engine-shots/*.png`) to
+   validate visually (Claude Code renders images).
 
-5. **Pour un BUG — boucle** : reproduire (probe qui échoue) → isoler la cause
-   (`fichier:ligne`, via Grep/Read) → corriger (Edit) → relancer le test jusqu'à
-   ce que ça passe **et** que rien d'autre ne casse. Pas un seul essai.
+5. **For a BUG — loop**: reproduce (failing probe) → isolate the cause
+   (`file:line`, via Grep/Read) → fix (Edit) → re-run until it passes **and** nothing
+   else breaks. Not a single attempt.
 
-6. **Rapport** : ce qui marche / ce qui casse (sortie & erreur exactes), la cause,
-   le correctif — avec captures + valeurs d'assertions comme **preuve**.
+6. **Report**: what works / what breaks (exact output & error), the cause, the fix —
+   with screenshots + assertion values as **proof**.
 
-## Garde-fous
-- **Ne jamais dire « ça marche » sans preuve** (capture + assertions + 0 pageError).
-- Tester le **vrai scénario joueur**, pas seulement l'absence d'erreur JS.
-- Si un choix fonctionnel est ambigu, demander via **AskUserQuestion** (jamais de
-  jargon technique en mode « session de retour » enfant).
+## Testing on the real Safari engine (WebKit) — for iOS / touch bugs
+Headless **Chromium does not reproduce some iOS bugs** (touch, pointer capture, text
+selection). When the report is about iPhone/iPad, or any **drag / scrub / multi-touch**
+interaction, re-run the probe on the actual Safari engine:
+```bash
+node .claude/skills/_shared/playtest.cjs --engine webkit --device "iPhone 13" --probe ./touch.cjs
+```
+- One-time install if missing (the harness prints this and exits 3):
+  `npx playwright install webkit` (+ `npx playwright install-deps webkit`).
+- In the probe, drive **real pointer events** so the bug actually fires:
+  ```js
+  module.exports = async (page) => {
+    await page.mouse.move(x0, y0); await page.mouse.down();
+    await page.mouse.move(x1, y1, { steps: 12 }); await page.mouse.up();
+    // then assert game state, e.g. that the player can still move after a close-up:
+    return await page.evaluate(() => ({ canMove: !window.__stuck /* your check */ }));
+  };
+  ```
+- Real iOS pitfalls already guarded in the engine (regress against these): **implicit
+  pointer-capture freeze** (capture a removed element → all later touches swallowed) and
+  **blue text-selection** from a tap-drag. See ENGINE.md "iOS / touch robustness".
 
-## Enchaînement
-Avant **map-verify** (visuel carte) et **release-deploy** (publication).
-Appelé par l'orchestrateur **retour-enfant** pour chaque retour.
+## Guard-rails
+- **Never say "it works" without proof** (screenshot + assertions + 0 pageError).
+- Test the **real player scenario**, not just the absence of a JS error.
+- A touch/iOS bug report is only "fixed" once it's reproduced **and** verified under
+  `--engine webkit` (Chromium-green is not enough).
+- If a functional choice is ambiguous, ask via **AskUserQuestion**.
+
+## Chaining
+Before **map-verify** (map visuals) and **release-deploy** (publish).
+Called by the **feedback-session** orchestrator for each item.
+
+## On-screen error bar (red, "tap to dismiss")
+`engine.js` shows uncaught errors from the game's own files with file:line — screenshot
+requests from players are actionable. Opaque errors ("Script error.", no file) and errors
+from other origins/extensions are only logged (Safari extensions, content blockers,
+translation inject them; they don't affect the game). A player report showing a file and
+line = a real engine/config bug → reproduce under WebKit.

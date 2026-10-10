@@ -1,37 +1,44 @@
 ---
 name: add-collision
-description: Ajouter ou ajuster une collision (obstacle) dans le jeu « Mon Centre Équestre » pour que le joueur (à pied ou à cheval) ne traverse pas un élément — ou puisse le sauter. Gère le tableau COLLISIONS (boîtes AABB) et le drapeau haie pour les obstacles franchissables au saut. Déclencheurs : « on peut traverser le …, il faut une collision », « bloquer cet élément », « rendre ça sautable », « le joueur passe à travers ».
+description: Add or tune a collision (obstacle) in a game built on this engine so the player (on foot or riding) can't pass through an element — or can hop over it. Handles the COLLISIONS array (AABB boxes) and the jumpable flag for hop-over obstacles. Triggers: "you can walk through the …, it needs a collision", "block this element", "make it jumpable", "the player passes through".
 ---
 
 # add-collision
 
-Empêcher de traverser un élément (ou le rendre franchissable au saut).
+Stop the player crossing an element (or make it hop-over-able).
 
-## Code concerné (game.js)
-- Tableau **`COLLISIONS`** : boîtes **AABB** `{ x, y, w, h }` (coin haut-gauche).
-- `bloquerObstacles` repousse le joueur **par axe** (empreinte plus large à cheval).
-- Drapeau **`haie: true`** sur une boîte = obstacle **franchissable au saut**
-  (la collision est ignorée pendant `sautEnCours`). Sinon, blocage total.
-- Convention rondins (exemple) : collision **plus courte que le rendu** pour
-  pouvoir passer au-dessus/en-dessous → `{ x:r.x-22, y:r.y-50, w:44, h:100, haie:true }`.
+## Code involved (engine.js)
+- Array **`COLLISIONS`**: **AABB** boxes `{ x, y, w, h }` (top-left corner), rebuilt
+  every time the world is built (`buildWorld`).
+- `blockObstacles` pushes the player back **per axis** (larger footprint when riding).
+- Flag **`jumpable: true`** on a box = obstacle **clearable by hopping** (collision
+  ignored during `jumpRunning`). Otherwise it fully blocks.
+- Log convention (example): collision **shorter than the visual** so you can pass
+  above/below → `{ x:r.x-22, y:r.y-50, w:44, h:100, jumpable:true }`.
 
-## Procédure
-1. **Déterminer la boîte** : prendre l'empreinte au **sol** de l'élément (pas tout
-   le sprite), centrée sur sa base. Largeur/hauteur en pixels monde.
-2. **Ajouter** au moment où l'élément est créé :
-   `COLLISIONS.push({ x, y, w, h })` (+ `haie:true` si sautable).
-3. **Doser** :
-   - Obstacle « dur » (arbre, bâtiment, clôture) → boîte ferme, pas de `haie`.
-   - Obstacle de parcours (haie, rondin) → `haie:true`, et collision **plus petite
-     que le visuel** si on veut pouvoir le contourner sans rester coincé.
-4. **Vérifier la marchabilité** : **map-verify** (`playtest.cjs --walk`) — les
-   couloirs/chemins restent passables, on ne reste pas bloqué.
-5. **Publier** : **release-deploy** si OK.
+## Where to add it
+- Most obstacles are declared from **config data** (`GAME.environment`, `GAME.decor`
+  collisions, scenery). Prefer adding the footprint there, via the matching skill
+  (**add-decor-item**, **place-scatter**). Add a raw `COLLISIONS.push(...)` in
+  `engine.js` only for a new engine-level element.
 
-## Garde-fous
-- Une collision trop large **coince** le joueur → toujours tester avec `--walk`.
-- Sur les chemins du cross, garder les passages ouverts (cf. **place-vegetation**).
-- À cheval l'empreinte est plus grande : tester aussi monté si pertinent.
+## Procedure
+1. **Determine the box**: the element's **ground** footprint (not the whole sprite),
+   centred on its base. Width/height in world pixels.
+2. **Add it** when the element is created: `COLLISIONS.push({ x, y, w, h })`
+   (+ `jumpable:true` if hop-over).
+3. **Tune**:
+   - Hard obstacle (tree, building, fence) → firm box, no `jumpable`.
+   - Course obstacle (hedge, log) → `jumpable:true`, and a box **smaller than the
+     visual** if the player should be able to go around it.
+4. **Check walkability**: **map-verify** (`playtest.cjs --walk`) — corridors/paths
+   stay passable, the player never gets stuck.
+5. **Publish**: **release-deploy** if OK.
 
-## Enchaînement
-(placement d'un élément) → **add-collision** → map-verify → release-deploy.
+## Guard-rails
+- A too-large collision **traps** the player → always test with `--walk`.
+- On the trail paths, keep the openings clear (cf. **place-scatter**).
+- Riding has a larger footprint: test mounted too if relevant.
+
+## Chaining
+(placing an element) → **add-collision** → map-verify → release-deploy.

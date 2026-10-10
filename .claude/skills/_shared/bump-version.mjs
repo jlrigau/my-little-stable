@@ -1,39 +1,38 @@
 #!/usr/bin/env node
 /*
- * Incrémente la version de cache « phN » AUX DEUX ENDROITS d'un coup :
- *   - ASSET_VER dans game.js  (utilisé par av() pour toutes les images)
- *   - tous les ?v=phN dans index.html (css, js, manifest, favicon, apple-touch-icon)
+ * Bump the cache version "vN" in BOTH places at once:
+ *   - meta.assetVersion in game.config.js (used by av() for every image)
+ *   - every ?v=vN in index.html (css, js, config, manifest, favicon, apple-touch)
  *
- * Évite l'erreur classique « j'ai oublié l'un des deux endroits » qui laisse
- * Safari servir l'ancienne version. Portable : Node standard, aucune dépendance.
+ * Avoids the classic "I forgot one of the two places" that leaves Safari
+ * serving a stale version. Portable: plain Node, no dependency.
  *
- * Usage : node .claude/skills/_shared/bump-version.mjs
+ * Usage: node .claude/skills/_shared/bump-version.mjs
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const gamePath = resolve(root, "game.js");
+const configPath = resolve(root, "game.config.js");
 const indexPath = resolve(root, "index.html");
 
-let game = readFileSync(gamePath, "utf8");
-const m = game.match(/const ASSET_VER = "ph(\d+)";/);
+let config = readFileSync(configPath, "utf8");
+const m = config.match(/assetVersion:\s*"v(\d+)"/);
 if (!m) {
-  console.error("ERREUR : ASSET_VER (ph<N>) introuvable dans game.js");
+  console.error('ERROR: assetVersion ("v<N>") not found in game.config.js');
   process.exit(1);
 }
 const cur = parseInt(m[1], 10);
-const oldV = `ph${cur}`;
-const newV = `ph${cur + 1}`;
+const oldV = `v${cur}`, newV = `v${cur + 1}`;
 
-game = game.replace(`const ASSET_VER = "${oldV}";`, `const ASSET_VER = "${newV}";`);
-writeFileSync(gamePath, game);
+config = config.replace(`assetVersion: "${oldV}"`, `assetVersion: "${newV}"`);
+writeFileSync(configPath, config);
 
 let index = readFileSync(indexPath, "utf8");
 const before = index;
-index = index.replace(/\?v=ph\d+/g, `?v=${newV}`);
+index = index.replace(/\?v=v\d+/g, `?v=${newV}`);
 writeFileSync(indexPath, index);
 
-const nbIndex = (before.match(/\?v=ph\d+/g) || []).length;
-console.log(`Version de cache : ${oldV} -> ${newV}  (game.js + ${nbIndex} ?v= dans index.html)`);
+const nbIndex = (before.match(/\?v=v\d+/g) || []).length;
+console.log(`Cache version: ${oldV} -> ${newV}  (game.config.js + ${nbIndex} ?v= in index.html)`);

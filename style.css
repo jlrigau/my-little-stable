@@ -1,229 +1,31 @@
-/* ===== 🤠 Mon Ranch du Far West — styles ===== */
+/* ===== Theme — "Mon Centre Équestre" (sunny meadow, warm wood, sky blue) =====
+   Only the look lives here: the generic structure is in engine.css.
+   Restyle a game by changing these variables (and the font). */
+
+@font-face {
+  font-family: "Fredoka"; font-style: normal; font-weight: 300 700; font-display: swap;
+  src: url("vendor/fonts/fredoka-latin.woff2") format("woff2");
+}
 
 :root {
-  --vert: #7fae5a;
-  --vert-fonce: #b5572b;
-  --jaune: #f4b942;
-  --orange: #e8722d;
-  --brun: #8a5a3b;
-  --creme: #fdf1dd;
-  --texte: #4a2f1d;
-  --ombre: 0 4px 0 rgba(74, 47, 29, 0.25);
+  --game-font: "Fredoka", ui-rounded, "Trebuchet MS", system-ui, sans-serif;
+  --deep: #7cbf5a;
+  --panel: #fffaf0; --panel2: #f6ecd9; --panel-edge: #e6c79a;
+  --sheet-bg: rgba(255, 250, 240, 0.92); --sheet-fade: rgba(255, 244, 222, 0.35);
+  --text: #4a3428; --muted: #8f7a68; --title: #8a5a2b;
+  --title-fill: #ffffff; --title-stroke: #8a5a2b;
+  --primary: #f2a341; --primary-d: #c97a1e; --on-primary: #ffffff;
+  --accent: #5ab4e8; --accent-d: #2f88c0; --on-accent: #ffffff;
+  --ribbon: #e8734a; --ribbon-d: #b9502c;
+  --good: #6cc75a; --warn: #ffc24a; --bad: #ef6a5a;
+  --border: #ecd9bb; --input-bg: #fff6e6;
+  --chip-bg: rgba(255, 250, 240, 0.94); --chip-text: #4a3428; --chip-edge: #e6c79a;
+  --overlay: rgba(60, 40, 25, 0.38);
+  --night: #1d2650;
+  --hud-fade: rgba(255, 255, 255, 0);
+  --shadow: 0 10px 26px rgba(90, 60, 30, 0.26);
+  --closeup-bg: #e9f6ff;
+  --edge-home: #9ccf6e; --edge-game: #7cbf5a;   /* colours at the screen edges (iOS bands) */
+  --home-bg: #bfe6f5;
 }
-
-* { box-sizing: border-box; font-family: "Comic Sans MS", "Trebuchet MS", "Segoe UI", sans-serif; }
-/* touch-action: manipulation => supprime le double-tap-zoom d'iOS (sinon taper un
-   bouton zoome l'écran). Le canvas du jeu garde touch-action: none de son côté. */
-html, body { height: 100%; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
-button, .bouton, input, select, textarea { touch-action: manipulation; }
-/* Fond de base = dégradé chaud et DOUX (pas de bandeau foncé en bas). */
-html { background: #ffce8f; }
-body {
-  margin: 0; color: var(--texte);
-  background-color: #ffce8f;
-  background-image: linear-gradient(180deg, #ffce8f 0%, #ffc885 55%, #ffc07c 100%);
-  background-attachment: fixed;
-  overflow: hidden;
-}
-.ecran { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
-.cache { display: none !important; }
-/* Voile de nuit plein écran (transition « dormir ») — au-dessus du jeu, sous le message */
-#nuit-voile { position: fixed; inset: 0; background: #0a1633; opacity: 0; pointer-events: none; z-index: 40; }
-/* Écran de jeu : épinglé à tout l'écran (sinon le fond orange du body dépasse en bas). */
-#ecran-jeu { background: var(--vert-fonce); position: fixed; inset: 0; height: auto; }
-
-/* Bouton dev : vider le cache (à retirer en fin de dev) */
-.btn-refresh {
-  margin-top: 14px; background: transparent; border: 2px dashed var(--brun);
-  color: var(--brun); border-radius: 12px; padding: 8px 12px; font-size: 0.85rem;
-  font-weight: bold; cursor: pointer; opacity: 0.8;
-}
-.btn-refresh:active { transform: translateY(2px); }
-
-/* ===== Accueil & création ===== */
-#ecran-accueil, #ecran-creation { align-items: center; justify-content: center; }
-.boite-accueil, .boite-creation {
-  background: var(--creme); border: 6px solid var(--vert-fonce); border-radius: 26px;
-  padding: 28px 24px; width: min(440px, 94vw); text-align: center; box-shadow: var(--ombre);
-  max-height: 94vh; overflow-y: auto;
-}
-.titre-jeu { font-size: 2.3rem; margin: 0 0 6px; color: var(--vert-fonce); text-shadow: 2px 2px 0 #fff; }
-.sous-titre { font-size: 1.05rem; margin: 0 0 20px; }
-.label-nom { display: block; margin-bottom: 8px; font-weight: bold; }
-input[type="text"] {
-  width: 100%; padding: 12px; font-size: 1.1rem; border: 3px solid var(--brun);
-  border-radius: 14px; margin-bottom: 14px; text-align: center;
-}
-.msg-accueil { min-height: 22px; color: var(--orange); font-weight: bold; }
-
-.boite-creation h2 { color: var(--vert-fonce); margin-top: 4px; }
-.apercu-perso {
-  font-size: 86px; line-height: 1.1; background: #cfe8a3; border: 4px solid var(--brun);
-  border-radius: 18px; width: 130px; height: 130px; margin: 0 auto 12px;
-  display: flex; align-items: center; justify-content: center;
-}
-.creation-controles { text-align: left; }
-.ligne-avatars { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.btn-avatar {
-  font-size: 1.6rem; width: 46px; height: 46px; border-radius: 12px; border: 3px solid #e0d3b5;
-  background: #fff; cursor: pointer; padding: 0; line-height: 1;
-}
-.btn-avatar.choisi { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange); }
-.groupe-perso { margin-bottom: 10px; }
-.grp-titre { font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 4px; }
-.ligne-swatch { display: flex; flex-wrap: wrap; gap: 6px; }
-.swatch-col {
-  width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.25); cursor: pointer; padding: 0;
-}
-.swatch-col.choisi { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange); transform: scale(1.12); }
-.swatch-acc {
-  min-width: 38px; height: 34px; border-radius: 10px; border: 3px solid #e0d3b5;
-  background: #fff; font-size: 1.1rem; cursor: pointer;
-}
-.swatch-acc.choisi { border-color: var(--orange); }
-
-/* ===== Boutons ===== */
-.bouton {
-  background: var(--jaune); border: none; border-bottom: 5px solid #d9a400; border-radius: 16px;
-  padding: 11px 16px; font-size: 1rem; font-weight: bold; color: var(--texte);
-  cursor: pointer; transition: transform 0.08s, filter 0.1s; margin: 4px;
-}
-.bouton:hover { filter: brightness(1.06); }
-.bouton:active { transform: translateY(3px); border-bottom-width: 2px; }
-.bouton:disabled { filter: grayscale(0.6); opacity: 0.7; cursor: not-allowed; }
-.bouton-geant { display: block; width: 100%; font-size: 1.15rem; padding: 14px; margin: 12px 0 0; }
-.bouton-secondaire { background: #d7e8ff; border-bottom-color: #9bbbe0; }
-.bouton-rodeo { background: var(--orange); border-bottom-color: #c25a1f; color: #fff; }
-
-/* ===== HUD ===== */
-.barre-haut {
-  background: var(--vert-fonce); color: #fff; display: flex;
-  flex-direction: column; gap: 7px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.2); z-index: 5;
-  /* Respecte l'encoche / barre d'état iOS pour que le menu reste accessible */
-  padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left));
-}
-/* Ligne 1 : titre (gauche) + boutons (droite), forcée sur une seule ligne */
-.barre-ligne { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; flex-wrap: nowrap; }
-.titre-haras { font-size: 1.1rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.actions-hud { display: flex; gap: 6px; flex: 0 0 auto; }
-/* Ligne 2 : les jauges, sur une seule ligne, réparties */
-.ressources { display: flex; flex-wrap: nowrap; gap: 6px; align-items: center; width: 100%; justify-content: space-between; }
-.ressource { background: rgba(255,255,255,0.2); padding: 5px 9px; border-radius: 12px; font-size: 0.9rem; white-space: nowrap; }
-.mini-bouton { background: var(--jaune); border: none; border-radius: 10px; width: 38px; height: 34px; font-size: 1.1rem; cursor: pointer; border-bottom: 3px solid #d9a400; }
-.mini-bouton:active { transform: translateY(2px); }
-
-/* ===== Monde ===== */
-.zone-monde { flex: 1; position: relative; min-height: 0; overflow: hidden; }
-#monde { width: 100%; height: 100%; touch-action: none; cursor: pointer; }
-#monde canvas { display: block; touch-action: none; }
-
-.dpad {
-  position: absolute; left: 14px; bottom: 14px; width: 144px; height: 144px;
-  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
-  gap: 4px; opacity: 0.85; touch-action: none;
-}
-.dpad-btn { background: rgba(255,255,255,0.85); border: 3px solid var(--brun); border-radius: 12px; font-size: 1.3rem; color: var(--vert-fonce); cursor: pointer; touch-action: none; user-select: none; }
-.dpad-btn:active { background: var(--jaune); }
-.dpad-btn.haut { grid-area: 1 / 2 / 2 / 3; }
-.dpad-btn.gauche { grid-area: 2 / 1 / 3 / 2; }
-.dpad-btn.droite { grid-area: 2 / 3 / 3 / 4; }
-.dpad-btn.bas { grid-area: 3 / 2 / 4 / 3; }
-
-.btn-action {
-  position: absolute; right: 16px; bottom: 26px; max-width: 45%;
-  background: var(--orange); color: #fff; border: none; border-bottom: 5px solid #c25a1f;
-  border-radius: 18px; padding: 14px 18px; font-size: 1.05rem; font-weight: bold; cursor: pointer;
-  box-shadow: var(--ombre); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.btn-action:active { transform: translateY(3px); border-bottom-width: 2px; }
-
-/* ===== Panneau ===== */
-/* Le bandeau FLOTTE par-dessus le jeu (n'altère pas la taille du canvas => pas de
-   clignotement) : petit quand on se balade, plus grand près d'un cheval. */
-.panneau { position: fixed; left: 0; right: 0; bottom: 0; background: var(--creme); border-radius: 18px 18px 0 0; padding: 8px 14px calc(6px + env(safe-area-inset-bottom)); min-height: 40px; max-height: 42vh; overflow-y: auto; box-shadow: 0 -4px 14px rgba(0,0,0,0.22); z-index: 5; }
-.panneau-aide { text-align: center; margin: 4px 0; opacity: 0.8; font-weight: bold; }
-.pc-tete { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.pc-sous { font-size: 0.85rem; opacity: 0.8; }
-.pc-emoji { font-size: 2rem; }
-.pc-barres { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-bottom: 8px; }
-.besoin { display: flex; align-items: center; gap: 6px; }
-.besoin .icone { width: 20px; text-align: center; }
-.barre { flex: 1; height: 14px; background: #e7ddca; border-radius: 8px; overflow: hidden; border: 2px solid #cdbfa0; }
-.barre-remplissage { height: 100%; transition: width 0.3s; }
-.r-vert { background: var(--vert); } .r-jaune { background: var(--jaune); } .r-rouge { background: #f0676a; }
-.pc-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-.pc-actions .bouton { margin: 0; flex: 1 1 auto; min-width: 92px; }
-.pc-station { display: flex; align-items: center; gap: 12px; }
-.pc-station .bouton { flex: 1; margin: 0; }
-
-/* ===== Modale ===== */
-.modale { position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom)); }
-.modale-contenu { background: var(--creme); border: 6px solid var(--vert-fonce); border-radius: 24px; padding: 20px; width: min(560px, 95vw); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-.modale-contenu h2 { margin: 0 44px 10px 0; color: var(--vert-fonce); flex: 0 0 auto; }
-#modale-corps { overflow-y: auto; flex: 1 1 auto; min-height: 0; -webkit-overflow-scrolling: touch; }
-.modale-contenu h3 { margin: 16px 0 8px; }
-.btn-fermer { position: absolute; top: 12px; right: 12px; background: #f0676a; color: #fff; border: none; border-radius: 50%; width: 38px; height: 38px; font-size: 1.1rem; cursor: pointer; z-index: 2; }
-.ligne-boutique { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fff; border: 3px solid #e0d3b5; border-radius: 16px; padding: 12px; margin-bottom: 10px; }
-.ligne-boutique .desc { flex: 1; } .ligne-boutique .desc small { display: block; opacity: 0.75; }
-.grille-decor { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
-.carte-decor { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; background: #fff; border: 3px solid #e0d3b5; border-radius: 14px; padding: 10px 6px; font: inherit; }
-.carte-decor:active { transform: translateY(2px); }
-.carte-decor.possede { background: #f0f8e8; border-color: var(--vert); }
-.carte-decor .d-emoji { font-size: 1.8rem; }
-.carte-decor .d-prix { font-weight: bold; color: var(--vert-fonce); }
-
-.relook-apercu { text-align: center; margin-bottom: 10px; }
-#apercu-cheval { background: #cfe8a3; border: 4px solid var(--brun); border-radius: 16px; }
-.rl-label { font-weight: bold; display: block; margin: 4px 0; }
-
-.aide-texte p { line-height: 1.5; }
-
-/* ===== Message ===== */
-.message-jeu {
-  position: fixed; top: calc(64px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: #fff;
-  border: 4px solid var(--vert-fonce); border-radius: 16px; padding: 10px 20px; font-size: 1.05rem;
-  font-weight: bold; z-index: 50; box-shadow: var(--ombre); max-width: 92vw; text-align: center;
-  animation: pop 0.25s ease-out;
-}
-@keyframes pop { from { transform: translateX(-50%) scale(0.6); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
-
-@media (max-width: 560px) {
-  /* HUD pro : ligne 1 = titre + boutons ; ligne 2 = jauges, chacune sur UNE ligne */
-  .barre-haut { gap: 6px; padding-bottom: 6px; }
-  .titre-haras { font-size: 0.95rem; }
-  .ressources { gap: 4px; }
-  .ressource { font-size: 0.76rem; padding: 4px 7px; }
-  .mini-bouton { width: 34px; height: 30px; font-size: 0.98rem; }
-  .pc-actions .bouton { min-width: 80px; font-size: 0.9rem; }
-  .btn-action { bottom: calc(20px + env(safe-area-inset-bottom)); font-size: 1rem; padding: 12px 16px; }
-}
-
-/* ===== Vignettes images (pixel-art) dans les menus ===== */
-.apercu-perso .vignette-grande,
-.relook-apercu .vignette-grande {
-  width: 104px; height: 104px; object-fit: contain; image-rendering: pixelated;
-}
-.relook-apercu { min-height: 110px; display: flex; align-items: center; justify-content: center; }
-.btn-avatar.btn-vignette {
-  width: 64px; height: 64px; padding: 3px; display: flex; align-items: center;
-  justify-content: center; background: #f3ead2;
-}
-.btn-avatar.btn-vignette img { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
-.carte-decor .d-img { width: 56px; height: 56px; object-fit: contain; image-rendering: pixelated; }
-
-/* ===== Objectifs / niveau ===== */
-.niveau-bloc { background: #fff7e8; border: 3px solid var(--vert-fonce); border-radius: 14px; padding: 10px 12px; margin-bottom: 10px; }
-.niveau-haut { display: flex; justify-content: space-between; align-items: center; color: var(--vert-fonce); font-size: 1.05rem; }
-.xp-barre { height: 14px; background: #e7d8c2; border-radius: 8px; overflow: hidden; margin: 6px 0 4px; }
-.xp-remplissage { height: 100%; background: linear-gradient(90deg, #f4b942, #e8722d); border-radius: 8px; transition: width .3s ease; }
-.niveau-sous { margin: 2px 0 0; font-size: .85rem; opacity: .8; text-align: center; }
-.obj-liste { display: flex; flex-direction: column; gap: 6px; }
-.obj-ligne { display: flex; align-items: center; gap: 8px; background: #fff; border: 2px solid #e2d6c2; border-radius: 12px; padding: 8px 10px; }
-.obj-ligne.obj-ok { background: #eef8e6; border-color: var(--vert); }
-.obj-coche { font-size: 1.1rem; }
-.obj-txt { flex: 1; display: flex; flex-direction: column; line-height: 1.15; }
-.obj-txt small { opacity: .7; }
-.obj-xp { font-weight: bold; color: var(--vert-fonce); white-space: nowrap; }
-.obj-fini { background: #eef8e6; border: 2px solid var(--vert); border-radius: 12px; padding: 10px; margin: 0 0 10px; text-align: center; font-weight: bold; color: var(--vert-fonce); }
+.pc-name { color: var(--text); }

@@ -1,35 +1,37 @@
 ---
 name: add-character
-description: Ajouter un nouveau PERSONNAGE jouable (avatar enfant) au jeu « Mon Centre Équestre » (en plus de fille/garçon). Gère l'entrée PERSOS, le spritesheet de marche 64×64 (walkcycle LPC), la vignette de menu, et la personnalisation. Déclencheurs : « ajoute un personnage », « un nouvel avatar », « un autre enfant à jouer ».
+description: Add a new playable CHARACTER (player avatar) to a game built on this engine. Handles the GAME.characters entry, the walkcycle spritesheet (LPC layout, any frame size — 128 px recommended), the menu thumbnail, and the create/change-look flow. Triggers: "add a character", "a new avatar", "another playable hero".
 ---
 
 # add-character
 
-Ajouter un avatar jouable (enfant LPC pré-composé).
+Add a playable avatar (4-direction walkcycle).
 
-## Code concerné (game.js)
-- Tableau **`PERSOS`** : `{ id, nom, key, thumb }`
-  (ex. `{ id:"fille", nom:"Cavalière", key:"kid_fille", thumb:"avatar_fille" }`).
-- Chargement dans `scenePreload()` :
-  `PERSOS.forEach((p) => this.load.spritesheet(p.key, av("assets/lpc/" + p.key + ".png"), { frameWidth: 64, frameHeight: 64 }))`.
-- Walkcycle **576×256** (9 colonnes × 4 lignes : haut/gauche/bas/droite, col 0 =
-  idle). Origine ~0.92 (pieds au sol), échelle ~1.7.
-- `thumb` = vignette d'aperçu dans les menus (`assets/sprite/<thumb>.png`).
+## Code involved (game.config.js)
+- Array **`GAME.characters`**: `{ id, name, sheet, thumb }`
+  (e.g. `{ id:"a", name:"Robin", sheet:"char_a", thumb:"char_a_thumb" }`).
+- `sheet` = a spritesheet key in `GAME.assets.sheets` (frame **N×N**, same size as the
+  other avatars — 128 px for smooth hi-res art, 64 px for legacy pixel art; walkcycle
+  **9 cols × 4 rows** = up/left/down/right, col 0 = idle). Origin ~0.97 (feet on the
+  ground), scale via `GAME.player.scale` (~0.8 for 128-px frames, ~1.7 for 64-px).
+- `thumb` = a menu thumbnail in `assets/ui/<thumb>.png`, referenced by the engine as
+  `assets/ui/<thumb>.png` (cropped portrait of the avatar).
 
-## Procédure
-1. **Assets prêts** : `assets/lpc/<key>.png` (walkcycle 576×256, **même grille**
-   que `kid_fille`/`kid_garcon`) + une vignette `assets/sprite/<thumb>.png`.
-   Composer/recadrer si besoin (Pillow, skill asset-add).
-2. **Ajouter l'entrée** dans `PERSOS` (`id` unique, `nom` FR, `key`, `thumb`).
-3. Charger la vignette aussi (liste d'images de `scenePreload` si nécessaire).
-4. **Tester** : **test-debug** — l'avatar apparaît à la création et via « Changer
-   mon apparence », s'anime (4 directions + idle), pieds au sol (pas de flottement).
-5. **Publier** : **release-deploy** (bump `phN`).
+## Procedure
+1. **Assets ready**: spritesheet (**same grid** as the existing avatars, e.g. `1152×512`
+   for 128-px frames) registered in `GAME.assets.sheets`, plus a thumbnail
+   `assets/ui/<thumb>.png`. **Preferred:** add a palette/style entry to the game's art
+   module (`tools/art/<game>.cjs` — the character is a parametric function drawn for each
+   direction/phase) and render it with `render-svg.cjs` (see ENGINE.md "Art pipeline").
+   Otherwise compose/crop an external sheet (skill **asset-add**).
+2. **Add the entry** to `GAME.characters` (unique `id`, `name`, `sheet`, `thumb`).
+3. **Test**: **test-debug** — the avatar appears at creation and via "change my look",
+   animates (4 directions + idle), feet on the ground (no floating).
+4. **Publish**: **release-deploy** (bump `vN`).
 
-## Garde-fous
-- **Mêmes dimensions/grille** que les persos existants (sinon anim cassée).
-- Enfant **mignon, non-manga, mixte filles/garçons** ; pas d'emoji.
-- `id`/`key`/`thumb` uniques et cohérents.
+## Guard-rails
+- **Same dimensions/grid** as the existing avatars (else the animation breaks).
+- `id`/`sheet`/`thumb` unique and consistent.
 
-## Enchaînement
+## Chaining
 asset-add → **add-character** → test-debug → release-deploy.

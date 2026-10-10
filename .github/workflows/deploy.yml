@@ -1,4 +1,4 @@
-name: Déployer sur GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -6,13 +6,13 @@ on:
       - main
   workflow_dispatch:
 
-# Permissions nécessaires au déploiement sur GitHub Pages.
+# Permissions needed to deploy to GitHub Pages.
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Un seul déploiement à la fois.
+# One deployment at a time.
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -24,18 +24,22 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Récupérer le code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurer Pages
+      - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          # Enable Pages (build type "workflow") if it isn't already, so the very
+          # first deploy doesn't fail with "Get Pages site failed".
+          enablement: true
 
-      - name: Téléverser le site
+      - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          # Le site est statique et se trouve à la racine du dépôt.
+          # The site is static and lives at the repo root.
           path: "."
 
-      - name: Déployer
+      - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

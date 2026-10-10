@@ -1,49 +1,49 @@
 ---
 name: asset-add
-description: Intégrer dans le jeu « Mon Centre Équestre » un asset graphique choisi (issu du skill asset-search) — téléchargement, découpe/recadrage pixel-art (Pillow), enregistrement de la texture dans game.js, et mise à jour de l'attribution. À utiliser une fois qu'on a sélectionné un sprite à ajouter. Déclencheurs : « ajoute cet asset/sprite », « intègre l'image choisie », « importe ce décor/cheval ».
+description: Integrate a chosen graphic asset (from asset-search) into a game built on this engine — download, crop/slice pixel-art (Pillow), register the texture in GAME.assets, and update attribution. Use once a sprite has been selected. Triggers: "add this asset/sprite", "integrate the chosen image", "import this decor/creature".
 ---
 
 # asset-add
 
-Intégrer de bout en bout un asset choisi (sortie de **asset-search**).
+Integrate a chosen asset end-to-end (output of **asset-search**), or a generated one.
 
-## Où vont les fichiers
-- `assets/lpc/` : planches sources utilisées **au runtime** (chevaux, persos, clôtures).
-- `assets/sprite/` : **extraits / recadrages** prêts à l'emploi (sol, bâtiments,
-  arbres, vignettes UI, décors). PNG avec transparence.
-- Outillage de découpe : **Pillow + numpy** (`pip install pillow numpy` si besoin) — Bash.
+## Where files go
+- `assets/img/` : single ready-to-use images (ground, buildings, trees, decor).
+- `assets/sheet/` : spritesheets used at runtime (creatures, characters, fences).
+- `assets/ui/` : menu thumbnails.
+- Generation (preferred for original art): the game's **SVG art module**
+  `tools/art/<game>.cjs` rendered by `.claude/skills/_shared/render-svg.cjs` (headless
+  Chromium; gradients, glows, anti-aliasing) — add a function, re-render with `--only`.
+- Slicing external files: **Pillow + numpy** (`pip install pillow numpy` if needed) — Bash.
 
-## Procédure
-1. **Télécharger** la planche source (Bash `curl`) vers `assets/lpc/` (ou un dossier
-   temporaire si on doit la découper d'abord).
-2. **Découper / recadrer** avec un petit script Python (Pillow) :
-   - Détourer / recadrer un sprite unique → `assets/sprite/<nom>.png`.
-   - Ou segmenter une planche animée (grilles connues : **chevaux 128×128**,
-     **persos 64×64** d'une feuille 9 colonnes, **clôtures 32×32**).
-   - Garder la transparence (mode RGBA), ne pas dénaturer le style.
-3. **Enregistrer la texture** dans `game.js` → fonction `scenePreload()` :
-   - Image simple : ajouter la clé à la liste
-     `["pine","bush","trough","cabane_ardoise","cabane_chaume","haie","rondins"]`
-     (chargée via `this.load.image(k, av("assets/sprite/" + k + ".png"))`).
-   - Spritesheet : `this.load.spritesheet("<clé>", av("assets/lpc/<fichier>.png"), { frameWidth, frameHeight })`.
-   - **Toujours via `av(...)`** (cache-busting).
-4. **Brancher l'entrée jeu** selon l'usage (déléguer au skill spécialisé) :
-   - décor achetable → **add-decor-item** (`DECORS`)
-   - robe de cheval → **add-horse-coat** (`COATS`)
-   - personnage → **add-character** (`PERSOS`)
-   - obstacle/élément fixe → placement + **add-collision** si besoin.
-5. **Mettre à jour l'attribution** : ajouter une ligne dans `assets/CREDITS.md`
-   (asset, source/URL, auteur, **licence**).
-6. **Vérifier** : **test-debug** (l'image charge, pas d'erreur) puis **map-verify**
-   si l'élément est visible sur la carte.
+## Procedure
+1. **Get the source** (Bash `curl` to download, or generate procedurally with Pillow
+   for an abstract/neutral asset).
+2. **Crop / slice** with a small Python (Pillow) script:
+   - Crop a single sprite → `assets/img/<name>.png`.
+   - Or slice an animated sheet (known grids: characters **64×64** of a 9-col sheet,
+     fences **32×32** legacy / 80×80 drawn at `fence.scale:0.5`; the demo creature sheets are
+     **128×128**, 4 frames).
+   - Keep transparency (RGBA), don't distort the style.
+3. **Register the texture** in `game.config.js` → `GAME.assets`:
+   - Single image: add to `GAME.assets.images` → `key: "assets/img/<file>.png"`.
+   - Spritesheet: add to `GAME.assets.sheets` → `key: { path, frameWidth, frameHeight }`.
+   - The engine loads everything in `GAME.assets` automatically via `av()` (cache-busting).
+4. **Wire the game entry** (delegate to the specialised skill):
+   - buyable decor → **add-decor-item** (`GAME.decor`)
+   - creature variant → **add-creature-variant** (`GAME.creature.variants`)
+   - character → **add-character** (`GAME.characters`)
+   - fixed/obstacle element → place it + **add-collision** if needed.
+5. **Update attribution**: add a line in `assets/CREDITS.md` (asset, source/URL,
+   author, **license**). Procedurally-generated assets are your own (note CC0).
+6. **Verify**: **test-debug** (the image loads, no error) then **map-verify** if visible.
 
-## Garde-fous
-- **Licence + attribution obligatoires** dans `assets/CREDITS.md`.
-- Respecter le style (pixel-art LPC, mignon, non-manga, pas d'emoji dans le monde).
-- Cache-busting : nouvelles images chargées via `av()`. Le bump `phN` se fait à la
-  publication (**release-deploy** / `bump-version.mjs`).
-- Conserver la cohérence des libellés (Paddock, Carrière, Sellerie, Parcours de cross).
+## Guard-rails
+- **License + attribution required** in `assets/CREDITS.md` (for third-party assets).
+- Respect the game's art style.
+- New images load via `GAME.assets` + `av()`. The `vN` bump happens at publish
+  (**release-deploy** / `bump-version.mjs`).
 
-## Enchaînement
-asset-search → **asset-add** → (add-decor-item / add-horse-coat / add-character /
+## Chaining
+asset-search → **asset-add** → (add-decor-item / add-creature-variant / add-character /
 add-collision) → test-debug → map-verify → release-deploy.
