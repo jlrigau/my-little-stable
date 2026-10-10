@@ -9,10 +9,12 @@ engine code holds **no game content**; a game is fully described by `game.config
 different game from the same engine and skills.
 
 Ships a neutral demo that is the engine's **showcase**: **Nebula Nursery** — a keeper
-robot tends glowing alien critters in a space nursery, and the demo turns on (nearly)
+robot tends glowing alien critters on a space station (deck island in the void, Delivery
+Plaza, shop street, Star Ring road through an asteroid belt), and the demo turns on (nearly)
 every engine system: care + close-up, variants + happy faces, aging, breeding, riding +
-jumps (Hop Course arena, Comet Trail loop), economy + shop + decorations, station menu +
-paid restyle, spawn portal, deliveries + drone chase, Hatchery models, pseudo-3D race.
+jumps (Gravity Park arena, Star Ring loop), economy + shop + decorations, station menu +
+paid restyle, spawn portal, 3 kinds of two-leg deliveries + drone chase, Hatchery models,
+pseudo-3D race, ground patches (districts).
 New games still start **minimal** from `.claude/skills/new-game/references/minimal-seed.config.js`.
 Whenever the engine gains a capability, **add it to Nebula too** (it must show everything).
 
@@ -153,6 +155,10 @@ like a game made by a studio — not a prototype. Concretely:
 - **Shared repos**: never assume a cross-session message is current (they arrive late); wait for an
   explicit answer before pushing to a repo another session works on. `pkill -f "http.server N"` kills
   your own shell when the command line contains that string — find the pid (`ss -ltnp`) and `kill` it.
+- **The showcase has its own world**: Nebula reuses the PRINCIPLES of the other games (care,
+  riding, GTA-style pick-up → drop-off deliveries, chase, race…) but never copies one game's
+  world layout (a fenced pen + arena + forest loop read as "the horse game"). Each game must
+  look like its own universe.
 - New owner feedback → add it to this section (via **capitalize-learnings**).
 
 ## 10. This game — « Mon Centre Équestre » (my-little-stable)
