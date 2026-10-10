@@ -145,7 +145,7 @@ like a game made by a studio — not a prototype. Concretely:
 - **Communication**: answer in French, no jargon; explain cause → fix → what was tested and what
   was NOT (honestly); announce every release with the build number to check at the bottom of the
   home screen (the owner's screenshots often come from an older build — ask). Never claim an
-  improvement that is not visible. Batch releases while he is testing.
+  improvement that is not visible. Batch releases while the owner is testing.
 - **Shared repos**: never assume a cross-session message is current (they arrive late); wait for an
   explicit answer before pushing to a repo another session works on. `pkill -f "http.server N"` kills
   your own shell when the command line contains that string — find the pid (`ss -ltnp`) and `kill` it.
