@@ -47,7 +47,7 @@ window.GAME = {
       };
     } },
     audience: { minAge: 9, notes: "kids 9–10, girls AND boys, cute but NOT manga, horses & riding, no scary content, light reading" },
-    assetVersion: "v8",
+    assetVersion: "v9",
     theme: { home: "#bfe6f5", play: "#7cbf5a", closeup: "#e9f6ff" },
 
     showCoins: true,
@@ -85,6 +85,7 @@ window.GAME = {
     strings: {
       closeLabel: "Fermer", soundLabel: "Son", coinsLabel: "Pièces", dayLabel: "Jour", levelLabel: "Niveau",
       noSave: "Aucune partie sauvegardée.", refreshLabel: "Rafraîchir",
+      dismountFirst: "{i:saddle} Descends de ton cheval d'abord !", placeFirst: "{i:gift} Pose d'abord ta décoration !",
       goalComplete: "{i:goals} Objectif réussi : {name} !", goalsComplete: "{i:goals} {n} objectifs réussis !",
       levelUp: "{i:trophy} Bravo ! Tu passes au niveau {n} !", goalsTitle: "{i:goals} Objectifs",
       allGoalsDone: "Tu as réussi tous les objectifs !", goalsProgress: "{done}/{total} objectifs — réussis-les tous pour passer au niveau {next}",
@@ -130,15 +131,13 @@ window.GAME = {
   guide: { idle: 6, color: "#ff8a3d", scale: 1.3, moodBelow: 45 },
 
   /* ---- World: meadow with a sandy cross-country loop in a forest band ---- */
-  world: { width: 2800, height: 2100, groundTile: "grass", bg: "#7cbf5a",
-    // sandy lane straight from the Paddock's right gate into the Carrière's left gate
-    patches: [{ x: 1590, y: 790, w: 140, h: 150, tile: "sand" }] },
+  world: { width: 2800, height: 2100, groundTile: "grass", bg: "#7cbf5a" },
   camera: { fitW: 620, fitH: 700, min: 0.52, max: 0.95 },
 
   /* ---- Assets (all generated, CC0) ---- */
   assets: {
     images: {
-      grass: { path: "assets/img/grass.webp", res: 2 }, sand: { path: "assets/img/sand.webp", res: 2 }, arena: { path: "assets/img/arena.webp", res: 2 },
+      grass: { path: "assets/img/grass.webp", res: 2 }, sand: { path: "assets/img/sand.webp", res: 2 }, arena: { path: "assets/img/arena.webp", res: 2 }, lane: { path: "assets/img/lane.webp", res: 2 },
       house: { path: "assets/img/house.webp", res: 2 }, tack: { path: "assets/img/tack.webp", res: 2 }, stable: { path: "assets/img/stable.webp", res: 2 },
       pine: { path: "assets/img/pine.webp", res: 2 }, tree: { path: "assets/img/tree.webp", res: 2 }, bush: { path: "assets/img/bush.webp", res: 2 },
       hurdle: { path: "assets/img/hurdle.webp", res: 2 }, hurdle_v: { path: "assets/img/hurdle_v.webp", res: 2 }, logs: { path: "assets/img/logs.webp", res: 2 },
@@ -261,7 +260,7 @@ window.GAME = {
 
   /* ---- The paddock (horses roam here; fenced, gate on the left) ---- */
   zones: [
-    { id: "paddock", home: true, rect: { x: 800, y: 480, w: 820, h: 760 }, fence: true, gates: "both", label: "Paddock", labelLift: 40 },   // right gate faces the Carrière
+    { id: "paddock", home: true, rect: { x: 800, y: 480, w: 820, h: 760 }, fence: true, gates: "both", gateA: 0.34, gateB: 0.62, label: "Paddock", labelLift: 40 },   // wide right gate facing the Carrière
   ],
 
   /* ---- Buildings ---- */
@@ -298,7 +297,7 @@ window.GAME = {
   /* ---- Show-jumping arena + cross-country loop in the forest ---- */
   environment: {
     band: 440,
-    arena: { rect: { x: 1700, y: 540, w: 620, h: 640 }, tile: "arena", label: "Carrière", fence: true,
+    arena: { rect: { x: 1700, y: 540, w: 620, h: 640 }, tile: "arena", label: "Carrière", fence: true, gateA: 0.31, gateB: 0.64,
              // obstacles stand ACROSS the left↔right run (the horse jumps them sideways); a gap between the
              // two rows lets you ride around them
              obstacleSprite: "hurdle_v", obstacleScale: 1.15, obstacleBox: { dx: -18, dy: -170, w: 36, h: 170 },
@@ -311,6 +310,8 @@ window.GAME = {
 
   /* ---- Scenery around the centre ---- */
   scenery: [
+    // the sandy lane joining the Paddock's right gate to the Carrière (drawn on the ground)
+    { x: 1660, y: 845, sprite: "lane", ground: true, scale: 1 },
     { x: 1210, y: 1470, sprite: "stable", scale: 0.85, box: { dx: -150, dy: -80, w: 300, h: 80 } },
     { x: 700, y: 1290, sprite: "bush", scale: 1.0, box: { dx: -30, dy: -14, w: 60, h: 18 } },
     { x: 960, y: 1300, sprite: "tree", scale: 0.95, anim: "sway", box: { dx: -18, dy: -16, w: 36, h: 20 } },

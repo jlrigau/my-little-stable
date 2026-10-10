@@ -403,6 +403,34 @@ function sandTile(file, base, seed, raked) {
   return job(`assets/img/${file}.png`, S, S, g);
 }
 
+// Sandy lane from the Paddock's right gate into the Carrière (a flat ground decal, 1 px = 1 world
+// px). Arena-sand colour so it melts into the Carrière on the right; ragged grassy edges top and
+// bottom and a feathered left end so it melts into the Paddock's grass; a few hoof prints.
+function lane() {
+  const W = 240, H = 300, R = rng(77), base = "#ecd2a0";
+  const defs = lin("lnf", [[0, base, 0], [0.16, base, 1], [1, "#f1dcae", 1]], 0, 0, 1, 0) + blur("lnb", 3);
+  // organic outline: wavy top & bottom edges, wide on the right (the arena gate), narrower in the paddock
+  const top = [], bot = [];
+  for (let i = 0; i <= 12; i++) {
+    const x = (i / 12) * W, t = i / 12;
+    top.push([x, 40 - t * 24 + (R() - 0.5) * 10]); bot.push([x, H - 40 + t * 24 + (R() - 0.5) * 10]);
+  }
+  const path = "M" + top.map((p) => p.map(f2).join(" ")).join(" L") + " L" + bot.reverse().map((p) => p.map(f2).join(" ")).join(" L") + " Z";
+  let g = `<path d="${path}" fill="${shade(base, -0.14)}" opacity=".8" filter="url(#lnb)" transform="translate(0 3)"/>`;   // soft darker rim
+  g += `<path d="${path}" fill="url(#lnf)"/>`;
+  // texture: soft patches + grains, like the arena tile
+  for (let i = 0; i < 10; i++) { const x = 60 + R() * (W - 60), y = 60 + R() * (H - 120); g += `<ellipse cx="${f2(x)}" cy="${f2(y)}" rx="${f2(20 + R() * 26)}" ry="${f2(10 + R() * 12)}" fill="${R() < 0.5 ? shade(base, 0.12) : shade(base, -0.05)}" opacity=".3"/>`; }
+  for (let i = 0; i < 70; i++) { const x = 50 + R() * (W - 50), y = 50 + R() * (H - 100); g += `<ellipse cx="${f2(x)}" cy="${f2(y)}" rx="${f2(1 + R() * 1.6)}" ry="${f2(0.8 + R())}" fill="${R() < 0.6 ? shade(base, -0.16) : shade(base, 0.3)}" opacity=".7"/>`; }
+  // hoof prints heading into the Carrière
+  for (let i = 0; i < 6; i++) { const x = 70 + i * 28, y = 140 + (i % 2 ? 18 : -6); g += `<path d="M${x} ${y} a6 5 0 1 1 8 0" fill="none" stroke="${shade(base, -0.22)}" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>`; }
+  // grass tufts overlapping both edges (integrates with the meadow)
+  const tuft = (x, y, s) => `<path d="M${f2(x - 4 * s)} ${f2(y)} Q${f2(x - 4 * s)} ${f2(y - 5 * s)} ${f2(x - 7 * s)} ${f2(y - 9 * s)} M${f2(x)} ${f2(y)} Q${f2(x)} ${f2(y - 8 * s)} ${f2(x + 1.5 * s)} ${f2(y - 11 * s)} M${f2(x + 4 * s)} ${f2(y)} Q${f2(x + 4 * s)} ${f2(y - 5 * s)} ${f2(x + 7 * s)} ${f2(y - 8 * s)}" fill="none" stroke="${R() < 0.6 ? "#7fbd5a" : "#9dd174"}" stroke-width="${f2(2 * s)}" stroke-linecap="round"/>`;
+  top.forEach(([x, y], i) => { if (i % 2 === 0 && x < W - 30) g += tuft(x + R() * 10, y + 4, 0.9 + R() * 0.5); });
+  bot.forEach(([x, y], i) => { if (i % 2 === 1 && x < W - 30) g += tuft(x + R() * 10, y + 2, 0.9 + R() * 0.5); });
+  // two little flower clumps where the lane leaves the Paddock
+  [[34, 62], [30, H - 52]].forEach(([x, y]) => { [[0, 0, PINK], [8, -3, "#fff"], [4, 6, GOLD]].forEach(([dx, dy, c]) => { g += `<circle cx="${x + dx}" cy="${y + dy}" r="3.2" fill="${c}" ${stk(1.3)}/>`; }); });
+  return job("assets/img/lane.png", W, H, g, defs);
+}
 /* ======================= World: buildings ======================= */
 const shadowEl = (cx, cy, rx, ry, op = 0.16) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#2a3a1a" opacity="${op}"/>`;
 function planks(x0, y0, w, h, step, col, vertical = true) {
@@ -985,7 +1013,7 @@ const HIDPI = [
 function build(jobs) {
   Object.keys(COATS).forEach((c) => jobs.push(horseSheet(c)));
   Object.keys(KIDS).forEach((id) => jobs.push(kidSheet(id), rideJob(id), kidThumb(id)));
-  jobs.push(grass(), sandTile("sand", "#e6c48a", 21, false), sandTile("arena", "#f1dcae", 33, true), house(), tack(), stable(), pine(), tree(), bush(),
+  jobs.push(grass(), sandTile("sand", "#e6c48a", 21, false), sandTile("arena", "#f1dcae", 33, true), lane(), house(), tack(), stable(), pine(), tree(), bush(),
     hurdle(), hurdleV(), logs(), trough(), haybale(), flowers(), ribbon(), trophy(), bench(), weathervane(), carrots(), saddleRack(), want(), fence());
   Object.keys(COATS).forEach((c) => jobs.push(horseThumb(c), flank(c, false), flank(c, true)));
   jobs.push(mud("mud_1", 3, "#a9784a"), mud("mud_2", 8, "#a27046"), straw(), curry(), logo(), splash(),

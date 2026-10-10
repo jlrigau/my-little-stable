@@ -95,7 +95,7 @@ stats, goalsDone, level, idCounter…`); any missing field gets its default on l
 an arrow function inside `meta` (the separation audit rejects top-level functions in the config).
 
 `meta.strings` overrides any **engine** UI label (each has an English fallback):
-`closeLabel, soundLabel, coinsLabel, dayLabel, levelLabel, noSave, refreshLabel,
+`dismountFirst, placeFirst, closeLabel, soundLabel, coinsLabel, dayLabel, levelLabel, noSave, refreshLabel,
 goalComplete ("{name}"), goalsComplete ("{n}"), levelUp ("{n}"), goalsTitle, noGoals,
 allGoalsDone, goalsProgress ("{done}/{total}…{next}"), topLevel`. (For back-compat a key
 set directly on `meta` also works.)
@@ -439,6 +439,8 @@ stations: [ { type, x, y, sprite, label, labelY?, scale?, box?, action, actionLa
               onUse?, spawn?, menu?, glow?, anim?, reach?:110, tapRadius?:80, sfx?, icon?, color?, hint? } ]
 // action: "nextDay" | "spawn" | "openShop" | "menu" | "missions" | "models" | "restyle" | "custom"
 // action:"restyle" → restyle: { price, title, subtitle, clearsChase, message, chaseMessage } (same fields as the menu item)
+// While riding, other stations refuse (station.onFootMessage, else meta.strings.dismountFirst), and you
+// can't mount while placing a decoration (meta.strings.placeFirst): shopping/decorating is on foot.
 // whileRiding / requireMounted: the station can be used without getting off (requireMounted: ONLY
 //   when riding — on foot it says needMountMessage); api.ride = the ridden creature.
 // action:"custom" → onUse(state, api) with api = { ride, message, refreshHud, save, earn(n), spend(n)→bool,
@@ -502,10 +504,11 @@ stats; `stats` renders `{i:icon} NN%` per key (`invert` for lower-is-better, e.g
 A mounted action `type:"race"` covers the world with a full-screen canvas: the road recedes
 to a horizon, your ride (`sprite`, multiplied by its variant tint) sits at the bottom, and
 you steer (left/right half of the screen, or arrow keys) to reach the finish before the timer
-runs out while dodging obstacles. The ride's `speedMul` / `grip` change top speed / steering.
+runs out while dodging obstacles (hit where they reach the car on screen, not at the camera). The ride's `speedMul` / `grip` change top speed / steering.
 The HUD (timer, distance, speed, quit, steering hints) is DOM with the game's icons.
 ```
-race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys], roadsideScale:3.4, spriteZoom,
+race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys], roadsideScale:3.4, spriteZoom,   // sprite width = road half-width × scale × spriteZoom
+                                         // (≈0.13 makes an obstacle car the size of yours when it reaches you)
   track:{ segments, speed, steer, centrifugal, curveEvery, seed },
   obstacles:[{ sprite, every, phase, scale, hw, spread }],
   colors:{ sky:[top,mid,horizon], sun:[top,bottom]|false, skyline|false, ground, grass:[a,b], road:[a,b], rumble:[a,b], lane, finish:[a,b] },
@@ -516,7 +519,7 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys],
 ### `environment` (optional)
 ```
 band,                                  // forest band thickness around the world
-arena: { rect, tile, label, fence, obstacleSprite, obstacleScale, obstacleBox, obstacles:[{x,y}] },
+arena: { rect, tile, label, fence, gates:"left", gateA:0.4, gateB:0.6, obstacleSprite, obstacleScale, obstacleBox, obstacles:[{x,y}] },
 forest: { tree, bush, step, hedgeMargin, treeScale:[min,max], bushScale:[min,max], hedgeBox:{dx,dy,w,h} },
 path: { width, sand, inset, tile, label, labelY,
         openings:[{x,y,w,h}], logs:{ xs:[...], dec, sprite, scale, box:{dx,dy,w,h}, depthLift } },

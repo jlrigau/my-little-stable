@@ -1156,7 +1156,7 @@ function buildEnvironment() {
     const a = ENV.arena;
     if (a.tile) sc.add.tileSprite(a.rect.x, a.rect.y, a.rect.w, a.rect.h, a.tile).setOrigin(0, 0).setDepth(-19).setTileScale(1 / RES(a.tile));
     if (a.label) worldLabel(a.rect.x + a.rect.w / 2, a.rect.y - 36, a.label, 99990);
-    if (a.fence) fenceRect(a.rect, { gates: "left" });
+    if (a.fence) fenceRect(a.rect, { gates: a.gates || "left", gateA: a.gateA, gateB: a.gateB });   // gate span as fractions of the height
     (a.obstacles || []).forEach((h) => {
       sc.add.image(h.x, h.y, a.obstacleSprite).setOrigin(0.5, 0.92).setScale((a.obstacleScale || 1) / RES(a.obstacleSprite)).setDepth(h.y);
       const b = a.obstacleBox || { dx: -33, dy: -18, w: 66, h: 30 };
@@ -2275,6 +2275,9 @@ function interact(target) {
   if (!st) return;
   lastInputT = nowMs();
   if (st.requireMounted && !mounted) { Sound.play("error"); message(st.needMountMessage || "Come back riding!"); return; }
+  // While riding, only stations made for it (whileRiding / requireMounted) can be used: the others
+  // (a shop, a house…) are on foot — e.g. you can't carry a bought tree back on horseback.
+  if (mounted && !st.whileRiding && !st.requireMounted) { Sound.play("error"); message(st.onFootMessage || T("dismountFirst", "Get off first!")); return; }
   if (st.action === "nextDay") nextDay();
   else if (st.action === "spawn") spawnCreatures(st);
   else if (st.action === "openShop") openShop();
@@ -2338,6 +2341,7 @@ function rideEmptyWarn(c) {
 function toggleRide(c) {
   const RIDE = CREATURE.ride; if (!RIDE) return;
   if (mounted === c) { dismount(c, false); return; }
+  if (placingDecor) { Sound.play("error"); message(T("placeFirst", "Place your decoration first!")); return; }   // decor is placed on foot
   if (RIDE.adultsOnly && isYoung(c)) { message((RIDE.tooYoung || "{name} is too young to ride.").replace("{name}", c.name)); return; }
   if (RIDE.empty !== "slow" && RIDE.minEnergy && RIDE.fatigueNeed && (c[RIDE.fatigueNeed] || 0) < RIDE.minEnergy) { message((RIDE.tooTired || "{name} is too tired.").replace("{name}", c.name)); return; }
   mounted = c; c._scEmptyWarned = false;
@@ -3510,8 +3514,10 @@ function r3Update(dt) {
   const seg = R3.segs[Math.floor(R3.pos / R3.segLen)] || R3.segs[0];
   R3.playerX -= dt * (R3.speed / R3.maxSpeed) * (seg.curve || 0) * (T.centrifugal || 0.7);
   R3.playerX = clamp(R3.playerX, -2.2, 2.2);
-  for (let i = Math.floor(R3.prevPos / R3.segLen); i <= Math.floor(R3.pos / R3.segLen) + 1 && i < R3.segs.length; i++) {
-    const s = R3.segs[i]; if (!s || !s.obstacles.length || s.z <= R3.prevPos || s.z > R3.pos) continue;
+  // obstacles hit the car where it is DRAWN: R3.carDepth ahead of the camera (set by r3Render)
+  const D = R3.carDepth || 0, a0 = R3.prevPos + D, a1 = R3.pos + D;
+  for (let i = Math.floor(a0 / R3.segLen); i <= Math.floor(a1 / R3.segLen) + 1 && i < R3.segs.length; i++) {
+    const s = R3.segs[i]; if (!s || !s.obstacles.length || s.z <= a0 || s.z > a1) continue;
     s.obstacles.forEach((o) => {
       if (o.dead || Math.abs(R3.playerX - o.offset) >= o.hw + 0.16) return;
       o.dead = true; R3.speed *= 0.32; R3.time -= (RACE.hitPenalty || 3); R3.shake = 0.4; R3.hitFlash = 0.5;
@@ -3545,6 +3551,9 @@ function r3Render() {
   for (let n = drawn.length - 1; n >= 0; n--) { const s = drawn[n]; s.sprites.forEach((sp) => r3Billboard(s, sp)); s.obstacles.forEach((o) => { if (!o.dead) r3Billboard(s, o); }); }
   if (R3.car) {
     const w = W * 0.32, h = w * (R3.car.height / R3.car.width), bob = Math.sin(R3.pos * 0.05) * 2;
+    // the depth (world units ahead of the camera) whose road row is under the car's wheels
+    const carY = H - Math.max(90, H * 0.12) - h * 0.12;
+    R3.carDepth = carY > H / 2 + 1 ? R3.camD * R3.camH * (H / 2) / (carY - H / 2) : 0;
     const lean = R3.playerX * 16 + (R3.input.left ? -10 : 0) + (R3.input.right ? 10 : 0);
     ctx.drawImage(R3.car, W / 2 - w / 2 + lean, H - h - Math.max(90, H * 0.12) + bob, w, h);
   }
