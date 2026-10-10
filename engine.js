@@ -983,9 +983,22 @@ let zoomFx = false;
 
 /* ===================== Asset loading ===================== */
 
+// Images only ever shown by the DOM (close-up backdrops + their "done" version, spots, brush) are NOT
+// uploaded to the GPU: on iPhone, N variants x ~4.7 Mpx backdrops cost hundreds of MB of WebGL memory,
+// enough for Safari to drop the context (frozen world / reload loop). A key also used in the world stays.
+function domOnlyImageKeys() {
+  const keys = new Set(), add = (k) => { if (k) keys.add(k); };
+  ACTIONS.forEach((a) => { const c = a.closeup; if (!c) return; add(c.bg); add(c.bgDone); add(c.spotSprite); (c.spotSprites || []).forEach(add); add(c.brush); });
+  VARIANTS.forEach((v) => { add(v.closeupBg); add(v.closeupBgDone); });
+  const world = JSON.stringify([G.scenery, G.decor, G.stations, G.environment, G.unlocks, G.missions, G.chase, G.race, G.zones, G.world, G.fence,
+    CREATURE && CREATURE.wantBubble, G.economy, G.shop]);
+  return [...keys].filter((k) => !world.includes('"' + k + '"'));
+}
 function scenePreload() {
-  const imgs = (G.assets && G.assets.images) || {};
-  Object.keys(imgs).forEach((k) => this.load.image(k, av(assetPath(k))));
+  const imgs = (G.assets && G.assets.images) || {}, domOnly = domOnlyImageKeys();
+  Object.keys(imgs).forEach((k) => { if (!domOnly.includes(k)) this.load.image(k, av(assetPath(k))); });
+  // warm the HTTP cache for the DOM-only images (no decoding, no GPU) so the close-up opens instantly
+  setTimeout(() => domOnly.forEach((k) => { const u = assetPath(k); if (u) fetch(av(u)).catch(() => {}); }), 4000);
   const sheets = (G.assets && G.assets.sheets) || {};
   Object.keys(sheets).forEach((k) => {
     const s = sheets[k];
@@ -3170,7 +3183,7 @@ function openChoice(title, subtitle, items) {
     const right = o.tag ? `<span class="ch-tag">${iconHTML(o.tag)}</span>`
       : (o.price != null ? `<span class="ch-price">${iconHTML(META.coinIcon || "star")}<b>${o.price}</b></span>` : "");
     html += `<button class="choice${o.accent ? " accent" : ""}${o.disabled ? " off" : ""}" data-choice="${i}"${o.disabled ? " disabled" : ""}${o.color ? ` style="--c:${o.color}"` : ""}>
-      <span class="ch-ico">${ico}</span><span class="ch-txt"><b>${fmt(o.label)}</b>${o.sub ? `<small>${fmt(o.sub)}</small>` : ""}</span>${right}</button>`;
+      <span class="ch-ico">${ico}</span><span class="ch-txt"><b>${fmt(o.label)}</b>${o.sub ? `<small>${fmt(o.sub).replace(/\n/g, "<br>")}</small>` : ""}</span>${right}</button>`;
   });
   openModal(title, html + `</div>`);
 }
@@ -3429,7 +3442,7 @@ function openModels() {
     const v = variantDef(m.variant);
     const statTxt = (MODELS.stats || []).map((s) => `{i:${s.icon}} ${Math.round((m[s.key] != null ? (s.invert ? 2 - m[s.key] : m[s.key]) : 1) * 100)}%`).join("  ");
     return {
-      label: m.name, sub: statTxt + (m.desc ? "<br>" + m.desc : ""), img: m.img || (v && v.thumb), icon: m.icon || (CREATURE && CREATURE.icon), color: v && v.color,
+      label: m.name, sub: statTxt + (m.desc ? "\n" + m.desc : ""), img: m.img || (v && v.thumb), icon: m.icon || (CREATURE && CREATURE.icon), color: v && v.color,
       price: owned ? null : m.price, tag: owned ? (MODELS.ownedTag || "check") : null, disabled: owned,
       onPick: () => buyModel(m),
     };
