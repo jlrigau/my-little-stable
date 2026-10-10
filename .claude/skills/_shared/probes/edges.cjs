@@ -33,7 +33,7 @@ module.exports = async (page) => {
         const lim = (f.hedgeMargin || 80) + (f.step || 44);
         // a VISIBLE opening is fine: did the walk cross a drawn hedge sprite on its way?
         const crossed = sc.children.list.some((o) => o.texture && o.texture.key === f.bush && o.visible && [0.2, 0.4, 0.6, 0.8].some((t) => {
-          const x = g.x + (player.x - g.x) * t, y = g.y + (player.y - g.y) * t; return Math.abs(x - o.x) < o.displayWidth * 0.4 && y > o.y - o.displayHeight * 0.8 && y < o.y + 4; }));
+          const x = g.x + (player.x - g.x) * t, y = g.y + (player.y - g.y) * t; return Math.abs(x - o.x) < o.displayWidth * 0.35 && y > o.y - o.displayHeight * 0.6 && y < o.y + 4; }));   // well inside the drawing (grazing an opening edge is fine)
         return { ride, key: g.key, from: [Math.round(g.x), Math.round(g.y)], at: [Math.round(player.x), Math.round(player.y)], inside: hit, out: Math.round(d), leak: d > lim && crossed };
       }, [g, ride]));
     }
