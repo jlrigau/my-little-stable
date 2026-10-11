@@ -366,6 +366,14 @@ input[type="text"]::placeholder { color: var(--muted); opacity: 0.65; }
 .race3d { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 30; touch-action: none; background: #000; }
 .race-hud { position: fixed; inset: 0; z-index: 31; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
   padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); }
+/* race head: the chips row, then the ride's need gauge (fuel…) on its own row */
+.rh-head { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.rh-need { align-self: flex-start; height: 30px; padding: 0 10px 0 30px; margin-left: 12px; gap: 8px; font-size: clamp(.7rem, 3.3vw, .95rem); font-variant-numeric: tabular-nums; }
+.rh-need .r-ico { left: -10px; width: 38px; height: 38px; } .rh-need .r-ico .ico { width: 36px; height: 36px; }
+.rh-gauge { display: inline-block; width: 120px; height: 10px; border-radius: 99px; background: rgba(0, 0, 0, 0.4); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4); }
+.rh-gauge i { display: block; height: 100%; width: 0; border-radius: 99px; background: var(--good); transition: width .3s linear, background-color .3s; }
+.rh-need b { min-width: 2.6em; text-align: right; }
+.rh-need.low { border-color: var(--bad); animation: heatPulse .6s ease-in-out infinite; } .rh-need.low .rh-gauge i { background: var(--bad); }
 .rh-top { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; padding-left: 8px; }
 /* one line, whatever the values: compact chips that scale with the screen + fixed-width digits (no jump, no wrap) */
 .rh-top .resource { flex: 0 1 auto; min-width: 0; margin-left: 4px; height: 32px; padding: 0 9px 0 28px; font-size: clamp(.7rem, 3.3vw, 1.05rem); font-variant-numeric: tabular-nums; }

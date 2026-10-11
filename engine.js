@@ -3741,10 +3741,14 @@ function r3Hud(build) {
   if (build) {
     let h = $("race-hud");
     if (!h) { h = document.createElement("div"); h.id = "race-hud"; h.className = "race-hud"; document.body.appendChild(h); }
-    h.innerHTML = `<div class="rh-top"><span class="resource" id="rh-time"><span class="r-ico">${iconHTML(I.time || "calendar")}</span><b>0</b></span>
+    // race.showNeed (default on): the ride's fatigue need (fuel, energy…) as a gauge under the chips, so a ride
+    // that slows down mid-race (an empty tank, ride.empty:"slow") is understood
+    const RN = RACE.showNeed !== false && CREATURE && CREATURE.ride && CREATURE.ride.fatigueNeed && NEEDS.find((n) => n.id === CREATURE.ride.fatigueNeed);
+    h.innerHTML = `<div class="rh-head"><div class="rh-top"><span class="resource" id="rh-time"><span class="r-ico">${iconHTML(I.time || "calendar")}</span><b>0</b></span>
         <span class="resource" id="rh-dist"><span class="r-ico">${iconHTML(I.distance || "arrow")}</span><b>0</b></span>
         <span class="resource" id="rh-speed"><span class="r-ico">${iconHTML(I.speed || "star")}</span><b>0</b></span>
         <button class="mini-btn rh-quit" id="rh-quit" aria-label="${esc(stripIcons(RACE.quitLabel || "Quit"))}">${iconHTML(I.quit || "close")}</button></div>
+      ${RN ? `<span class="resource rh-need" id="rh-need"><span class="r-ico">${iconHTML(RN.icon || "battery")}</span><span class="rh-gauge"><i></i></span><b>0%</b></span>` : ""}</div>
       <div class="rh-steer"><span class="rh-l">${iconHTML(I.left || "arrow")}</span><span class="rh-hint">${fmt(RACE.hint || "")}</span><span class="rh-r">${iconHTML(I.right || "arrow")}</span></div>`;
     $("rh-quit").addEventListener("click", (e) => { e.stopPropagation(); endRace(false, true); });
     h.classList.remove("hidden"); R3.hud = h;
@@ -3755,6 +3759,12 @@ function r3Hud(build) {
   set("rh-dist", Math.max(0, Math.round((R3.finishZ - R3.pos) / 100)) + " " + (RACE.distUnit || "m"));
   set("rh-speed", Math.round((R3.speed / R3.maxSpeed) * (RACE.topSpeed || 210)) + " " + (RACE.speedUnit || "km/h"));
   const t = $("rh-time"); if (t) t.classList.toggle("warn", R3.time <= 8);
+  const ng = $("rh-need");
+  if (ng && mounted) {
+    const v = Math.max(0, Math.min(100, mounted[CREATURE.ride.fatigueNeed] || 0)), w = Math.round(v) + "%";
+    const bar = ng.querySelector(".rh-gauge i"); if (bar && bar.style.width !== w) bar.style.width = w;
+    set("rh-need", w); ng.classList.toggle("low", v < 25); ng.classList.toggle("empty", v <= 0);
+  }
   R3.hud.classList.toggle("steer-l", R3.input.left); R3.hud.classList.toggle("steer-r", R3.input.right);
 }
 function r3Teardown() {

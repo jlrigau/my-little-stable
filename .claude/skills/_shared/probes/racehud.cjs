@@ -23,6 +23,15 @@ module.exports = async (page) => {
       return { vals: [t, d, v], oneRow, overlap, spill, fits: b[3].right <= innerWidth, w: b.map((x) => Math.round(x.width)) };
     }, [t, d, v]));
   }
+  // the ride's need gauge (race.showNeed): its own row under the chips, inside the screen, shows the real value
+  const need = await page.evaluate(async () => {
+    const el = document.getElementById("rh-need"); if (!el) return null;
+    const k = GAME.creature.ride.fatigueNeed; mounted[k] = 18; r3Hud(false); await new Promise((x) => setTimeout(x, 400));
+    const a = el.getBoundingClientRect(), top = document.querySelector(".rh-top").getBoundingClientRect();
+    return { below: a.top >= top.bottom - 1, inside: a.left >= 0 && a.right <= innerWidth, text: el.querySelector("b").textContent, low: el.classList.contains("low") };
+  });
   await page.screenshot({ path: process.env.OUT + "/racehud.png" });
-  return { out, errors: out.filter((o) => !o.oneRow || o.overlap || !o.fits || o.spill).map((o) => "race HUD breaks with " + o.vals.join(" / ")) };
+  const errors = out.filter((o) => !o.oneRow || o.overlap || !o.fits || o.spill).map((o) => "race HUD breaks with " + o.vals.join(" / "));
+  if (need && !(need.below && need.inside && need.text === "18%" && need.low)) errors.push("race need gauge wrong: " + JSON.stringify(need));
+  return { out, need, errors };
 };
