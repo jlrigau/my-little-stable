@@ -75,7 +75,7 @@ language (e.g. *“add a pink critter”*, *“let me ride them”*, *“add a s
 | Theme-specific effects (e.g. stars when playing) | `action.anim` particles | — |
 
 Nothing here ships in the starter on purpose — you switch features on as you need them.
-For **non-technical feedback** (a child, a client, a playtester), the **feedback-session**
+For **non-technical feedback** (the players, even children), the **feedback-session**
 skill lets them drive changes in plain words while the technical work happens silently.
 
 ---
