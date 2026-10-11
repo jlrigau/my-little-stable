@@ -3595,6 +3595,10 @@ function startRace() {
   // variant.raceSprite: a dedicated rear view per variant (variants drawn as separate sheets, not tints)
   const v = variantDef(variantId(mounted)) || {}, base = r3Img(v.raceSprite || RACE.sprite);
   R3.car = base ? r3Tint(base, v.raceSprite ? null : (v.tint || null)) : null;
+  // character.raceRider: the player's own rider seen from behind, a layer drawn over the mount's rear view
+  // (same frame size) so any character x any mount works; none when the ride hides its rider (cars).
+  const rc = charDef(state.player.avatar), hide = CREATURE && CREATURE.ride && CREATURE.ride.hideRider;
+  R3.rider = !hide && rc && rc.raceRider ? r3Img(rc.raceRider) : null;
   r3Track();
   const T = RACE.track || {};
   R3.pos = R3.prevPos = R3.playerX = R3.speed = 0;
@@ -3731,6 +3735,8 @@ function r3Render() {
     R3.carDepth = carY > H / 2 + 1 ? R3.camD * R3.camH * (H / 2) / (carY - H / 2) : 0;
     const lean = R3.playerX * 16 + (R3.input.left ? -10 : 0) + (R3.input.right ? 10 : 0);
     ctx.drawImage(R3.car, W / 2 - w / 2 + lean, H - h - Math.max(90, H * 0.12) + bob, w, h);
+    // the rider rises and sinks a little against the mount (gallop), never detached from the saddle
+    if (R3.rider) ctx.drawImage(R3.rider, W / 2 - w / 2 + lean, H - h - Math.max(90, H * 0.12) + bob + Math.sin(R3.pos * 0.1) * h * 0.006, w, h);
   }
   ctx.restore();
   if (R3.hitFlash > 0) { ctx.fillStyle = "rgba(255,60,60," + (R3.hitFlash * 0.4).toFixed(3) + ")"; ctx.fillRect(0, 0, W, H); }

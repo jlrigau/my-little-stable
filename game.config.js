@@ -154,6 +154,9 @@ window.GAME = {
       flank_golden: { path: "assets/img/flank_palomino.webp", res: 2 }, flank_golden_done: { path: "assets/img/flank_palomino_done.webp", res: 2 },
       flank_white: { path: "assets/img/flank_blanc.webp", res: 2 }, flank_white_done: { path: "assets/img/flank_blanc_done.webp", res: 2 },
       horse_back_bai: { path: "assets/img/horse_back_bai.webp", res: 2 }, horse_back_noir: { path: "assets/img/horse_back_noir.webp", res: 2 },
+      // race: the player's own rider seen from behind (drawn over the horse) + rival competitors
+      rider_back_fille: { path: "assets/img/rider_back_fille.webp", res: 2 }, rider_back_garcon: { path: "assets/img/rider_back_garcon.webp", res: 2 },
+      race_rival_noir: { path: "assets/img/race_rival_noir.webp", res: 2 }, race_rival_gris: { path: "assets/img/race_rival_gris.webp", res: 2 },
       horse_back_gris: { path: "assets/img/horse_back_gris.webp", res: 2 }, horse_back_palomino: { path: "assets/img/horse_back_palomino.webp", res: 2 },
       horse_back_blanc: { path: "assets/img/horse_back_blanc.webp", res: 2 },
       race_log: { path: "assets/img/race_log.webp", res: 2 }, race_hurdle: { path: "assets/img/race_hurdle.webp", res: 2 },
@@ -183,8 +186,8 @@ window.GAME = {
     shadow: { w: 34, h: 12 },
   },
   characters: [
-    { id: "fille", name: "Cavalière", sheet: "kid_fille", rideSheet: "kid_fille_ride", thumb: "assets/ui/kid_fille.webp" },
-    { id: "garcon", name: "Cavalier", sheet: "kid_garcon", rideSheet: "kid_garcon_ride", thumb: "assets/ui/kid_garcon.webp" },
+    { id: "fille", name: "Cavalière", sheet: "kid_fille", rideSheet: "kid_fille_ride", raceRider: "rider_back_fille", thumb: "assets/ui/kid_fille.webp" },
+    { id: "garcon", name: "Cavalier", sheet: "kid_garcon", rideSheet: "kid_garcon_ride", raceRider: "rider_back_garcon", thumb: "assets/ui/kid_garcon.webp" },
   ],
 
   /* ---- Horses ---- */
@@ -279,8 +282,8 @@ window.GAME = {
     obstacles: [
       { sprite: "race_log", every: 34, phase: 0, scale: 6.5, hw: 0.32, spread: 0.5 },
       { sprite: "race_hurdle", every: 46, phase: 20, scale: 6.5, hw: 0.32, spread: 0.5 },
-      { sprite: "horse_back_noir", every: 58, phase: 38, scale: 11, hw: 0.3, spread: 0.45 },
-      { sprite: "horse_back_gris", every: 58, phase: 9, scale: 11, hw: 0.3, spread: 0.45 },
+      { sprite: "race_rival_noir", every: 58, phase: 38, scale: 11, hw: 0.3, spread: 0.45 },
+      { sprite: "race_rival_gris", every: 58, phase: 9, scale: 11, hw: 0.3, spread: 0.45 },
     ],
     colors: { sky: ["#7cc6f0", "#a8dcf5", "#e8f6ff"], sun: ["#fff3a8", "#ffd24a"], skyline: false, ground: "#5ea446",
               grass: ["#78bb58", "#6cae4e"], road: ["#d9b37a", "#cfa86e"], rumble: ["#b88a55", "#a87c4a"], lane: "#e3c491", finish: ["#ffffff", "#4a3428"] },   // sandy cross path

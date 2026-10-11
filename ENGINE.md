@@ -203,10 +203,12 @@ Everything in `assets` is preloaded automatically (with cache-busting via `av()`
 ```
 player: { scale, speed:{walk,run,rideWalk,rideRun}, spawn:{x,y}, nameY, shadow:{w,h},
           frameRate, originY, showName }  // nameY = y offset of the name label above the head (default -80)
-characters: [ { id, name, sheet, thumb, rideSheet? } ]   // sheet = LPC walkcycle (9 cols × 4 rows: up,left,down,right;
+characters: [ { id, name, sheet, thumb, rideSheet?, raceRider? } ]   // sheet = LPC walkcycle (9 cols × 4 rows: up,left,down,right;
                                              // col 0 = idle) at any frame size; thumb in assets/ui/
                                              // rideSheet = ONE frame, the character SEATED (side view facing
                                              // left; flipped for right) shown while riding (ride.sitY places it)
+                                             // raceRider = image key: this rider SEEN FROM BEHIND, drawn over the
+                                             // mount's race rear view (same frame size) — see `race`
 ```
 
 ### `creature` (optional system)
@@ -518,6 +520,7 @@ A mounted action `type:"race"` covers the world with a full-screen canvas: the r
 to a horizon, your ride (`sprite`, multiplied by its variant tint) sits at the bottom, and
 you steer (left/right half of the screen, or arrow keys) to reach the finish before the timer
 runs out while dodging obstacles (hit where they reach the car on screen, not at the camera).
+A character's `raceRider` (image key, same frame size as the mount's rear view) is drawn over the mount, so the player sees their own rider from behind (skipped when `ride.hideRider`).
 A variant with its own `raceSprite` (e.g. creatures drawn as separate sheets) uses it instead of the tinted `race.sprite`. The ride's `speedMul` / `grip` change top speed / steering.
 The HUD (timer, distance, speed, quit, steering hints) is DOM with the game's icons.
 ```

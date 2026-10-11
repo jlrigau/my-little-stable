@@ -661,7 +661,7 @@ function horseBack(coatId) {
   g += `<ellipse cx="100" cy="20" rx="17" ry="10" fill="url(#${u}n)" ${st}/>`;   // poll (mostly behind the helmet)
   g += `<path d="${spline([[110, 22], [117, 28], [121, 42], [123, 56], [122, 68], [118, 62], [116, 68], [113, 54], [112, 38]], true)}" fill="url(#${u}m)" ${stk(sw * 0.9, ink)}/>`;
   // --- barrel at the saddle, only a little wider than the rump
-  g += `<path d="M63 74 Q64 64 80 62 Q100 59 120 62 Q136 64 137 74 Q141 86 138 98 Q100 104 62 98 Q59 86 63 74 Z" fill="url(#${u}d)" ${st}/>`;
+  g += `<path d="M72 72 Q74 63 86 62 Q100 60 114 62 Q126 63 128 72 Q131 86 129 98 Q100 103 71 98 Q69 86 72 72 Z" fill="url(#${u}d)" ${st}/>`;
   // --- saddle pad just under the hips
   g += `<path d="M72 66 Q100 60 128 66 L131 84 Q100 80 69 84 Z" fill="${CORAL}" ${st}/><path d="M73 80 Q100 76 127 80" fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3" opacity=".8"/>`;
   // --- rider's back, seated: elbows slightly out (hands forward on the reins, hidden), straight back
@@ -689,6 +689,8 @@ function horseBack(coatId) {
     return s;
   };
   g += leg(81, socks[0]) + leg(119, socks[1]);
+  // calves: breeches coming out from behind the rump edge into the boots
+  [-1, 1].forEach((d) => { g += `<path d="${capsule([100 + d * 33, 90], [100 + d * 34.5, 108], 10, 9)}" fill="${R.pants}" ${stk(2.4)}/>`; });
   // --- rump: narrow, rounded hips, almost straight flanks; tail root at the top centre
   const rump = "M100 70 C112 70 122 72 127 78 C132 84 134 92 134 100 C134 106 131 110 127 113 C123 116 118 118 112 118 L104 118 L100 114 L96 118 L88 118 C82 118 77 116 73 113 C69 110 66 106 66 100 C66 92 68 84 73 78 C78 72 88 70 100 70 Z";
   g += `<path d="${rump}" fill="url(#${u}b)" ${st}/>`;
@@ -704,10 +706,10 @@ function horseBack(coatId) {
   g += `<path d="M97 80 Q95 108 95 132 M103 80 Q105 106 105 130 M100 84 Q100 110 100 134" fill="none" stroke="${shade(maneC, 0.32)}" stroke-width="1.8" stroke-linecap="round" opacity=".55"/>`;
   // --- the rider's legs are hidden by the horse: only the boot heels in the stirrups peek out under the belly
   [-1, 1].forEach((d) => {
-    const x = 100 + d * 30;
-    g += `<path d="M${x - 4} 103.5 Q${x - 4} 101 ${x} 101 Q${x + 4} 101 ${x + 4} 103.5 L${x + 4} 110 Q${x} 112 ${x - 4} 110 Z" fill="${R.boots}" ${stk(2.4)}/>`;
-    g += `<path d="M${x - 1.5 * d} 103 V108" stroke="#fff" stroke-width="1.2" opacity=".35" stroke-linecap="round"/>`;
-    g += `<path d="M${x - 4.5} 112.5 H${x + 4.5}" stroke="${INK}" stroke-width="4.6" stroke-linecap="round"/><path d="M${x - 4.5} 112.5 H${x + 4.5}" stroke="#d8dde4" stroke-width="2" stroke-linecap="round"/>`;
+    const x = 100 + d * 34;
+    g += `<path d="M${x - 4.5} 106 L${x + 4.5} 106 L${x + 4.5} 115 Q${x + 4.5} 119 ${x} 119 Q${x - 4.5} 119 ${x - 4.5} 115 Z" fill="${R.boots}" ${stk(2.4)}/>`;
+    g += `<path d="M${x - 1.5 * d} 108 V115" stroke="#fff" stroke-width="1.2" opacity=".35" stroke-linecap="round"/>`;
+    g += `<path d="M${x - 5} 121 H${x + 5}" stroke="${INK}" stroke-width="4.6" stroke-linecap="round"/><path d="M${x - 5} 121 H${x + 5}" stroke="#d8dde4" stroke-width="2" stroke-linecap="round"/>`;
   });
   return job(`assets/img/horse_back_${coatId}.png`, W, H, g, defs);
 }
