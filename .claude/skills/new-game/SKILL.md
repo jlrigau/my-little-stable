@@ -33,7 +33,10 @@ Ask only what changes the output. Bundle into 1–2 `AskUserQuestion` calls:
   **asset-search** (`references/content-policy.md`).
 - **Art style**: smooth cartoon vector art generated from SVG (default — see the demo's
   `tools/art/nebula.cjs`), or pixel-art (`render.pixelArt:true`).
-- **Language**: UI strings language (the demo ships English).
+- **Language**: the source language of the texts (`meta.lang`; the demo ships English). Every
+  game is bilingual French / English by default: also generate `game.i18n.js` for the other one
+  (`node .claude/skills/_shared/i18n-extract.cjs --to <lang>`, fill every value, `--check` passes;
+  in a non-English game also `--to <meta.lang>` for the engine's English fallbacks).
 - **Core loop**: the main entity to care for / interact with, and the 3–5 main
   **actions** (feed/clean/play/ride… or theme equivalents). Keep it close to the
   engine's supported systems (see `ENGINE.md` for the full list of capabilities).

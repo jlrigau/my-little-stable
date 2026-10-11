@@ -96,6 +96,54 @@ document.addEventListener("DOMContentLoaded", function () {
 const G = window.GAME;
 if (!G) throw new Error("engine.js: window.GAME is missing — load game.config.js before engine.js");
 
+/* ===================== Languages (config-gated: GAME_I18N) ===================== */
+// A game is written in ONE source language (meta.lang, default "en"). Other languages live in
+// game.i18n.js, loaded between game.config.js and engine.js:
+//   window.GAME_I18N = { fr: { "Source text": "Texte traduit", ... } }
+// keyed by the EXACT source string (config strings AND the engine's own English fallbacks).
+// The active language = saved choice > browser language > meta.lang. The whole GAME object is
+// translated once here, before anything reads it, so every system stays language-agnostic.
+// A missing entry falls back to the source text. A non-English game may also give its own
+// language a section that only translates the engine's English fallbacks. Tool: _shared/i18n-extract.cjs.
+const I18N = window.GAME_I18N || {};
+const SRC_LANG = (G.meta && G.meta.lang) || "en";
+const LANG_ORDER = ["fr", "en"];   // display order of the flags (others after, alphabetical)
+const LANGS = [SRC_LANG].concat(Object.keys(I18N).filter((l) => l !== SRC_LANG && Object.keys(I18N[l]).some((k) => I18N[l][k])))
+  .filter((l, i, a) => a.indexOf(l) === i)
+  .sort((a, b) => ((LANG_ORDER.indexOf(a) + 1 || 99) - (LANG_ORDER.indexOf(b) + 1 || 99)) || a.localeCompare(b));
+const LANG_KEY = ((G.meta && G.meta.saveKey) || "game") + "-lang";
+const LANG = (function () {
+  let l = null; try { l = localStorage.getItem(LANG_KEY); } catch (_) {}
+  if (l && LANGS.indexOf(l) >= 0) return l;
+  const nav = (navigator.languages || [navigator.language || ""]).map((x) => String(x).slice(0, 2).toLowerCase());
+  return nav.find((x) => LANGS.indexOf(x) >= 0) || SRC_LANG;
+})();
+const DICT = I18N[LANG] || null;   // for the source language it only holds the engine fallbacks (when not English)
+function L(s) { return DICT && typeof s === "string" && DICT[s] != null && DICT[s] !== "" ? DICT[s] : s; }
+// Keys that hold identifiers / asset refs, never text: never translated.
+const I18N_SKIP = /^(id|ids|saveKey|legacySave|audience|assetVersion|path|src|sheet|sprite|img|image|thumb|icon|color|tint|stat|need|type|kind|mode|font|key|lang)$|(Id|Ids|Sheet|Sprite|Icon|Bg|BgDone|BgWide|BgWideDone|Img|Color|Path|Key)$/;
+(function tr(o, d) {
+  if (!DICT || !o || d > 14) return;
+  for (const k in o) {
+    const v = o[k];
+    if (typeof v === "string") { if (!I18N_SKIP.test(k)) o[k] = L(v); }
+    else if (v && typeof v === "object" && !I18N_SKIP.test(k)) tr(v, d + 1);
+  }
+})(G, 0);
+try { document.documentElement.lang = LANG; } catch (_) {}
+// Round flag for a language code (language switch). A game may supply GAME.icons["flag_xx"].
+const FLAG_SVG = {
+  fr: '<rect width="30" height="30" fill="#fff"/><rect width="10" height="30" fill="#002395"/><rect x="20" width="10" height="30" fill="#ed2939"/>',
+  en: '<rect width="30" height="30" fill="#012169"/><path d="M-6 0L36 30M36 0L-6 30" stroke="#fff" stroke-width="6"/><path d="M-6 0L36 30M36 0L-6 30" stroke="#c8102e" stroke-width="2.4"/><path d="M15 0v30M0 15h30" stroke="#fff" stroke-width="9"/><path d="M15 0v30M0 15h30" stroke="#c8102e" stroke-width="5"/>',
+};
+function flagHTML(l) {
+  const ic = G.icons && G.icons["flag_" + l];
+  if (ic) return `<img class="flag" src="${av(ic)}" alt="" draggable="false" />`;
+  if (FLAG_SVG[l]) return `<svg class="flag" viewBox="0 0 30 30" aria-hidden="true">${FLAG_SVG[l]}</svg>`;
+  return `<span class="flag flag-txt">${esc(l.toUpperCase())}</span>`;
+}
+function setLang(l) { try { localStorage.setItem(LANG_KEY, l); } catch (_) {} location.reload(); }
+
 // Asset cache-busting version (bump when an IMAGE changes, to force reload).
 const ASSET_VER = (G.meta && G.meta.assetVersion) || "v1";
 function av(p) { return p + "?v=" + ASSET_VER; }
@@ -176,7 +224,7 @@ const TEXT_RES = Math.max(1, Math.ceil(DPR * Math.max(1, (G.camera && G.camera.m
 // UI strings: every label has an English fallback; a game overrides any of them in
 // META.strings (or, for back-compat, directly on META). {vars} are interpolated.
 function T(key, fallback, vars) {
-  let s = (META.strings && META.strings[key] != null) ? META.strings[key] : (META[key] != null ? META[key] : fallback);
+  let s = (META.strings && META.strings[key] != null) ? META.strings[key] : (META[key] != null ? META[key] : L(fallback));
   if (vars) Object.keys(vars).forEach((k) => { s = String(s).split("{" + k + "}").join(vars[k]); });
   return s;
 }
@@ -347,10 +395,25 @@ function save() {
   const skip = { obj: 1, bodyT: 1, heartT: 1, wantT: 1, nameT: 1, shadowT: 1, _scEmptyWarned: 1 };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(state, (k, v) => skip[k] ? undefined : v)); } catch (e) {}
 }
+// Names stored in a save (creatures, mission places) were written in the language active at the
+// time: map any known config text (a source string or a translation in any language) to the
+// current language, so a game started in French shows "Viper" after switching to English.
+function relang(t) {
+  if (typeof t !== "string") return t;
+  if (DICT && DICT[t]) return DICT[t];
+  for (const l in I18N) for (const k in I18N[l]) if (I18N[l][k] === t && l !== LANG) return L(k);
+  return t;
+}
+function relangSave(st) {
+  if (!st || !Object.keys(I18N).length) return st;
+  (st.creatures || []).forEach((c) => { c.name = relang(c.name); });
+  if (st.mission) ["name", "pname"].forEach((k) => { if (st.mission[k]) st.mission[k] = relang(st.mission[k]); });
+  return st;
+}
 function load() {
   try {
     const b = localStorage.getItem(SAVE_KEY) || migrateLegacySave();
-    return b ? JSON.parse(b) : null;
+    return b ? relangSave(JSON.parse(b)) : null;
   } catch (e) { return null; }
 }
 // meta.legacySave = { key: "old-key" | ["k1","k2"], migrate: (old) => newStateLike }:
@@ -486,7 +549,7 @@ const Sound = (() => {
 
 /* ===================== Screen flow ===================== */
 
-let pendingPlayer = null, placeNameTmp = META.startName || "My Place";
+let pendingPlayer = null, placeNameTmp = META.startName || L("My Place");
 
 function init() {
   applyStaticText();
@@ -494,7 +557,7 @@ function init() {
   // bare strip at the bottom while the world loads).
   const pn = $("panel"); if (pn) { pn.innerHTML = ""; pn.classList.add("idle"); }
   $("btn-start").addEventListener("click", () => {
-    placeNameTmp = $("place-name-input").value.trim() || (META.startName || "My Place");
+    placeNameTmp = $("place-name-input").value.trim() || (META.startName || L("My Place"));
     openCreate({ avatar: CHARACTERS[0].id }, () => newGame(placeNameTmp, pendingPlayer));
   });
   $("btn-continue").addEventListener("click", continueGame);
@@ -581,14 +644,33 @@ function applyStaticText() {
   if (META.splash) document.querySelectorAll(".home-bg").forEach((el) => { el.style.backgroundImage = `url("${av(META.splash)}")`; });
   setHTML("place-icon", iconHTML(META.titleIcon || ""));   // in-game HUD icon (generic shell)
   set("home-tagline", META.tagline || "");
-  set("home-name-label", (META.namePrompt && META.namePrompt.label) || "Name your place:");
+  set("home-name-label", (META.namePrompt && META.namePrompt.label) || L("Name your place:"));
   const inp = $("place-name-input"); if (inp && META.namePrompt) inp.placeholder = META.namePrompt.placeholder || "";
-  setHTML("btn-start", btnHTML(META.startLabel || "New game", META.startIcon || "play"));
-  setHTML("btn-continue", btnHTML(META.continueLabel || "Continue", META.continueIcon || "resume"));
+  setHTML("btn-start", btnHTML(META.startLabel || L("New game"), META.startIcon || "play"));
+  setHTML("btn-continue", btnHTML(META.continueLabel || L("Continue"), META.continueIcon || "resume"));
   setHTML("btn-refresh", iconHTML("refresh") + " " + esc(stripIcons(T("refreshLabel", "Refresh (clear cache)"))));
   set("app-version", "build " + ASSET_VER);   // visible build tag (helps confirm the cache is fresh)
-  setHTML("create-title", fmt(META.createTitle || "Choose your character"));
-  setHTML("btn-create-ok", btnHTML(META.createOkLabel || "Let's go!", META.createOkIcon || "check"));
+  // Language switch (only when game.i18n.js provides another language): ONE toggle button pinned
+  // to the home screen's top-left corner, a themed pill with the round flags and a knob behind the
+  // active one. A tap slides the knob to the next language, saves it and reloads (texts are applied
+  // at boot). Flags: GAME.icons["flag_<lang>"] or the built-in fr / en ones.
+  const home = $("screen-home");
+  if (home && LANGS.length > 1 && !$("lang-switch")) {
+    const idx = Math.max(0, LANGS.indexOf(LANG)), next = LANGS[(idx + 1) % LANGS.length];
+    const ls = document.createElement("button"); ls.type = "button"; ls.id = "lang-switch"; ls.className = "lang-switch";
+    ls.style.setProperty("--n", LANGS.length); ls.style.setProperty("--i", idx);
+    ls.setAttribute("aria-label", LANG.toUpperCase() + " / " + next.toUpperCase());
+    ls.innerHTML = `<span class="lang-knob"></span>` + LANGS.map((l) => `<span class="lang-flag${l === LANG ? " on" : ""}" data-lang="${l}">${flagHTML(l)}</span>`).join("");
+    ls.addEventListener("click", () => {
+      if (ls.classList.contains("busy")) return; ls.classList.add("busy");
+      Sound.play("click"); ls.style.setProperty("--i", LANGS.indexOf(next));
+      ls.querySelectorAll(".lang-flag").forEach((f) => f.classList.toggle("on", f.dataset.lang === next));
+      setTimeout(() => setLang(next), 220);   // let the knob slide first
+    });
+    home.appendChild(ls);
+  }
+  setHTML("create-title", fmt(META.createTitle || L("Choose your character")));
+  setHTML("btn-create-ok", btnHTML(META.createOkLabel || L("Let's go!"), META.createOkIcon || "check"));
   setHTML("btn-goals", iconHTML("goals")); setHTML("btn-me", iconHTML("avatar")); setHTML("btn-help", iconHTML("help"));
   setHTML("btn-close-modal", iconHTML("close")); setHTML("closeup-close", iconHTML("close"));
   if (RENDER.vignette) document.documentElement.style.setProperty("--vignette", String(RENDER.vignette));
@@ -849,8 +931,8 @@ function openCreate(player, onValidate) {
     b.onclick = () => step(i ? 1 : -1);
   });
   cont.innerHTML = `<div class="avatar-row" id="grp-avatar"></div>
-    <label class="field-label" for="create-name">${esc(META.namePromptYou || "Your name")}</label>
-    <input id="create-name" type="text" maxlength="14" placeholder="${esc(META.namePromptYou || "Your name")}" value="${esc(pendingPlayer.name || "")}" />`;
+    <label class="field-label" for="create-name">${esc(META.namePromptYou || L("Your name"))}</label>
+    <input id="create-name" type="text" maxlength="14" placeholder="${esc(META.namePromptYou || L("Your name"))}" value="${esc(pendingPlayer.name || "")}" />`;
   const ga = $("grp-avatar");
   if (!many) ga.classList.add("hidden");
   CHARACTERS.forEach((p) => {
@@ -2094,7 +2176,7 @@ function spawnCreatures(st) {
   const cap = sp.cap === "capacity" ? state.capacity : (sp.cap || 8);   // "capacity" → the shop-upgradable room
   const active = state.creatures.filter((c) => !c.departing).length;
   const room = cap - active;
-  if (room <= 0) { message(sp.fullMessage || "Full!"); Sound.play("error"); return; }
+  if (room <= 0) { message(sp.fullMessage || L("Full!")); Sound.play("error"); return; }
   const n = Math.min(randInt(sp.min || 1, sp.max || 3), room);
   Sound.play(st.sfx || "spawn");
   if (st.obj && sc) { const s = st.obj.scaleX; sc.tweens.add({ targets: st.obj, scaleX: s * 1.08, scaleY: s * 0.92, duration: 110, yoyo: true, repeat: 1 }); }
@@ -2123,7 +2205,7 @@ function spawnCreatures(st) {
 function distPlayer(x, y) { return Math.hypot(player.x - x, player.y - y); }
 // Money in: coins + the lifetime "earned" stat (when a game tracks it in objectives.extraStats).
 function earn(n) { if (!n) return; state.coins += n; if (state.stats && statKeys().includes("earned")) state.stats.earned = (state.stats.earned || 0) + n; }
-function spend(n) { if (state.coins < n) { Sound.play("error"); message(META.notEnough || "Not enough coins!"); return false; } state.coins -= n; return true; }
+function spend(n) { if (state.coins < n) { Sound.play("error"); message(META.notEnough || L("Not enough coins!")); return false; } state.coins -= n; return true; }
 
 function refreshInteraction() {
   if (placingDecor) {
@@ -2273,17 +2355,17 @@ function buildPanel() {
   const p = $("panel");
   p.classList.remove("idle");
   if (placingDecor) {
-    p.innerHTML = `<div class="pc-card"><div class="pc-main"><div class="pc-tag">${fmt((META.placeHint || "Walk anywhere, then place {item}.").replace("{item}", placingDecor.name))}</div></div></div>
+    p.innerHTML = `<div class="pc-card"><div class="pc-main"><div class="pc-tag">${fmt((META.placeHint || L("Walk anywhere, then place {item}.")).replace("{item}", placingDecor.name))}</div></div></div>
       <div class="pc-actions">
-        <button class="act" style="--c:var(--good)" data-place="1"><span class="act-ico">${iconHTML("check")}</span><span class="act-lbl">${esc(META.placeHere || "Place here")}</span></button>
-        <button class="act" style="--c:var(--bad)" data-cancel-place="1"><span class="act-ico">${iconHTML("close")}</span><span class="act-lbl">${esc(META.cancel || "Cancel")}</span></button>
+        <button class="act" style="--c:var(--good)" data-place="1"><span class="act-ico">${iconHTML("check")}</span><span class="act-lbl">${esc(META.placeHere || L("Place here"))}</span></button>
+        <button class="act" style="--c:var(--bad)" data-cancel-place="1"><span class="act-ico">${iconHTML("close")}</span><span class="act-lbl">${esc(META.cancel || L("Cancel"))}</span></button>
       </div>`;
     panelPop(p);
     return;
   }
   if (!activeTarget) {
     p.classList.add("idle");
-    p.innerHTML = META.idleHint === "" ? "" : `<p class="panel-hint">${iconHTML(META.idleIcon || "hand")}<span>${fmt(META.idleHint || "Walk around and approach something to act.")}</span></p>`;
+    p.innerHTML = META.idleHint === "" ? "" : `<p class="panel-hint">${iconHTML(META.idleIcon || "hand")}<span>${fmt(META.idleHint || L("Walk around and approach something to act."))}</span></p>`;
     return;
   }
   const actBtn = (attr, icon, label, color, cls) => `<button class="act ${cls || ""}" ${attr} style="--c:${color || "var(--primary)"}"><span class="act-ico">${iconHTML(icon)}</span><span class="act-lbl">${fmt(stripIcons(label))}</span></button>`;
@@ -2297,14 +2379,14 @@ function buildPanel() {
       const raceActs = RACE ? ACTIONS.filter((a) => a.type === "race") : [];
       actions = raceActs.map((ra, i) => actBtn(`data-creature="${ra.id}"`, ra.icon, ra.label, ra.color, i === 0 ? "act-primary" : "")).join("")
         + (jumpAct ? actBtn(`data-creature="${jumpAct.id}"`, jumpAct.icon, jumpAct.label, jumpAct.color) : "")
-        + actBtn(`data-creature="${rideAct.id}"`, rideAct.dismountIcon || "close", rideAct.dismountLabel || "Get off", "var(--bad)");
+        + actBtn(`data-creature="${rideAct.id}"`, rideAct.dismountIcon || "close", rideAct.dismountLabel || L("Get off"), "var(--bad)");
     } else {
       const list = ACTIONS.filter((a) => a.type !== "jump" && a.type !== "race");
       const single = list.length === 1;
       actions = list.map((a) => actBtn(`data-creature="${a.id}"`, a.icon, a.label, a.color,
         (a.type === "closeup" ? "act-primary" : "") + (single ? " act-wide" : "") + (a.type === "customize" ? " act-soft" : ""))).join("");
     }
-    const ageTxt = CREATURE.aging ? `${stripIcons(isYoung(c) ? (CREATURE.youngLabel || "Young") : (CREATURE.adultLabel || "Adult"))} · ${c.age}${META.ageUnit || "d"}` : "";
+    const ageTxt = CREATURE.aging ? `${stripIcons(isYoung(c) ? (CREATURE.youngLabel || L("Young")) : (CREATURE.adultLabel || L("Adult")))} · ${c.age}${META.ageUnit || "d"}` : "";
     const v = variantDef(variantId(c));
     const thumb = v && v.thumb ? av(v.thumb) : null;
     p.innerHTML = `
@@ -2368,7 +2450,7 @@ function interact(target) {
   const st = STATIONS.find((x) => x.type === target.type);
   if (!st) return;
   lastInputT = nowMs();
-  if (st.requireMounted && !mounted) { Sound.play("error"); message(st.needMountMessage || "Come back riding!"); return; }
+  if (st.requireMounted && !mounted) { Sound.play("error"); message(st.needMountMessage || L("Come back riding!")); return; }
   // While riding, only stations made for it (whileRiding / requireMounted) can be used: the others
   // (a shop, a house…) are on foot — e.g. you can't carry a bought tree back on horseback.
   if (mounted && !st.whileRiding && !st.requireMounted) { Sound.play("error"); message(st.onFootMessage || T("dismountFirst", "Get off first!")); return; }
@@ -2399,7 +2481,7 @@ function creatureAction(actionId) {
   }
   // need requirement (e.g. needs enough energy to play)
   if (a.require) {
-    for (const k in a.require) { if ((c[k] || 0) < a.require[k]) { message((a.tooLow || "{name} is too tired.").replace("{name}", c.name)); Sound.play("error"); return; } }
+    for (const k in a.require) { if ((c[k] || 0) < a.require[k]) { message((a.tooLow || L("{name} is too tired.")).replace("{name}", c.name)); Sound.play("error"); return; } }
   }
   if (a.cost) state.resources[a.cost.resource] = (state.resources[a.cost.resource] || 0) - a.cost.amount;
 
@@ -2430,14 +2512,14 @@ function rideEmptyMul() { return rideEmpty(mounted) ? ((CREATURE.ride.emptySpeed
 function rideEmptyWarn(c) {
   if (c._scEmptyWarned) return;
   c._scEmptyWarned = true; Sound.play("error");
-  message((CREATURE.ride.emptyMessage || CREATURE.ride.exhaustedMessage || "{name} is running on empty!").replace("{name}", c.name));
+  message((CREATURE.ride.emptyMessage || CREATURE.ride.exhaustedMessage || L("{name} is running on empty!")).replace("{name}", c.name));
 }
 function toggleRide(c) {
   const RIDE = CREATURE.ride; if (!RIDE) return;
   if (mounted === c) { dismount(c, false); return; }
   if (placingDecor) { Sound.play("error"); message(T("placeFirst", "Place your decoration first!")); return; }   // decor is placed on foot
-  if (RIDE.adultsOnly && isYoung(c)) { message((RIDE.tooYoung || "{name} is too young to ride.").replace("{name}", c.name)); return; }
-  if (RIDE.empty !== "slow" && RIDE.minEnergy && RIDE.fatigueNeed && (c[RIDE.fatigueNeed] || 0) < RIDE.minEnergy) { message((RIDE.tooTired || "{name} is too tired.").replace("{name}", c.name)); return; }
+  if (RIDE.adultsOnly && isYoung(c)) { message((RIDE.tooYoung || L("{name} is too young to ride.")).replace("{name}", c.name)); return; }
+  if (RIDE.empty !== "slow" && RIDE.minEnergy && RIDE.fatigueNeed && (c[RIDE.fatigueNeed] || 0) < RIDE.minEnergy) { message((RIDE.tooTired || L("{name} is too tired.")).replace("{name}", c.name)); return; }
   mounted = c; c._scEmptyWarned = false;
   if (rideEmpty(c)) setTimeout(() => rideEmptyWarn(c), 900); state.lastRide = c.id;
   if (RIDE.onMount) Object.keys(RIDE.onMount).forEach((k) => (c[k] = clamp01((c[k] || 0) + RIDE.onMount[k])));
@@ -2445,7 +2527,7 @@ function toggleRide(c) {
   if (statKeys().includes("ride")) state.stats.ride = (state.stats.ride || 0) + 1;
   rideFatigueAcc = 0;
   Sound.play("action");
-  message((RIDE.mountMessage || "Riding {name}!").replace("{name}", c.name));
+  message((RIDE.mountMessage || L("Riding {name}!")).replace("{name}", c.name));
   panelId = PANEL_DIRTY; refreshInteraction(); refreshHud();
 }
 
@@ -2479,7 +2561,7 @@ function doJump() {
   const RIDE = CREATURE.ride, J = RIDE && RIDE.jump;
   if (!mounted || jumpRunning || !sc || !J) return;
   const c = mounted;
-  if (J.minEnergy && RIDE.fatigueNeed && (c[RIDE.fatigueNeed] || 0) < J.minEnergy) { message((J.tooTired || "{name} is too tired to jump!").replace("{name}", c.name)); return; }
+  if (J.minEnergy && RIDE.fatigueNeed && (c[RIDE.fatigueNeed] || 0) < J.minEnergy) { message((J.tooTired || L("{name} is too tired to jump!")).replace("{name}", c.name)); return; }
   if (J.cost && RIDE.fatigueNeed) c[RIDE.fatigueNeed] = clamp01(c[RIDE.fatigueNeed] - J.cost);
   rideFatigueAcc = 0; state.actionsSinceRest = (state.actionsSinceRest || 0) + 1;
   if (statKeys().includes("jump")) state.stats.jump = (state.stats.jump || 0) + 1;
@@ -2509,7 +2591,7 @@ function dismount(c, exhausted) {
   if (c.obj) { c.obj.x = c.x; c.obj.y = c.y; }
   panelId = PANEL_DIRTY; refreshInteraction(); refreshHud();
   const RIDE = CREATURE.ride || {};
-  message(exhausted ? (RIDE.exhaustedMessage || "{name} is exhausted!").replace("{name}", c.name) : (RIDE.dismountMessage || "You get off {name}.").replace("{name}", c.name));
+  message(exhausted ? (RIDE.exhaustedMessage || L("{name} is exhausted!")).replace("{name}", c.name) : (RIDE.dismountMessage || L("You get off {name}.")).replace("{name}", c.name));
 }
 
 /* ===================== Animations / effects ===================== */
@@ -2674,7 +2756,7 @@ function celebrate(c) {
 function nextDay() {
   if (nightRunning) return;
   if ((state.actionsSinceRest || 0) === 0 && CREATURE) {
-    message(META.restBlockedHint || "You just woke up! Take care of someone first.");
+    message(META.restBlockedHint || L("You just woke up! Take care of someone first."));
     Sound.play("error");
     return;
   }
@@ -2684,7 +2766,7 @@ function nextDay() {
   if (state.allHappyTonight && ALL_HAPPY.celebrate !== false) {
     state.creatures.forEach((c, i) => { if (sc) sc.time.delayedCall(i * 140, () => celebrate(c)); });
   }
-  nightRunning = true; moveTarget = null; navPath = []; message(META.nightMessage || "{i:moon} Night falls…");
+  nightRunning = true; moveTarget = null; navPath = []; message(META.nightMessage || L("{i:moon} Night falls…"));
   Sound.play("night");
   const v = $("night-veil");
   if (v) {
@@ -2722,10 +2804,10 @@ function applyDay() {
   const baby = tryBirth();
   refreshHud(); save();
   const allHappy = state.allHappyTonight; state.allHappyTonight = false;
-  if (baby) message((CREATURE.breeding && CREATURE.breeding.message || "{i:heart} A baby was born: {name}!").replace("{name}", baby.name));
+  if (baby) message((CREATURE.breeding && CREATURE.breeding.message || L("{i:heart} A baby was born: {name}!")).replace("{name}", baby.name));
   else if (allHappy && ALL_HAPPY && ALL_HAPPY.message) { message(ALL_HAPPY.message.replace("{day}", state.day)); setTimeout(() => confetti(), 900); }
-  else if (neglected.length) message((META.neglectMessage || "Day {day}. Take care of {names}!").replace("{day}", state.day).replace("{names}", listFr(neglected)));
-  else message((META.morningMessage || "{i:sparkle} Day {day}: everyone slept well.").replace("{day}", state.day));
+  else if (neglected.length) message((META.neglectMessage || L("Day {day}. Take care of {names}!")).replace("{day}", state.day).replace("{names}", listFr(neglected)));
+  else message((META.morningMessage || L("{i:sparkle} Day {day}: everyone slept well.")).replace("{day}", state.day));
 }
 
 // Breeding: two happy adults can produce one baby overnight (with guard-rails).
@@ -2774,7 +2856,7 @@ function openShop() {
   }
   html += `</div>`;
   if (DECOR.length) {
-    html += `<h3>${fmt(SHOP.decorHeading || "{i:gift} Decorations")}</h3><div class="decor-grid">`;
+    html += `<h3>${fmt(SHOP.decorHeading || L("{i:gift} Decorations"))}</h3><div class="decor-grid">`;
     DECOR.forEach((d) => {
       html += `<button class="decor-card" data-decor="${d.id}">
         <img class="d-img" src="${av(d.thumb || assetPath(d.sprite) || ("assets/img/" + d.sprite + ".png"))}" alt="" /><span>${fmt(d.name)}</span><span class="d-price">${iconHTML(META.coinIcon || "star")}${d.price}</span></button>`;
@@ -2782,15 +2864,15 @@ function openShop() {
     html += `</div>`;
   }
   if (SHOP.buyCreature && CREATURE) {
-    html += `<h3>${fmt(SHOP.buyCreature.heading || "{i:heart} Adopt")}</h3>`;
-    if (!room) html += `<p class="choice-sub">${fmt(SHOP.fullMessage || "No room! Expand first.")}</p>`;
-    else html += `<div class="choice-list">${row(`data-shop="creature"`, SHOP.buyCreature.icon || CREATURE.icon, SHOP.buyCreature.label || "Adopt", SHOP.buyCreature.hint || "", SHOP.buyCreature.price, SHOP.buyCreature.img)}</div>`;
+    html += `<h3>${fmt(SHOP.buyCreature.heading || L("{i:heart} Adopt"))}</h3>`;
+    if (!room) html += `<p class="choice-sub">${fmt(SHOP.fullMessage || L("No room! Expand first."))}</p>`;
+    else html += `<div class="choice-list">${row(`data-shop="creature"`, SHOP.buyCreature.icon || CREATURE.icon, SHOP.buyCreature.label || L("Adopt"), SHOP.buyCreature.hint || "", SHOP.buyCreature.price, SHOP.buyCreature.img)}</div>`;
   }
-  openModal(SHOP.title || "{i:gift} Shop", html);
+  openModal(SHOP.title || L("{i:gift} Shop"), html);
 }
 
 function buy(what) {
-  const notEnough = () => { Sound.play("error"); message(META.notEnough || "Not enough coins!"); };
+  const notEnough = () => { Sound.play("error"); message(META.notEnough || L("Not enough coins!")); };
   if (what.startsWith("res:")) {
     const id = what.slice(4);
     const r = (SHOP.resources || []).find((x) => x.id === id); if (!r) return;
@@ -2800,13 +2882,13 @@ function buy(what) {
   } else if (what === "capacity") {
     if (state.coins < SHOP.capacity.price) return notEnough();
     state.coins -= SHOP.capacity.price; state.capacity++;
-    message(SHOP.capacity.boughtMessage || "Expanded!");
+    message(SHOP.capacity.boughtMessage || L("Expanded!"));
   } else if (what === "creature") {
-    if (state.creatures.length >= state.capacity) return message(SHOP.fullMessage || "No room!");
+    if (state.creatures.length >= state.capacity) return message(SHOP.fullMessage || L("No room!"));
     if (state.coins < SHOP.buyCreature.price) return notEnough();
     state.coins -= SHOP.buyCreature.price;
     const c = newCreature({}); state.creatures.push(c); if (sc) buildCreatureObj(c);
-    message((SHOP.buyCreature.boughtMessage || "Welcome, {name}!").replace("{name}", c.name));
+    message((SHOP.buyCreature.boughtMessage || L("Welcome, {name}!")).replace("{name}", c.name));
   }
   Sound.play("reward");
   refreshHud(); openShop();
@@ -2814,7 +2896,7 @@ function buy(what) {
 
 function buyDecor(id) {
   const d = DECOR.find((x) => x.id === id); if (!d) return;
-  if (state.coins < d.price) { Sound.play("error"); return message(META.notEnough || "Not enough coins!"); }
+  if (state.coins < d.price) { Sound.play("error"); return message(META.notEnough || L("Not enough coins!")); }
   state.coins -= d.price;
   placingDecor = d; ghostSide = 1;
   closeModal();
@@ -2823,7 +2905,7 @@ function buyDecor(id) {
     ghostDecor = sc.add.image(player.x, player.y, d.sprite).setOrigin(0.5, 0.95).setScale((d.scale || 1.2) / RES(d.sprite)).setAlpha(0.6).setDepth(99999);
   }
   refreshHud(); panelId = PANEL_DIRTY; refreshInteraction();
-  message((META.boughtDecorMessage || "{name} bought! Walk around and tap “Place here”.").replace("{name}", d.name));
+  message((META.boughtDecorMessage || L("{name} bought! Walk around and tap “Place here”.")).replace("{name}", d.name));
 }
 
 function ghostXY() {
@@ -2834,11 +2916,11 @@ function ghostXY() {
 // Placement rules. Returns null if OK, otherwise an error message.
 function placementError(d, x, y) {
   for (const s of STATIONS) {
-    if (x > s.x - 80 && x < s.x + 80 && y > s.y - 150 && y < s.y + 24) return META.noOnBuilding || "Not on a building!";
+    if (x > s.x - 80 && x < s.x + 80 && y > s.y - 150 && y < s.y + 24) return META.noOnBuilding || L("Not on a building!");
   }
   if (HOME_ZONE && !d.allowInHome) {
     const r = HOME_ZONE.rect;
-    if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return META.noInHome || "Not inside the pen!";
+    if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return META.noInHome || L("Not inside the pen!");
   }
   return null;
 }
@@ -2862,7 +2944,7 @@ function placementBlocksWay(d, x, y) {
 function placeDecor() {
   if (!placingDecor) return;
   const { x, y } = ghostXY();
-  const err = placementError(placingDecor, x, y) || (placementBlocksWay(placingDecor, x, y) ? (META.blocksPath || "Not here: it would block the way!") : null);
+  const err = placementError(placingDecor, x, y) || (placementBlocksWay(placingDecor, x, y) ? (META.blocksPath || L("Not here: it would block the way!")) : null);
   if (err) { message(err); Sound.play("error"); return; }
   state.decors.push({ id: placingDecor.id, x, y });
   state.stats.decor = (state.stats.decor || 0) + 1;
@@ -2872,7 +2954,7 @@ function placeDecor() {
   buildDecors(); save(); refreshHud(); panelId = "upd"; refreshInteraction();
   emitBurst(x, y, { shape: "star", colors: ["#fff2a8", "#ffd24a", "#ffffff"], count: 8, y0: 30, spread: 40 });
   Sound.play("unlock");
-  message((META.placedMessage || "{i:sparkle} {name} placed!").replace("{name}", name));
+  message((META.placedMessage || L("{i:sparkle} {name} placed!")).replace("{name}", name));
 }
 
 function cancelPlacement() {
@@ -2881,16 +2963,16 @@ function cancelPlacement() {
   placingDecor = null;
   if (ghostDecor) { ghostDecor.destroy(); ghostDecor = null; }
   refreshHud(); panelId = "upd"; refreshInteraction();
-  message(META.refundMessage || "Placement cancelled, refunded.");
+  message(META.refundMessage || L("Placement cancelled, refunded."));
 }
 
 function openCustomize(c) {
   const cz = CREATURE.customize || {};
   let html = `<div class="customize-preview" id="cz-preview"></div>`;
-  if (cz.rename) html += `<label class="cz-label">${META.nameLabel || "Name:"}</label><input id="cz-name" type="text" maxlength="14" value="${c.name}" />`;
-  if (cz.variant && VARIANTS.length) html += `<div class="group"><span class="group-title">${CREATURE.variantLabel || "Colour"}</span><div class="avatar-row" id="cz-variant"></div></div>`;
-  html += `<button class="btn btn-giant btn-primary" id="cz-ok">${btnHTML(META.confirm || "Confirm", "check")}</button>`;
-  openModal((CREATURE.customizeTitle || "{i:palette} Customize") + " " + c.name, html);
+  if (cz.rename) html += `<label class="cz-label">${META.nameLabel || L("Name:")}</label><input id="cz-name" type="text" maxlength="14" value="${c.name}" />`;
+  if (cz.variant && VARIANTS.length) html += `<div class="group"><span class="group-title">${CREATURE.variantLabel || L("Colour")}</span><div class="avatar-row" id="cz-variant"></div></div>`;
+  html += `<button class="btn btn-giant btn-primary" id="cz-ok">${btnHTML(META.confirm || L("Confirm"), "check")}</button>`;
+  openModal((CREATURE.customizeTitle || L("{i:palette} Customize")) + " " + c.name, html);
 
   // Preview: the creature's own (variant) thumbnail if available, else a colour blob.
   const drawPreview = () => {
@@ -2915,13 +2997,13 @@ function openCustomize(c) {
   $("cz-ok").addEventListener("click", () => {
     if (cz.rename) {
       const name = $("cz-name").value.trim();
-      if (name && nameUsed(name, c)) { message((META.nameTaken || "Another one is already called {name}!").replace("{name}", name)); return; }
+      if (name && nameUsed(name, c)) { message((META.nameTaken || L("Another one is already called {name}!")).replace("{name}", name)); return; }
       if (name) c.name = name;
     }
     refreshCreatureVisual(c); save(); closeModal(); panelId = PANEL_DIRTY;
     actionAnim(c, { motion: "hop", particle: "spark", colors: [(variantDef(variantId(c)) || {}).color || "#ffffff", "#ffffff"], count: 8 });
     Sound.play("action");
-    message((CREATURE.customizedMessage || "{i:sparkle} {name} updated!").replace("{name}", c.name));
+    message((CREATURE.customizedMessage || L("{i:sparkle} {name} updated!")).replace("{name}", c.name));
   });
   drawPreview();
 }
@@ -3324,7 +3406,7 @@ function stationApi() {
 // menu item { do:"restyle", price, title, subtitle, clearsChase, message, chaseMessage }
 function openRestyle(it) {
   const c = state.creatures.find((x) => x.id === state.lastRide) || state.creatures[0];
-  if (!c) { closeModal(); message(it.noneMessage || "Nothing to restyle yet."); return; }
+  if (!c) { closeModal(); message(it.noneMessage || L("Nothing to restyle yet.")); return; }
   const price = it.price || 0;
   openChoice(it.title || it.label, (it.subtitle || "").replace("{name}", esc(c.name)), VARIANTS.map((v) => {
     const cur = variantId(c) === v.id;
@@ -3337,7 +3419,7 @@ function openRestyle(it) {
         if (it.clearsChase) clearHeat();
         closeModal(); Sound.play("unlock");
         if (c.obj) actionAnim(c, { motion: "hop", particle: "spark", colors: [v.color || "#ffffff", "#ffffff"], count: 10 });
-        message(((had && it.chaseMessage) || it.message || "{i:sparkle} {name}").replace("{name}", c.name).replace("{v}", v.name));
+        message(((had && it.chaseMessage) || it.message || L("{i:sparkle} {name}")).replace("{name}", c.name).replace("{v}", v.name));
         refreshHud(); save();
       },
     };
@@ -3354,8 +3436,8 @@ const MISSIONS = G.missions || null;
 let msRing = null, msMarker = null, msArrow = null;
 function openMissions() {
   if (!MISSIONS) return;
-  if (state.mission) { closeModal(); message(MISSIONS.busyMessage || "Finish your current mission first!"); return; }
-  openChoice(MISSIONS.title || "Missions", MISSIONS.subtitle || "", (MISSIONS.offers || []).map((of) => ({
+  if (state.mission) { closeModal(); message(MISSIONS.busyMessage || L("Finish your current mission first!")); return; }
+  openChoice(MISSIONS.title || L("Missions"), MISSIONS.subtitle || "", (MISSIONS.offers || []).map((of) => ({
     label: of.label, sub: of.sub, icon: of.icon, accent: !!of.heat, price: null, tag: null,
     onPick: () => { closeModal(); takeMission(of); },
   })));
@@ -3377,9 +3459,9 @@ function takeMission(of) {
   buildMissionVisual(); refreshCargo();
   Sound.play("open");
   const fill = (t) => t.replace("{d}", state.mission.name).replace("{p}", state.mission.pname || "");
-  if (pk) message(fill(MISSIONS.takenMessage || "Pick up the cargo at {p}!"));
-  else if (of.heat) { addHeat(of.heat); message(fill(MISSIONS.hotMessage || MISSIONS.takenMessage || "Go to {d}!")); }
-  else message(fill(MISSIONS.takenMessage || "Go to {d}!"));
+  if (pk) message(fill(MISSIONS.takenMessage || L("Pick up the cargo at {p}!")));
+  else if (of.heat) { addHeat(of.heat); message(fill(MISSIONS.hotMessage || MISSIONS.takenMessage || L("Go to {d}!"))); }
+  else message(fill(MISSIONS.takenMessage || L("Go to {d}!")));
   refreshHud(); save();
 }
 function pickUpCargo() {
@@ -3388,7 +3470,7 @@ function pickUpCargo() {
   buildMissionVisual(); refreshCargo();
   Sound.play("reward");
   emitBurst(player.x, player.y, { shape: "star", colors: ["#fff2a8", "#ffffff"], count: 8, y0: 50, spread: 40 });
-  const t = (m.heat ? (MISSIONS.hotPickedMessage || MISSIONS.pickedMessage) : MISSIONS.pickedMessage) || "Now deliver it to {d}!";
+  const t = (m.heat ? (MISSIONS.hotPickedMessage || MISSIONS.pickedMessage) : MISSIONS.pickedMessage) || L("Now deliver it to {d}!");
   message(t.replace("{d}", m.name));
   if (m.heat) addHeat(m.heat);
   refreshHud(); save();
@@ -3444,7 +3526,7 @@ function completeMission() {
   state.actionsSinceRest = (state.actionsSinceRest || 0) + 1;
   emitBurst(player.x, player.y, { shape: "star", colors: ["#fff2a8", "#ffd24a", "#ffffff"], count: 12, y0: 50, spread: 50 });
   Sound.play("goal");
-  message((MISSIONS.doneMessage || "{i:check} +{p}").replace("{p}", m.pay));
+  message((MISSIONS.doneMessage || L("{i:check} +{p}")).replace("{p}", m.pay));
   // A delivered mission ends the chase it started: pursuers drive off and fade out
   // (missions.clearsChase:false keeps them on your tail).
   if (CHASE && MISSIONS.clearsChase !== false && (state.heat || 0) > 0) {
@@ -3520,7 +3602,7 @@ function chaseTick(dt) {
     evadeT += dt;
     if (evadeT >= (CHASE.loseAfter || 7)) {
       state.heat = Math.max(0, heat - 1); evadeT = 0; refreshHeat();
-      if (!state.heat) { clearChasers(); Sound.play("goal"); message(CHASE.escapedMessage || "You got away!"); save(); }
+      if (!state.heat) { clearChasers(); Sound.play("goal"); message(CHASE.escapedMessage || L("You got away!")); save(); }
     }
   } else evadeT = 0;
 }
@@ -3530,7 +3612,7 @@ function caught() {
   if (state.mission) { state.mission = null; clearMissionVisual(); refreshCargo(); }
   clearHeat(); Sound.play("error");
   if (sc) sc.cameras.main.shake(260, 0.006);
-  message((CHASE.caughtMessage || "Caught! −{f}").replace("{f}", fine));
+  message((CHASE.caughtMessage || L("Caught! −{f}")).replace("{f}", fine));
   refreshHud(); save();
 }
 
@@ -3541,7 +3623,7 @@ function caught() {
 const MODELS = G.models || null;
 function openModels() {
   if (!MODELS) return;
-  openChoice(MODELS.title || "Shop", MODELS.subtitle || "", (MODELS.items || []).map((m) => {
+  openChoice(MODELS.title || L("Shop"), MODELS.subtitle || "", (MODELS.items || []).map((m) => {
     const owned = state.creatures.some((c) => c.model === m.id);
     const v = variantDef(m.variant);
     const statTxt = (MODELS.stats || []).map((s) => `{i:${s.icon}} ${Math.round((m[s.key] != null ? (s.invert ? 2 - m[s.key] : m[s.key]) : 1) * 100)}%`).join("  ");
@@ -3554,7 +3636,7 @@ function openModels() {
 }
 function buyModel(m) {
   if (state.creatures.some((c) => c.model === m.id)) return;
-  if (state.creatures.length >= state.capacity) { Sound.play("error"); message(MODELS.fullMessage || "No room!"); return; }
+  if (state.creatures.length >= state.capacity) { Sound.play("error"); message(MODELS.fullMessage || L("No room!")); return; }
   if (!spend(m.price)) return;
   const c = newCreature({ variant: m.variant, name: m.name, model: m.id, speedMul: m.speedMul, grip: m.grip, drainMul: m.drainMul });
   const p = freeSpotNear(player.x + 110, player.y);
@@ -3563,7 +3645,7 @@ function buyModel(m) {
   if (sc) { buildCreatureObj(c); actionAnim(c, { motion: "hop", particle: "star", colors: ["#fff2a8", "#ffd24a", "#ffffff"], count: 12 }); }
   Sound.play("unlock"); confetti(24);
   closeModal();
-  message((MODELS.boughtMessage || "{name} is yours!").replace("{name}", c.name));
+  message((MODELS.boughtMessage || L("{name} is yours!")).replace("{name}", c.name));
   refreshHud(); save();
 }
 function freeSpotNear(x, y) {
@@ -3641,7 +3723,7 @@ function startRace(a) {
   document.documentElement.dataset.screen = "race";
   navPath = []; moveTarget = null;
   Sound.play("whoosh");
-  message((R3.chaser && RACE.chase.startMessage) || (R3.rivals.length && RACE.rivals.startMessage) || RACE.startMessage || "Go!");
+  message((R3.chaser && RACE.chase.startMessage) || (R3.rivals.length && RACE.rivals.startMessage) || RACE.startMessage || L("Go!"));
   R3.on = true; R3.last = 0; R3.raf = requestAnimationFrame(r3Loop);
   panelId = PANEL_DIRTY; refreshInteraction();
 }
@@ -3896,8 +3978,8 @@ function r3ChaseResults() {
   if (escaped) { const k = C.stat || "chaseEscape"; state.stats[k] = (state.stats[k] || 0) + 1; }
   state.actionsSinceRest = (state.actionsSinceRest || 0) + 1;
   if (escaped) { Sound.play("celebrate"); confetti(); } else Sound.play("error");
-  const msg = escaped ? (C.escapeMessage || "{i:trophy} You escaped!") : (C.caughtTitle || "Caught!");
-  openModal(C.resultsTitle || "{i:flag} Results", `<div class="race-results"><p class="rr-head">${fmt(msg.replace("{name}", (R3.chaser && R3.chaser.name) || ""))}</p>
+  const msg = escaped ? (C.escapeMessage || L("{i:trophy} You escaped!")) : (C.caughtTitle || L("Caught!"));
+  openModal(C.resultsTitle || L("{i:flag} Results"), `<div class="race-results"><p class="rr-head">${fmt(msg.replace("{name}", (R3.chaser && R3.chaser.name) || ""))}</p>
     <p class="rr-sub">${fmt((escaped ? C.escapeHint : C.caughtHint) || "").replace("{t}", R3.time.toFixed(1))}</p>
     ${r ? `<p class="rr-reward">${fmt("+" + r + " " + coinTok())}</p>` : ""}</div>`);
   if (r && player) setTimeout(() => flyReward(player.x, player.y - 60, "+" + r + " " + coinTok()), 300);
@@ -3979,7 +4061,7 @@ function r3RivalsDraw(seg) {
 function r3Countdown() {
   if (!(R3.count > 0) && !(R3.count > -0.7 && (R3.rivals.length || R3.chaser))) return;
   const ctx = R3.ctx, W = R3.W, H = R3.H, n = Math.ceil(R3.count), f = R3.count > 0 ? R3.count - Math.floor(R3.count) : (R3.count + 0.7) / 0.7;
-  const txt = R3.count > 0 ? String(n) : (((R3.chaser ? RACE.chase : RACE.rivals) || {}).goLabel || "GO!");
+  const txt = R3.count > 0 ? String(n) : (((R3.chaser ? RACE.chase : RACE.rivals) || {}).goLabel || L("GO!"));
   ctx.save(); ctx.globalAlpha = Math.min(1, f * 2.2);
   ctx.font = `800 ${Math.round(Math.min(W, H) * (0.22 + (1 - f) * 0.06))}px ${getComputedStyle(document.body).fontFamily || "sans-serif"}`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
@@ -4098,7 +4180,7 @@ function r3Hud(build) {
         ${R3.rivals.length ? `<span class="resource rh-place" id="rh-place"><span class="r-ico">${iconHTML(I.place || "trophy")}</span><b>0</b></span>`
           : `<span class="resource" id="rh-dist"><span class="r-ico">${iconHTML(I.distance || "arrow")}</span><b>0</b></span>`}
         <span class="resource" id="rh-speed"><span class="r-ico">${iconHTML(I.speed || "star")}</span><b>0</b></span>
-        <button class="mini-btn rh-quit" id="rh-quit" aria-label="${esc(stripIcons(RACE.quitLabel || "Quit"))}">${iconHTML(I.quit || "close")}</button></div>
+        <button class="mini-btn rh-quit" id="rh-quit" aria-label="${esc(stripIcons(RACE.quitLabel || L("Quit")))}">${iconHTML(I.quit || "close")}</button></div>
       ${R3.chaser ? `<span class="resource rh-need rh-chase" id="rh-chase"><span class="r-ico">${iconHTML(RACE.chase.icon || "wanted")}</span><span class="rh-gauge"><i></i></span><b>0</b></span>` : ""}
       ${RN ? `<span class="resource rh-need" id="rh-need"><span class="r-ico">${iconHTML(RN.icon || "battery")}</span><span class="rh-gauge"><i></i></span><b>0%</b></span>` : ""}</div>
       <div class="rh-steer"><span class="rh-l">${iconHTML(I.left || "arrow")}</span><span class="rh-hint">${fmt(RACE.hint || "")}</span><span class="rh-r">${iconHTML(I.right || "arrow")}</span></div>`;
@@ -4136,7 +4218,7 @@ function r3Teardown() {
   syncEdge();
 }
 // End the race: win → reward + stat; quit → neutral; else → time-out.
-function r3PlaceLabel(p) { const L = (RACE.rivals && RACE.rivals.placeLabels) || ["1st", "2nd", "3rd"]; return L[p - 1] || (p + ((RACE.rivals && RACE.rivals.placeSuffix) || "th")); }
+function r3PlaceLabel(p) { const PL = (RACE.rivals && RACE.rivals.placeLabels) || ["1st", "2nd", "3rd"].map(L); return PL[p - 1] || (p + ((RACE.rivals && RACE.rivals.placeSuffix) || L("th"))); }
 function endRace(win, quit) {
   if (!R3.on) return;
   r3Teardown();
@@ -4147,10 +4229,10 @@ function endRace(win, quit) {
     const st = RACE.stat || "raceWin"; state.stats[st] = (state.stats[st] || 0) + 1;
     state.actionsSinceRest = (state.actionsSinceRest || 0) + 1;
     Sound.play("celebrate"); confetti();
-    message((RACE.winMessage || "{i:trophy} +{r}").replace("{r}", r));
+    message((RACE.winMessage || L("{i:trophy} +{r}")).replace("{r}", r));
     if (r && player) setTimeout(() => flyReward(player.x, player.y - 60, "+" + r + " " + coinTok()), 300);
   } else if (quit) message(RACE.quitMessage || "");
-  else { Sound.play("error"); message(RACE.loseMessage || "Time's up!"); }
+  else { Sound.play("error"); message(RACE.loseMessage || L("Time's up!")); }
   lastInputT = nowMs(); refreshHud(); save();
   panelId = PANEL_DIRTY; refreshInteraction();
 }
@@ -4158,7 +4240,7 @@ function endRace(win, quit) {
 // Results of a race with rivals: final ranking (rivals not yet home are ranked by distance), reward by place,
 // stats (raceWin for 1st, racePodium for top 3), results modal with the podium.
 function r3Results() {
-  const RV = RACE.rivals, pz = r3PlayerZ(), you = { name: state.player.name || "You", you: true, done: R3.time, z: pz };
+  const RV = RACE.rivals, pz = r3PlayerZ(), you = { name: state.player.name || L("You"), you: true, done: R3.time, z: pz };
   const field = R3.rivals.map((r) => ({ name: r.name, color: r.color, head: r.head, done: r.done, z: r.z, speed: r.speed })).concat([you]);
   you.head = (charDef(state.player.avatar) || {}).raceHead || null;
   // racers still on the course get an estimated finish time (remaining distance / their pace): the ranking and
@@ -4183,8 +4265,8 @@ function r3Results() {
   const rows = field.map((f, i) => `<div class="rr-row${f.you ? " you" : ""}">${medal(i + 1)}${tag(f)}<b>${esc(f.name)}</b>
       <span class="rr-time">${est(f)}</span></div>`).join("");
   const msgs = RV.placeMessages || [];
-  const head = (msgs[Math.min(place, msgs.length) - 1] || "{place}").replace("{place}", r3PlaceLabel(place)).replace("{r}", r);
-  openModal(RV.resultsTitle || "{i:flag} Results", `<div class="race-results"><p class="rr-head">${fmt(head)}</p>
+  const head = (msgs[Math.min(place, msgs.length) - 1] || L("{place}")).replace("{place}", r3PlaceLabel(place)).replace("{r}", r);
+  openModal(RV.resultsTitle || L("{i:flag} Results"), `<div class="race-results"><p class="rr-head">${fmt(head)}</p>
     <div class="rr-list">${rows}</div>${r ? `<p class="rr-reward">${fmt("+" + r + " " + coinTok())}</p>` : ""}</div>`);
   if (r && player) setTimeout(() => flyReward(player.x, player.y - 60, "+" + r + " " + coinTok()), 300);
   lastInputT = nowMs(); refreshHud(); save();
@@ -4220,7 +4302,7 @@ function openGoals() {
 
 function openHelp() {
   const items = (G.help || []).map((h, i) => `<div class="help-row${i === 0 ? " lead" : ""}">${fmt(h, true)}</div>`).join("");
-  openModal(META.helpTitle || "How to play", `<div class="help-text">${items}</div>`);
+  openModal(META.helpTitle || L("How to play"), `<div class="help-text">${items}</div>`);
 }
 
 /* ===================== Boot ===================== */

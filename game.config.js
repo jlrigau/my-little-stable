@@ -19,6 +19,7 @@
 window.GAME = {
   /* ---- Identity, theming, UI strings (French) ---- */
   meta: {
+    lang: "fr",                        // source language of every text below (translations: game.i18n.js)
     title: "Mon Centre Équestre",
     titleIcon: "horse",
     logo: "assets/img/logo.webp",
@@ -47,7 +48,7 @@ window.GAME = {
       };
     } },
     audience: { minAge: 9, notes: "kids 9–10, girls AND boys, cute but NOT manga, horses & riding, no scary content, light reading" },
-    assetVersion: "v17",
+    assetVersion: "v18",
     theme: { home: "#bfe6f5", play: "#7cbf5a", closeup: "#e9f6ff" },
 
     showCoins: true,
