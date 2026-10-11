@@ -159,6 +159,13 @@ window.GAME = {
       rider_rival_1: { path: "assets/img/rider_rival_1.webp", res: 2 }, rider_rival_2: { path: "assets/img/rider_rival_2.webp", res: 2 },
       rider_rival_3: { path: "assets/img/rider_rival_3.webp", res: 2 }, rider_rival_4: { path: "assets/img/rider_rival_4.webp", res: 2 },
       rider_rival_5: { path: "assets/img/rider_rival_5.webp", res: 2 },
+      // results-screen portraits (helmet seen from behind)
+      rider_head_fille: { path: "assets/img/rider_head_fille.webp", res: 2 }, rider_head_garcon: { path: "assets/img/rider_head_garcon.webp", res: 2 },
+      rival_head_1: { path: "assets/img/rival_head_1.webp", res: 2 },
+      rival_head_2: { path: "assets/img/rival_head_2.webp", res: 2 },
+      rival_head_3: { path: "assets/img/rival_head_3.webp", res: 2 },
+      rival_head_4: { path: "assets/img/rival_head_4.webp", res: 2 },
+      rival_head_5: { path: "assets/img/rival_head_5.webp", res: 2 },
       horse_back_gris: { path: "assets/img/horse_back_gris.webp", res: 2 }, horse_back_palomino: { path: "assets/img/horse_back_palomino.webp", res: 2 },
       horse_back_blanc: { path: "assets/img/horse_back_blanc.webp", res: 2 },
       race_log: { path: "assets/img/race_log.webp", res: 2 }, race_hurdle: { path: "assets/img/race_hurdle.webp", res: 2 },
@@ -188,8 +195,8 @@ window.GAME = {
     shadow: { w: 34, h: 12 },
   },
   characters: [
-    { id: "fille", name: "Cavalière", sheet: "kid_fille", rideSheet: "kid_fille_ride", raceRider: "rider_back_fille", thumb: "assets/ui/kid_fille.webp" },
-    { id: "garcon", name: "Cavalier", sheet: "kid_garcon", rideSheet: "kid_garcon_ride", raceRider: "rider_back_garcon", thumb: "assets/ui/kid_garcon.webp" },
+    { id: "fille", name: "Cavalière", sheet: "kid_fille", rideSheet: "kid_fille_ride", raceRider: "rider_back_fille", raceHead: "rider_head_fille", thumb: "assets/ui/kid_fille.webp" },
+    { id: "garcon", name: "Cavalier", sheet: "kid_garcon", rideSheet: "kid_garcon_ride", raceRider: "rider_back_garcon", raceHead: "rider_head_garcon", thumb: "assets/ui/kid_garcon.webp" },
   ],
 
   /* ---- Horses ---- */
@@ -289,13 +296,13 @@ window.GAME = {
     horizon: 0.42,                           // tall phones: more road, less empty sky
     rivals: {
       list: [
-        { name: "Hugo", sprite: "horse_back_gris", rider: "rider_rival_1", color: "#a98bf0" },
-        { name: "Léa", sprite: "horse_back_noir", rider: "rider_rival_2", color: "#4fbf5e" },
-        { name: "Tom", sprite: "horse_back_palomino", rider: "rider_rival_3", color: "#4a6fe0" },
-        { name: "Inès", sprite: "horse_back_bai", rider: "rider_rival_4", color: "#ff9640" },
-        { name: "Jade", sprite: "horse_back_blanc", rider: "rider_rival_5", color: "#f27fb8" },
+        { name: "Hugo", sprite: "horse_back_gris", rider: "rider_rival_1", head: "rival_head_1", color: "#a98bf0" },
+        { name: "Léa", sprite: "horse_back_noir", rider: "rider_rival_2", head: "rival_head_2", color: "#4fbf5e" },
+        { name: "Tom", sprite: "horse_back_palomino", rider: "rider_rival_3", head: "rival_head_3", color: "#4a6fe0" },
+        { name: "Inès", sprite: "horse_back_bai", rider: "rider_rival_4", head: "rival_head_4", color: "#ff9640" },
+        { name: "Jade", sprite: "horse_back_blanc", rider: "rider_rival_5", head: "rival_head_5", color: "#f5c23a" },
       ],
-      scale: 11, hw: 0.28, skill: [0.8, 0.95], gridGap: 5, gridFirst: 4, lanes: [-0.62, 0.62, -0.25, 0.25],
+      scale: 11, hw: 0.28, skill: [0.8, 0.95], gridGap: 6, gridFirst: 4, lanes: [-0.62, 0.62, -0.25, 0.25],
       rewards: [40, 25, 15, 8, 5, 3],
       placeLabels: ["1er", "2e", "3e", "4e", "5e", "6e"],
       placeMessages: ["{i:trophy} Tu as gagné la course !", "{i:star} Bravo, tu finis 2e !", "{i:star} Super, tu montes sur le podium : 3e !", "Tu finis {place}. Essaie de doubler plus de cavaliers !"],

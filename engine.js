@@ -3752,14 +3752,18 @@ function r3Rivals() {
   if (R3.mode === "chase") { r3ChaseInit(); return; }
   if (R3.mode !== "rivals" || !RV || !(RV.list || []).length) return;
   const n = Math.min(RV.count || RV.list.length, RV.list.length), sk = RV.skill || [0.84, 0.97];
+  // each race shuffles who is fast: a strong rider can start at the back and come through the field
+  const rnd = r3Rng((Date.now() & 0xffff) + 7), order = [...Array(n).keys()].sort(() => rnd() - 0.5), av = RV.avoid || [0.7, 0.95];
   for (let k = 0; k < n; k++) {
     const d = RV.list[k], base = r3Img(d.sprite); if (!base) continue;
     const rid = d.rider ? r3Img(d.rider) : null;
     R3.rivals.push({
-      name: d.name || "#" + (k + 1), color: d.color || null, img: r3Tint(base, d.tint || null), rider: rid ? r3Tint(rid, d.riderTint || null) : null,
+      name: d.name || "#" + (k + 1), color: d.color || null, head: d.head || null, img: r3Tint(base, d.tint || null), rider: rid ? r3Tint(rid, d.riderTint || null) : null,
       scale: d.scale || RV.scale || 6.5, hw: d.hw != null ? d.hw : (RV.hw != null ? RV.hw : 0.28),
       // the front of the grid is the strongest; everybody gets a little personality (wobble phase, lane)
-      skill: n > 1 ? sk[1] - (sk[1] - sk[0]) * (k / (n - 1)) : sk[1], row: k,
+      skill: n > 1 ? sk[1] - (sk[1] - sk[0]) * (order[k] / (n - 1)) : sk[1], row: k,
+      // a personal start (reaction 0–0.4 s, launch 0.6–1.5) and how often it dodges an obstacle in time
+      react: rnd() * 0.4, launch: 0.6 + rnd() * 0.9, avoid: av[0] + rnd() * (av[1] - av[0]), seen: new Set(), slowT: 0,
       x: RV.lanes ? RV.lanes[k % RV.lanes.length] : (k % 2 ? 0.45 : -0.45), tx: RV.lanes ? RV.lanes[k % RV.lanes.length] : (k % 2 ? 0.45 : -0.45),
       ph: k * 1.7, z: 0, speed: 0, done: 0,
     });
@@ -3902,8 +3906,10 @@ function r3Grid() {
   // gridFirst (segments): the first row starts far enough ahead not to overlap the player's sprite
   const RV = RACE.rivals, gap = R3.segLen * (RV.gridGap || 4), first = R3.segLen * (RV.gridFirst || 0), pz = r3PlayerZ(), n = R3.rivals.length;
   R3.rivals.forEach((r) => { r.z = pz + first + gap * (Math.floor((n - 1 - r.row) / 2) + 1) + (r.row % 2) * gap * 0.5; });
-  // a chequered start line just in front of the player (rivals.startLine:false hides it)
-  if (RV.startLine !== false) { const i0 = Math.floor((pz + R3.segLen * 1.5) / R3.segLen); for (let i = i0; i < i0 + 2 && R3.segs[i]; i++) R3.segs[i].start = true; }
+  // the chequered start line is just in FRONT of the whole field: everybody starts behind it
+  // (rivals.startLine:false hides it)
+  const front = Math.max(pz, ...R3.rivals.map((r) => r.z));
+  if (RV.startLine !== false) { const i0 = Math.floor((front + R3.segLen * 1.2) / R3.segLen); for (let i = i0; i < i0 + 2 && R3.segs[i]; i++) R3.segs[i].start = true; }
   R3.gridSet = true;
 }
 // player's track position = where the ride is DRAWN (camera + carDepth)
@@ -3916,14 +3922,21 @@ function r3RivalsUpdate(dt) {
     if (r.done) return;
     // target speed: own skill x the player's top speed, a slow wobble, and a rubber band that keeps the pack in reach
     const lead = clamp((r.z - pz) / reach, -1, 1);
-    const target = R3.baseMax * r.skill * (1 + 0.04 * Math.sin(R3.time * 0.7 + r.ph)) * (1 - rubber * lead);
-    r.speed += (target - r.speed) * Math.min(1, dt * 0.9);
-    r.z += r.speed * dt;
-    // steer around obstacles a few segments ahead, otherwise drift back to a racing line
+    const target = R3.baseMax * r.skill * (1 + 0.04 * Math.sin(R3.time * 0.7 + r.ph)) * (1 - rubber * lead) * (r.slowT > 0 ? 0.45 : 1);
+    if (R3.time >= r.react) r.speed += (target - r.speed) * Math.min(1, dt * 0.9 * r.launch);   // own reaction + launch
+    if (r.slowT > 0) r.slowT -= dt;
+    const z0 = r.z; r.z += r.speed * dt;
+    // obstacles: dodged in time most of the time (r.avoid), sometimes hit → it stumbles and slows down
     const si = Math.floor(r.z / R3.segLen); let avoid = null;
     for (let i = si + 1; i < si + 9 && i < R3.segs.length; i++) {
-      const o = R3.segs[i].obstacles.find((ob) => !ob.dead && Math.abs(ob.offset - r.tx) < ob.hw + r.hw + 0.1); if (o) { avoid = o; break; }
+      const o = R3.segs[i].obstacles.find((ob) => !ob.dead && Math.abs(ob.offset - r.tx) < ob.hw + r.hw + 0.1);
+      if (!o) continue;
+      if (!r.seen.has(o)) { r.seen.add(o); o["miss" + r.row] = Math.random() > r.avoid; }
+      if (!o["miss" + r.row]) { avoid = o; break; }
     }
+    for (let i = Math.floor(z0 / R3.segLen) + 1; i <= si && i < R3.segs.length; i++) R3.segs[i].obstacles.forEach((ob) => {
+      if (!ob.dead && Math.abs(ob.offset - r.x) < ob.hw + r.hw * 0.6 && !ob["hit" + r.row]) { ob["hit" + r.row] = true; r.slowT = 1.1; r.speed *= 0.5; }
+    });
     if (avoid) r.tx = clamp(avoid.offset + (avoid.offset > 0 ? -1 : 1) * (avoid.hw + r.hw + 0.2), -0.85, 0.85);
     else if (Math.random() < dt * 0.25) r.tx = clamp(r.tx + (Math.random() - 0.5) * 0.6, -0.7, 0.7);
     r.x += (r.tx - r.x) * Math.min(1, dt * 2.2);
@@ -4138,8 +4151,12 @@ function endRace(win, quit) {
 // stats (raceWin for 1st, racePodium for top 3), results modal with the podium.
 function r3Results() {
   const RV = RACE.rivals, pz = r3PlayerZ(), you = { name: state.player.name || "You", you: true, done: R3.time, z: pz };
-  const field = R3.rivals.map((r) => ({ name: r.name, color: r.color, done: r.done, z: r.z })).concat([you]);
-  field.sort((a, b) => (a.done && b.done) ? a.done - b.done : a.done ? -1 : b.done ? 1 : b.z - a.z);
+  const field = R3.rivals.map((r) => ({ name: r.name, color: r.color, head: r.head, done: r.done, z: r.z, speed: r.speed })).concat([you]);
+  you.head = (charDef(state.player.avatar) || {}).raceHead || null;
+  // racers still on the course get an estimated finish time (remaining distance / their pace): the ranking and
+  // the gaps shown are both based on it, so they always agree
+  field.forEach((f) => { f.total = f.done || (R3.time + Math.max(0, R3.finishZ - f.z) / Math.max(f.speed || R3.baseMax * 0.8, R3.baseMax * 0.3)); });
+  field.sort((a, b) => (a.done && b.done) ? a.done - b.done : a.done ? -1 : b.done ? 1 : a.total - b.total);
   const place = field.indexOf(you) + 1;
   const rewards = RV.rewards || [RACE.reward || 30, 15, 8, 4];
   const r = rewards[Math.min(place, rewards.length) - 1] || 0;
@@ -4151,8 +4168,12 @@ function r3Results() {
   if (place <= 3) { Sound.play("celebrate"); confetti(); } else Sound.play("reward");
   const medal = (k) => k <= 3 ? `<span class="rr-medal m${k}">${iconHTML(RV.medalIcon || "trophy")}</span>` : `<span class="rr-medal">${k}</span>`;
   // rivals.list[].color: a swatch of the colour seen in the race (jacket, car), so the names match the field
-  const rows = field.map((f, i) => `<div class="rr-row${f.you ? " you" : ""}">${medal(i + 1)}${f.color ? `<i class="rr-swatch" style="background:${esc(f.color)}"></i>` : ""}<b>${esc(f.name)}</b>
-      <span class="rr-time">${f.done ? f.done.toFixed(1) + "s" : ""}</span></div>`).join("");
+  // rivals.list[].head / character.raceHead: a small portrait (the helmet seen in the race) instead of the swatch;
+  // a rival still racing shows its estimated gap to the finish ("+n.n s")
+  const tag = (f) => f.head && assetPath(f.head) ? `<img class="rr-head-ico" src="${av(assetPath(f.head))}" alt="">` : f.color ? `<i class="rr-swatch" style="background:${esc(f.color)}"></i>` : "";
+  const est = (f) => f.done ? f.done.toFixed(1) + "s" : "+" + Math.max(0.1, f.total - R3.time).toFixed(1) + "s";
+  const rows = field.map((f, i) => `<div class="rr-row${f.you ? " you" : ""}">${medal(i + 1)}${tag(f)}<b>${esc(f.name)}</b>
+      <span class="rr-time">${est(f)}</span></div>`).join("");
   const msgs = RV.placeMessages || [];
   const head = (msgs[Math.min(place, msgs.length) - 1] || "{place}").replace("{place}", r3PlaceLabel(place)).replace("{r}", r);
   openModal(RV.resultsTitle || "{i:flag} Results", `<div class="race-results"><p class="rr-head">${fmt(head)}</p>

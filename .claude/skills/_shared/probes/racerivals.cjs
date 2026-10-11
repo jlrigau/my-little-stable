@@ -34,6 +34,8 @@ module.exports = async (page) => {
   check(g.n === (await page.evaluate(() => Math.min(GAME.race.rivals.count || 99, GAME.race.rivals.list.length))), "not every rival was created: " + JSON.stringify(g));
   check(g.count > 0 && g.pos === 0, "the countdown does not hold the start: " + JSON.stringify(g));
   check(g.ahead === g.n, "the player should start behind the whole field: " + JSON.stringify(g));
+  const line = await page.evaluate(() => { const i = R3.segs.findIndex((x) => x.start); return i < 0 ? null : { lineZ: i * R3.segLen, front: Math.max(r3PlayerZ(), ...R3.rivals.map((x) => x.z)) }; });
+  check(!line || line.front < line.lineZ, "a racer starts past the start line: " + JSON.stringify(line));
   r.grid = g;
   await page.waitForFunction(() => R3.count <= 0, null, { timeout: 15000 }); await wait(page, 2500);
   const m = await page.evaluate(() => ({ pos: Math.round(R3.pos), rz: R3.rivals.map((x) => Math.round(x.z)), place: R3.place,
@@ -57,6 +59,8 @@ module.exports = async (page) => {
   await shot(page, "rr-results");
   check(!fin.on && fin.modal, "the finish did not open the results: " + JSON.stringify(fin));
   check(fin.rows === g.n + 1 && fin.you === 0, "results list wrong (rows / player 1st): " + JSON.stringify(fin));
+  const gaps = await page.evaluate(() => [...document.querySelectorAll(".rr-row .rr-time")].slice(1).map((e) => parseFloat(e.textContent.replace("+", ""))));
+  check(gaps.every((v, i) => i === 0 || v >= gaps[i - 1]), "results gaps are not in ranking order: " + JSON.stringify(gaps));
   check(fin.coins > before.coins && fin.win === before.win + 1 && fin.podium >= 1, "reward / stats not applied: " + JSON.stringify({ before, fin }));
   r.final = fin;
   return r;

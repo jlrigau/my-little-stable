@@ -203,7 +203,7 @@ Everything in `assets` is preloaded automatically (with cache-busting via `av()`
 ```
 player: { scale, speed:{walk,run,rideWalk,rideRun}, spawn:{x,y}, nameY, shadow:{w,h},
           frameRate, originY, showName }  // nameY = y offset of the name label above the head (default -80)
-characters: [ { id, name, sheet, thumb, rideSheet?, raceRider? } ]   // sheet = LPC walkcycle (9 cols × 4 rows: up,left,down,right;
+characters: [ { id, name, sheet, thumb, rideSheet?, raceRider?, raceHead? } ]   // sheet = LPC walkcycle (9 cols × 4 rows: up,left,down,right;
                                              // col 0 = idle) at any frame size; thumb in assets/ui/
                                              // rideSheet = ONE frame, the character SEATED (side view facing
                                              // left; flipped for right) shown while riding (ride.sitY places it)
@@ -548,15 +548,16 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, rideWidth:0.32 /* ride
 //   red chevrons rise beside the ride and a red/blue glow pulses on the edges when it is near. Caught = it pulls
 //   alongside and passes, then the "caught" result. Probe: probes/racechase.cjs.
 // rivals (optional) — a REAL race instead of a time trial: a fixed field to overtake.
-//   rivals: { list:[{ name, sprite, tint?, rider?, riderTint?, color? /* results swatch */, scale?, hw? }], count?, scale:6.5, hw:0.28,
+//   rivals: { list:[{ name, sprite, tint?, rider?, riderTint?, color? /* results swatch */, head? /* results portrait (image key) */, scale?, hw? }], count?, scale:6.5, hw:0.28,
 //             lanes:[-0.45,0.45] /* grid lanes */, gridFirst:0 /* segments before the first row */,
 //             skill:[0.84,0.97] /* top-speed share, front of the grid = strongest */, gridGap:4 /* segments */,
-//             rubber:0.12 /* pack stays in reach */, countdown:3.2, maxTime:240,
+//             rubber:0.12 /* pack stays in reach */, avoid:[0.7,0.95] /* chance to dodge each obstacle */, countdown:3.2, maxTime:240,
 //             rewards:[1st,2nd,3rd,...], placeLabels:["1st","2nd","3rd"], placeSuffix:"th",
 //             placeMessages:["{place}"...] /* by place, last one reused */, resultsTitle, startMessage,
 //             bumpMessage("{name}"), hitMessage, goLabel:"GO!", podiumStat:"racePodium", medalIcon:"trophy" }
-//   The player starts LAST on a two-by-two grid after a 3-2-1 countdown (real seconds); rivals drive their own
-//   speed with a wobble and a rubber band, steer around obstacles; bumping one costs speed (no time penalty);
+//   Everybody starts BEHIND the chequered start line (the player in the last row) after a 3-2-1 countdown (real
+//   seconds). Each race shuffles who is fast; every rival has its own reaction time and launch, a wobble and a
+//   rubber band, and dodges obstacles most of the time (a hit makes it stumble and slow down for ~1 s); bumping one costs speed (no time penalty);
 //   the time chip counts UP; a live place chip "n/N" (icons.place) replaces the distance and pops on overtakes.
 //   At the line: results modal (ranking, medals, player row highlighted, reward by place); stats raceRun,
 //   raceWin (1st), racePodium (top 3), raceBest. A rival = sprite (tinted) + optional rider layer (tinted).
