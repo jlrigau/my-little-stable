@@ -83,7 +83,7 @@ showCapacity,                          // creature count: show "n/cap" vs bare "
 coinIcon, namePrompt:{label,placeholder}, startName, namePromptYou, avatarPrompt,
 createTitle, createOkLabel, startLabel, continueLabel, continueHint, helpTitle,
 ageUnit, and, nightMessage, restBlockedHint, neglectMessage, morningMessage,
-notEnough, idleHint, placeHint, placeHere, cancel, boughtDecorMessage, placedMessage,
+notEnough, idleHint, placeHint, placeHere, cancel, boughtDecorMessage, placedMessage, blocksPath,
 refundMessage, noOnBuilding, noInHome, nameLabel, confirm, nameTaken, closeLabel
 ```
 Strings with `{name}`, `{day}`, `{names}`, `{item}` are interpolated by the engine, and
@@ -464,6 +464,9 @@ economy: { startCoins, startResources:{id:n}, startCapacity, dayReward }
 shop: { title, resources:[{id,name,desc,icon,price,amount,boughtMessage}], capacity:{name,icon,price,boughtMessage},
         decorHeading, buyCreature:{price,heading,hint,label,icon,img,boughtMessage}, fullMessage }
 decor: [ { id, name, sprite, thumb?, price, scale?, collision:{dx,dy,w,h}?, allowInHome? } ]
+// A decoration is refused where it would cut off the way: anything reachable before placing it (stations,
+// creatures, the home zone) must stay reachable (checked on "Place here"; message meta.blocksPath).
+// allowInHome:true → may also go inside the home zone (e.g. the nursery, where unlocks appear too).
 ```
 The shop, station menus, missions and models share one **choice list** look (engine.css
 `.choice`): an icon/thumbnail tile, a title + subtitle (both accept `{i:key}`), a price pill

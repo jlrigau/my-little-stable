@@ -874,7 +874,7 @@ function openCreate(player, onValidate) {
 let game = null, sc = null;
 let player = null, playerSprite = null, playerShadow = null, playerName = null, playerFacing = "down";
 let cursors = null, wasd = null;
-let moveTarget = null, navPath = [], pendingInteract = null, followCreature = null, followRepath = 0, followAuto = false;
+let moveTarget = null, navPath = [], pendingInteract = null, followCreature = null, followRepath = 0, followAuto = false, followStart = 0;
 let placingDecor = null, ghostDecor = null, ghostSide = 1;
 let nightRunning = false;
 let running = false, lastTapT = 0, lastInputT = 0;
@@ -1820,6 +1820,9 @@ function sceneUpdate(time, delta) {
     if (d < 92) {
       const auto = followAuto; followCreature = null; followAuto = false; moveTarget = null; navPath = [];
       if (auto) autoAction(c);
+    } else if (nowMs() - followStart > 5000) {
+      // never chase a wandering / unreachable creature forever (the player "moving by itself")
+      followCreature = null; followAuto = false; moveTarget = null; navPath = []; running = false;
     } else if (time > followRepath || !moveTarget) {
       followRepath = time + 280;
       walkTo(c.x + (dx / d) * 72, c.y + (dy / d) * 72);
@@ -1865,7 +1868,7 @@ function sceneUpdate(time, delta) {
           player.stuck = 0; const now = nowMs();
           player.replans = (now - (player.replanT || 0) < 2500) ? (player.replans || 0) + 1 : 1; player.replanT = now;
           const last = navPath[navPath.length - 1];
-          if (player.replans > 3 || !last) { moveTarget = null; navPath = []; running = false; pendingInteract = null; }   // unreachable: stop, don't shake
+          if (player.replans > 3 || !last) { moveTarget = null; navPath = []; running = false; pendingInteract = null; followCreature = null; followAuto = false; }   // unreachable: stop, don't shake (nor keep following)
           else walkTo(last.x, last.y);
         }
       } else player.stuck = 0;
@@ -2230,7 +2233,7 @@ function onPointer(p) {
     if (d < 62 * Math.max(1, c.baseScale || 1) && d < dmin) { dmin = d; target = c; }
   });
   if (target && isCreature(target)) {
-    followCreature = target; pendingInteract = null; followRepath = 0;
+    followCreature = target; pendingInteract = null; followRepath = 0; followStart = nowMs();
     followAuto = !!(CREATURE.tapAction);
     tapRipple(target.x, target.y + 6, true);
   } else if (target) {
@@ -2839,10 +2842,26 @@ function placementError(d, x, y) {
   return null;
 }
 
+// A decoration may go anywhere it doesn't CUT OFF the way: everything the player could reach before
+// (stations, creatures, the home zone) must still be reachable with it in place. Checked once, on placement.
+function placementBlocksWay(d, x, y) {
+  if (!d.collision || !player) return false;
+  const c = d.collision, box = { x: x + c.dx, y: y + c.dy, w: c.w, h: c.h };
+  const targets = STATIONS.map((st) => ({ x: st.x, y: st.y + 60 }))
+    .concat(state.creatures.filter((k) => !k.departing && k !== mounted).map((k) => ({ x: k.x, y: k.y })));
+  const hz = HOME_ZONE && HOME_ZONE.rect; if (hz) targets.push({ x: hz.x + hz.w / 2, y: hz.y + hz.h / 2 });
+  const reach = () => targets.map((t) => !!findPath(player.x, player.y, t.x, t.y));
+  if (COLLISIONS_DIRTY || !NAV.grid) buildNav();
+  const before = reach();
+  COLLISIONS.push(box); buildNav();
+  const after = reach();
+  COLLISIONS.pop(); buildNav();
+  return before.some((ok, i) => ok && !after[i]);
+}
 function placeDecor() {
   if (!placingDecor) return;
   const { x, y } = ghostXY();
-  const err = placementError(placingDecor, x, y);
+  const err = placementError(placingDecor, x, y) || (placementBlocksWay(placingDecor, x, y) ? (META.blocksPath || "Not here: it would block the way!") : null);
   if (err) { message(err); Sound.play("error"); return; }
   state.decors.push({ id: placingDecor.id, x, y });
   state.stats.decor = (state.stats.decor || 0) + 1;
