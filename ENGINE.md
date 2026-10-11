@@ -83,7 +83,7 @@ showCapacity,                          // creature count: show "n/cap" vs bare "
 coinIcon, namePrompt:{label,placeholder}, startName, namePromptYou, avatarPrompt,
 createTitle, createOkLabel, startLabel, continueLabel, continueHint, helpTitle,
 ageUnit, and, nightMessage, restBlockedHint, neglectMessage, morningMessage,
-notEnough, idleHint, placeHint, placeHere, cancel, boughtDecorMessage, placedMessage,
+notEnough, idleHint, placeHint, placeHere, cancel, boughtDecorMessage, placedMessage, blocksPath,
 refundMessage, noOnBuilding, noInHome, nameLabel, confirm, nameTaken, closeLabel
 ```
 Strings with `{name}`, `{day}`, `{names}`, `{item}` are interpolated by the engine, and
@@ -464,6 +464,9 @@ economy: { startCoins, startResources:{id:n}, startCapacity, dayReward }
 shop: { title, resources:[{id,name,desc,icon,price,amount,boughtMessage}], capacity:{name,icon,price,boughtMessage},
         decorHeading, buyCreature:{price,heading,hint,label,icon,img,boughtMessage}, fullMessage }
 decor: [ { id, name, sprite, thumb?, price, scale?, collision:{dx,dy,w,h}?, allowInHome? } ]
+// A decoration is refused where it would cut off the way: anything reachable before placing it (stations,
+// creatures, the home zone) must stay reachable (checked on "Place here"; message meta.blocksPath).
+// allowInHome:true → may also go inside the home zone (e.g. the nursery, where unlocks appear too).
 ```
 The shop, station menus, missions and models share one **choice list** look (engine.css
 `.choice`): an icon/thumbnail tile, a title + subtitle (both accept `{i:key}`), a price pill
@@ -520,6 +523,10 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys],
   colors:{ sky:[top,mid,horizon], sun:[top,bottom]|false, skyline|false, ground, grass:[a,b], road:[a,b], rumble:[a,b], lane, finish:[a,b] },
   icons:{ time, distance, speed, quit, left, right }, speedUnit, distUnit, topSpeed, quitLabel, hint,
   startMessage, hitMessage("{n}"), winMessage("{r}"), loseMessage, quitMessage }
+// drain (per s, default 2.4): the ride's fatigue need burns while racing; at 0 the ride slows to tiredSpeed (0.5)
+// for the rest of the race (tiredMessage("{name}")), or to ride.emptySpeed with ride.empty:"slow".
+// showNeed (default true): the ride's fatigue need (e.g. fuel) as a gauge under the HUD chips — turns red and
+// pulses below 25 %, so a ride slowing down mid-race (empty tank, ride.empty:"slow") is understood. false hides it.
 ```
 
 ### `environment` (optional)
@@ -527,11 +534,12 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys],
 band,                                  // forest band thickness around the world
 arena: { rect, tile, label, fence, gates:"left", gateA:0.4, gateB:0.6, obstacleSprite, obstacleScale, obstacleBox, obstacles:[{x,y}] },
 forest: { tree, bush, step, hedgeMargin, treeScale:[min,max], bushScale:[min,max], hedgeBox:{dx,dy,w,h}, treeBox?:{dx,dy,w,h} },
-   // hedges (bushes along the path) form a gapless wall: one step x step box per grid cell (hedgeSolid:false →
-   // the legacy per-bush hedgeBox, which leaves gaps on the vertical sides of the loop)
-   // treeBox: give the band's "trees" a collision on the grid (≥ step wide → solid, e.g. an asteroid belt
-   // nobody can walk into); omit it for a walkable forest. Make it as TALL as the drawn sprite (dy ≈ −sprite
-   // height): a box shorter than the art lets the player stand "inside" the drawing (probes/barriers.cjs checks it)
+   // hedges (bushes along the path) and solid trees get collision footprints FITTED TO THE DRAWING: on a side
+   // facing the path / play area the box stops at the sprite's visible (opaque) edge at its scale, so the player
+   // walks right up to it; on a side facing another band cell it extends to the cell boundary (gapless band).
+   // hedgeSolid:false → the legacy small per-bush hedgeBox. treeBox:"fit" → trees fitted the same way (a solid
+   // band, e.g. an asteroid belt); treeBox:{dx,dy,w,h} → a fixed box per grid cell; omit → walkable forest.
+   // Tests: probes/edges.cjs (nobody gets past the edge) + probes/edgegap.cjs (stops <= 14 px from the drawing).
 path: { width, sand, inset, tile, label, labelY,
         openings:[{x,y,w,h}], logs:{ xs:[...], dec, sprite, scale, boxW:44, box?:{dx,dy,w,h}, depthLift } },
    // logs: jumpable barriers across the top/bottom sides. Without `box`, each one blocks the WHOLE path width

@@ -24,6 +24,7 @@ run by Claude Code through the **Bash** tool.
 | `probes/racehud.cjs` | Race HUD on one row: time / distance / speed chips never wrap, overlap or spill their value, even with the longest values. Run on 390, 360 and 320 px wide devices. |
 | `probes/barriers.cjs` | Trail-loop barriers seal the path: riding, nothing gets past at any height (only Jump clears it); on foot the character hops over and tap-to-move reaches every section (no soft-lock). |
 | `probes/edges.cjs` | The trail-loop edges are a wall: walking from the path towards each edge (on foot and riding) never ends up past the hedge band. |
+| `probes/edgegap.cjs` | The player stops right at the drawn edge of the band (hedges, rocks): gap <= 14 px walking towards it in the 4 directions, never inside the drawing. |
 | `probes/systems.cjs` | Functional checks of the optional systems a game enables (ride + facing, jump, station menu + restyle, missions, chase, models, race, legacy save) with a screenshot each; blocks skip themselves when a system is off. |
 | `probes/tour.cjs` | The standard regression tour (home, create, tap→walk, close-up→reveal→world responsive, help, stations, unlocks, guide, save) with screenshots; `probes/lib.cjs` = helpers for your own probes. |
 | `sync-engine.sh` | Backport the engine layer (`engine.js`, `ENGINE.md`, `.claude/skills/`) FROM a game repo INTO the template; runs the separation audit + syntax check; never commits. `bash .claude/skills/_shared/sync-engine.sh <game-url|remote> [ref]`. Used by **sync-engine**. |
