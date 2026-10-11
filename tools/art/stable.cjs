@@ -636,6 +636,157 @@ function logs() {     // log-pile jump lying ACROSS the whole cross path (long a
   g += `<path d="M36 18 V${H - 60}" stroke="#fff" stroke-width="3" opacity=".3" stroke-linecap="round"/>`;
   return job("assets/img/logs.png", W, H, g, defs);
 }
+/* ======================= Race (pseudo-3D, seen from behind) ======================= */
+// Horse seen FROM BEHIND with the rider's back on top — 200×170, hooves on y≈160.
+const RIDER_BACK = { jacket: "#5c6f96", pants: "#efe2c6", boots: "#5a3e36", helmet: "#2f3456", hair: "#7a4a2e", skin: "#f1c9a8" };
+function horseBack(coatId) {
+  // A horse from behind is TALL and NARROW: rump ≈ 2× the rider's back, slim hind legs with hocks.
+  // Layers far → near: head/neck, barrel, saddle pad, rider back, thighs, rump, tail, lower legs.
+  const c = COATS[coatId], u = "hb" + coatId, W = 200, H = 170, ink = c.ink || INK, sw = 3, st = stk(sw, ink);
+  const bodyC = c.body, maneC = c.mane, sh = c.shadeAmt != null ? c.shadeAmt : -0.2;
+  const R = RIDER_BACK;
+  let defs = lin(`${u}b`, [[0, shade(bodyC, sh * 0.8)], [0.28, shade(bodyC, 0.1)], [0.62, bodyC], [1, shade(bodyC, sh)]], 0, 0, 1, 0) +
+    lin(`${u}d`, [[0, shade(bodyC, sh * 0.9)], [0.5, shade(bodyC, sh * 0.3)], [1, shade(bodyC, sh * 1.1)]], 0, 0, 1, 0) +
+    lin(`${u}n`, [[0, shade(bodyC, 0.12)], [1, shade(bodyC, sh * 0.9)]]) +
+    lin(`${u}l`, [[0, shade(c.legs, -0.12)], [0.4, shade(c.legs, 0.08)], [1, shade(c.legs, -0.16)]], 0, 0, 1, 0) +
+    lin(`${u}m`, [[0, shade(maneC, 0.14)], [1, shade(maneC, -0.18)]]) +
+    lin(`${u}j`, [[0, shade(R.jacket, 0.18)], [1, shade(R.jacket, -0.14)]]) +
+    rad(`${u}h`, [[0, shade(R.helmet, 0.4)], [0.55, R.helmet], [1, shade(R.helmet, -0.3)]], 0.36, 0.28, 0.8) +
+    blur(`${u}bl`, 2.2);
+  let g = `<ellipse cx="100" cy="159" rx="34" ry="4.5" fill="#2a3a1a" opacity=".3" filter="url(#${u}bl)"/>`;
+  // --- neck + head far above: ears either side of the helmet, mane on the near side
+  g += `<path d="M80 70 C80 50 84 32 88 18 L112 18 C116 32 120 50 120 70 Z" fill="url(#${u}n)" ${st}/>`;
+  const ear = (x, s) => `<path d="M${x - 5 * s} 22 Q${x - 8 * s} 11 ${x - 4 * s} 4 Q${x + 6 * s} 9 ${x + 5 * s} 22 Z" fill="url(#${u}n)" ${st}/><path d="M${x - 2.5 * s} 19 Q${x - 4.5 * s} 12 ${x - 3 * s} 8.5 Q${x + 2.5 * s} 12 ${x + 2.5 * s} 19 Z" fill="${mix(bodyC, "#ff9fa8", 0.45)}" opacity=".85"/>`;
+  g += ear(84, 1) + ear(116, -1);
+  g += `<ellipse cx="100" cy="20" rx="17" ry="10" fill="url(#${u}n)" ${st}/>`;   // poll (mostly behind the helmet)
+  g += `<path d="${spline([[110, 22], [117, 28], [121, 42], [123, 56], [122, 68], [118, 62], [116, 68], [113, 54], [112, 38]], true)}" fill="url(#${u}m)" ${stk(sw * 0.9, ink)}/>`;
+  // --- barrel at the saddle, only a little wider than the rump
+  g += `<path d="M63 74 Q64 64 80 62 Q100 59 120 62 Q136 64 137 74 Q141 86 138 98 Q100 104 62 98 Q59 86 63 74 Z" fill="url(#${u}d)" ${st}/>`;
+  // --- saddle pad just under the hips
+  g += `<path d="M72 66 Q100 60 128 66 L131 84 Q100 80 69 84 Z" fill="${CORAL}" ${st}/><path d="M73 80 Q100 76 127 80" fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3" opacity=".8"/>`;
+  // --- rider's back, seated: elbows slightly out (hands forward on the reins, hidden), straight back
+  const arm = (d) => `<path d="${capsule([100 + d * 13, 44], [100 + d * 20, 58], 10, 9.5)}" fill="${shade(R.jacket, -0.12)}" ${stk(2.6)}/><path d="${capsule([100 + d * 20, 58], [100 + d * 13, 64], 9.5, 9)}" fill="${shade(R.jacket, -0.24)}" ${stk(2.6)}/>`;
+  g += arm(-1) + arm(1);
+  g += `<path d="M85 40 Q100 36 115 40 L117 74 Q100 78 83 74 Z" fill="url(#${u}j)" ${stk(2.8)}/>`;
+  g += `<path d="M100 44 V75" stroke="${shade(R.jacket, -0.28)}" stroke-width="2" stroke-linecap="round"/><path d="M89 45 Q91 58 89 70" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".3"/>`;
+  g += `<path d="M88 39 Q100 44 112 39 L111 43 Q100 48 89 43 Z" fill="${shade(R.jacket, -0.3)}" ${stk(2)}/>`;   // collar
+  g += `<path d="M91 30 Q100 33 109 30 Q109 38 104 39 Q100 40 96 39 Q91 38 91 30 Z" fill="${R.hair}" ${stk(2.2)}/>`;   // hair at the nape
+  g += `<path d="M88 32 Q86.5 10 100 10 Q113.5 10 112 32 Q100 35 88 32 Z" fill="url(#${u}h)" ${stk(2.8)}/>`;   // helmet r≈12 at (100,22)
+  g += `<path d="M89 30.5 Q100 33.5 111 30.5" fill="none" stroke="${shade(R.helmet, 0.4)}" stroke-width="1.8" opacity=".7"/>`;
+  g += `<path d="M92 20 Q94 14 100 13" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".5"/><circle cx="100" cy="10.5" r="2.2" fill="${shade(R.helmet, 0.2)}" ${stk(1.6)}/>`;
+  g += `<path d="M84 72 Q100 66 116 72 Q114 78 100 77 Q86 78 84 72 Z" fill="${shade(WOOD_D, -0.1)}" ${stk(2.6, ink)}/>`;   // cantle: hips sunk in the saddle
+  // thighs down along the barrel (hip → knee), partly behind the croup
+  const HIP = [90, 72], KNEE = [64.5, 94], BOOT = [64, 124];
+  const mx = (p, d) => [100 + (p[0] - 100) * d, p[1]];
+  [-1, 1].forEach((d) => { const dd = -d; g += `<path d="${capsule(mx(HIP, dd), mx(KNEE, dd), 13, 11)}" fill="${R.pants}" ${stk(2.6)}/>`; });
+  // --- hind legs: slim columns (gaskin → hock → cannon → small hoof)
+  const socks = c.socks ? [c.socks[3], c.socks[2]] : [0, 0];
+  const leg = (x, sock) => {
+    const lc = sock ? "#fffaf2" : `url(#${u}l)`;
+    let s = `<path d="M${x - 7.5} 112 L${x + 7.5} 112 L${x + 7} 130 Q${x + 7} 136 ${x + 5} 139 L${x + 5} 155 L${x - 5} 155 L${x - 5} 139 Q${x - 7} 136 ${x - 7} 130 Z" fill="${lc}" ${st}/>`;
+    s += `<path d="M${x - 4.5} 134 Q${x} 137 ${x + 4.5} 134" fill="none" stroke="${shade(c.legs, -0.35)}" stroke-width="1.6" opacity=".55" stroke-linecap="round"/>`;   // hock
+    s += `<path d="M${x - 6} 153 L${x + 6} 153 L${x + 7} 161 Q${x} 162.5 ${x - 7} 161 Z" fill="${shade(c.hoof, -0.15)}" ${stk(sw * 0.9, ink)}/>`;
+    return s;
+  };
+  g += leg(81, socks[0]) + leg(119, socks[1]);
+  // --- rump: narrow, rounded hips, almost straight flanks; tail root at the top centre
+  const rump = "M100 70 C112 70 122 72 127 78 C132 84 134 92 134 100 C134 106 131 110 127 113 C123 116 118 118 112 118 L104 118 L100 114 L96 118 L88 118 C82 118 77 116 73 113 C69 110 66 106 66 100 C66 92 68 84 73 78 C78 72 88 70 100 70 Z";
+  g += `<path d="${rump}" fill="url(#${u}b)" ${st}/>`;
+  defs += `<clipPath id="${u}c"><path d="${rump}"/></clipPath>`;
+  g += `<g clip-path="url(#${u}c)">`;
+  if (c.dapple) { const Rn = rng(11); for (let i = 0; i < 10; i++) { const x = 70 + Rn() * 60, y = 76 + Rn() * 38, r = 1.8 + Rn() * 2; g += `<circle cx="${f2(x)}" cy="${f2(y)}" r="${f2(r + 0.8)}" fill="${shade(bodyC, -0.08)}" opacity=".7"/><circle cx="${f2(x)}" cy="${f2(y)}" r="${f2(r)}" fill="${shade(bodyC, 0.3)}" opacity=".85"/>`; } }
+  g += `<path d="M74 92 Q76 80 88 74" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity="${c.sheen || 0.38}"/>`;
+  g += `<path d="M100 108 V118" stroke="${shade(bodyC, -0.35)}" stroke-width="1.8" opacity=".5"/>`;   // soft crease at the very bottom
+  g += `</g>`;
+  // --- tail: root at the top centre, hanging down the middle to y≈140
+  const tail = spline([[93, 74], [100, 70], [107, 74], [108, 96], [110, 118], [111, 135], [107, 141], [103, 137], [100, 141], [97, 137], [93, 141], [89, 135], [90, 118], [92, 96]], true);
+  g += `<path d="${tail}" fill="url(#${u}m)" ${st}/>`;
+  g += `<path d="M97 80 Q95 108 95 132 M103 80 Q105 106 105 130 M100 84 Q100 110 100 134" fill="none" stroke="${shade(maneC, 0.32)}" stroke-width="1.8" stroke-linecap="round" opacity=".55"/>`;
+  // --- lower legs hanging vertically against the flanks, boots in small stirrups (y≈126)
+  [-1, 1].forEach((d) => {
+    const k = mx(KNEE, -d), b = mx(BOOT, -d);
+    g += `<path d="M${b[0]} 100 L${b[0]} 126" stroke="${INK}" stroke-width="1.8"/>`;
+    g += `<path d="${capsule(k, b, 9.5, 8.5)}" fill="${R.boots}" ${stk(2.6)}/>`;
+    g += `<path d="${capsule([k[0], k[1] - 2], [k[0], k[1] + 6], 10.5, 10)}" fill="${R.pants}" ${stk(2.6)}/>`;   // knee peeking at the barrel edge
+    g += `<path d="M${b[0] - 3.5} 127 H${b[0] + 3.5}" stroke="${INK}" stroke-width="5" stroke-linecap="round"/><path d="M${b[0] - 3.5} 127 H${b[0] + 3.5}" stroke="#d8dde4" stroke-width="2.4" stroke-linecap="round"/>`;
+    g += `<path d="M${b[0] + 2 * d} 106 L${b[0] + 2 * d} 118" stroke="#fff" stroke-width="1.4" opacity=".35" stroke-linecap="round"/>`;
+  });
+  return job(`assets/img/horse_back_${coatId}.png`, W, H, g, defs);
+}
+function raceLog() {   // cross-country log jump seen from the FRONT: 3 stacked logs, cut ends on both sides
+  const W = 200, H = 110;
+  const defs = lin("rlg", [[0, "#b98250"], [0.45, "#9a6a40"], [1, "#6e4a2e"]]) + rad("rlc", [[0, "#f8e2b6"], [1, "#d6ab74"]]) + blur("rlb", 2.5);
+  let g = `<ellipse cx="100" cy="98" rx="90" ry="6" fill="#2a3a1a" opacity=".28" filter="url(#rlb)"/>`;
+  const log = (x0, x1, cy, r) => {
+    let s = `<rect x="${x0}" y="${cy - r}" width="${x1 - x0}" height="${2 * r}" rx="${r * 0.45}" fill="url(#rlg)" ${stk(3.5)}/>`;
+    for (let x = x0 + 22; x < x1 - 24; x += 30) s += `<path d="M${x} ${cy - r * 0.4} q8 ${r * 0.18} 16 0" fill="none" stroke="#5e3c24" stroke-width="2" opacity=".55" stroke-linecap="round"/><path d="M${x + 12} ${cy + r * 0.35} q7 ${r * 0.15} 14 0" fill="none" stroke="#5e3c24" stroke-width="2" opacity=".5" stroke-linecap="round"/>`;
+    s += `<path d="M${x0 + 12} ${cy - r * 0.62} H${x1 - 12}" stroke="#fff" stroke-width="2.6" opacity=".28" stroke-linecap="round"/>`;
+    [x0 + r * 0.38, x1 - r * 0.38].forEach((ex) => { s += `<ellipse cx="${ex}" cy="${cy}" rx="${r * 0.42}" ry="${r - 0.5}" fill="url(#rlc)" ${stk(3)}/><ellipse cx="${ex}" cy="${cy}" rx="${r * 0.22}" ry="${r * 0.55}" fill="none" stroke="#c08e58" stroke-width="1.6"/><ellipse cx="${ex}" cy="${cy}" rx="1.6" ry="2.4" fill="#c08e58"/>`; });
+    return s;
+  };
+  g += log(10, 104, 80, 17) + log(96, 190, 80, 17) + log(36, 164, 50, 17);
+  [[18, 98], [62, 99], [110, 99], [150, 98], [184, 98]].forEach(([x, y]) => { g += `<path d="M${x - 6} ${y} Q${x - 5} ${y - 9} ${x - 2} ${y - 12} M${x} ${y} Q${x} ${y - 10} ${x + 3} ${y - 14} M${x + 6} ${y} Q${x + 6} ${y - 7} ${x + 9} ${y - 10}" fill="none" stroke="${INK}" stroke-width="5.5" stroke-linecap="round"/><path d="M${x - 6} ${y} Q${x - 5} ${y - 9} ${x - 2} ${y - 12} M${x} ${y} Q${x} ${y - 10} ${x + 3} ${y - 14} M${x + 6} ${y} Q${x + 6} ${y - 7} ${x + 9} ${y - 10}" fill="none" stroke="${MEADOW}" stroke-width="2.6" stroke-linecap="round"/>`; });
+  return job("assets/img/race_log.png", W, H, g, defs);
+}
+function raceHurdle() {   // show-jumping hurdle seen from the FRONT: two striped wings + a red/white pole
+  const W = 200, H = 130;
+  const defs = blur("rhb", 2.5);
+  let g = `<ellipse cx="100" cy="120" rx="88" ry="5.5" fill="#2a3a1a" opacity=".28" filter="url(#rhb)"/>`;
+  const wing = (x) => {
+    let s = `<rect x="${x - 10}" y="16" width="20" height="100" rx="5" fill="#fffaf2" ${stk(3.5)}/>`;
+    for (let y = 22; y < 104; y += 18) s += `<rect x="${x - 8}" y="${y}" width="16" height="9" fill="${CORAL}"/>`;
+    s += `<rect x="${x - 10}" y="16" width="20" height="100" rx="5" fill="none" ${stk(3.5)}/><path d="M${x - 5} 22 V108" stroke="#fff" stroke-width="2.4" opacity=".55" stroke-linecap="round"/>`;
+    s += `<rect x="${x - 15}" y="110" width="30" height="11" rx="4" fill="${WOOD}" ${stk(3.5)}/><circle cx="${x}" cy="12" r="7" fill="${GOLD}" ${stk(3)}/><circle cx="${x - 2}" cy="10" r="2" fill="#fff" opacity=".8"/>`;
+    return s;
+  };
+  const pole = (y, h, c1, id) => {
+    let s = `<clipPath id="${id}"><rect x="22" y="${y}" width="156" height="${h}" rx="${h / 2}"/></clipPath><rect x="22" y="${y}" width="156" height="${h}" rx="${h / 2}" fill="#fffaf2"/><g clip-path="url(#${id})">`;
+    for (let x = 22; x < 178; x += 26) s += `<path d="M${x} ${y + h} L${x + 9} ${y} H${x + 22} L${x + 13} ${y + h} Z" fill="${c1}"/>`;
+    return s + `</g><rect x="22" y="${y}" width="156" height="${h}" rx="${h / 2}" fill="none" ${stk(3.5)}/><path d="M30 ${y + 3} H170" stroke="#fff" stroke-width="2" opacity=".6" stroke-linecap="round"/>`;
+  };
+  g += pole(90, 11, SKY, "rhp2");
+  g += pole(52, 14, "#e8463c", "rhp1");
+  g += `<rect x="31" y="66" width="10" height="6" rx="2" fill="#9aa2ad" ${stk(2)}/><rect x="159" y="66" width="10" height="6" rx="2" fill="#9aa2ad" ${stk(2)}/>`;   // cups
+  g += wing(22) + wing(178);
+  return job("assets/img/race_hurdle.png", W, H, g, defs);
+}
+function raceIcons() {
+  const IP = Object.assign({}, IK.DEF, PAL), ist = (w) => IK.st(IP, w), out = [];
+  { const [d, f] = IK.fill(IP.teal);
+    let b = `<rect x="54" y="6" width="20" height="16" rx="4" fill="${GOLD}" ${ist(6)}/><path d="M98 30 L106 22" ${ist(13)}/><path d="M98 30 L106 22" stroke="${GOLD}" stroke-width="5" stroke-linecap="round"/>`;
+    b += `<circle cx="64" cy="70" r="48" fill="${f}" ${ist(7)}/><circle cx="64" cy="70" r="35" fill="#fffaf2" ${ist(5)}/>`;
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; b += `<path d="M${f2(64 + Math.cos(a) * 27)} ${f2(70 + Math.sin(a) * 27)} L${f2(64 + Math.cos(a) * 32)} ${f2(70 + Math.sin(a) * 32)}" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`; }
+    b += `<path d="M64 70 L64 44" stroke="${INK}" stroke-width="7" stroke-linecap="round"/><path d="M64 70 L84 80" stroke="${CORAL}" stroke-width="7" stroke-linecap="round"/><circle cx="64" cy="70" r="6" fill="${INK}"/>${IK.shine("M33 56 Q38 42 50 34")}`;
+    out.push(ICN("timer", b, d)); }
+  { const [d, f] = IK.fill(IP.pink);
+    let b = `<path d="M26 120 L50 50 H78 L102 120 Z" fill="${SAND}" ${ist(7)}/><path d="M64 58 V66 M64 78 V90 M64 102 V114" stroke="#fffaf2" stroke-width="6" stroke-linecap="round"/>`;
+    b += `<path d="M64 80 Q38 52 38 34 Q38 8 64 8 Q90 8 90 34 Q90 52 64 80 Z" fill="${f}" ${ist(7)}/><circle cx="64" cy="34" r="11" fill="#fff" ${ist(5)}/>${IK.shine("M48 30 Q50 20 58 16")}`;
+    out.push(ICN("distance", b, d)); }
+  { const [d, f] = IK.fill(IP.purple);
+    let b = `<path d="M14 100 A50 50 0 1 1 114 100 Z" fill="${f}" ${ist(7)}/><path d="M28 94 A38 38 0 1 1 100 94" fill="none" stroke="#fffaf2" stroke-width="13"/>`;
+    b += `<path d="M28 94 A38 38 0 0 1 40 48" fill="none" stroke="${IP.green}" stroke-width="10"/><path d="M50 39 A38 38 0 0 1 80 39" fill="none" stroke="${GOLD}" stroke-width="10"/><path d="M90 48 A38 38 0 0 1 100 94" fill="none" stroke="${CORAL}" stroke-width="10"/>`;
+    b += `<path d="M64 82 L94 52" stroke="${INK}" stroke-width="14" stroke-linecap="round"/><path d="M64 82 L94 52" stroke="#fff" stroke-width="5.5" stroke-linecap="round"/><circle cx="64" cy="82" r="11" fill="${GOLD}" ${ist(5)}/>`;
+    out.push(ICN("speed", b, d)); }
+  { const [d, f] = IK.fill("#c98a54"), [d2, fp] = IK.fill(CORAL);
+    let b = `<rect x="14" y="12" width="60" height="106" rx="8" fill="#6a4632" ${ist(7)}/><path d="M22 20 L62 28 V112 L22 108 Z" fill="${f}" ${ist(6)}/><path d="M32 40 V96 M46 42 V98" stroke="#a8703e" stroke-width="3" stroke-linecap="round" opacity=".7"/><circle cx="54" cy="70" r="5" fill="${GOLD}" ${ist(3)}/>`;
+    b += `<path d="M62 54 H84 V34 L118 66 L84 98 V78 H62 Z" fill="${fp}" ${ist(7)}/>${IK.shine("M70 62 H88")}`;
+    out.push(ICN("quit", b, d + d2)); }
+  { const [d, f] = IK.fill(IP.teal); out.push(ICN("left", `<path d="M14 64 L58 20 V44 H110 V84 H58 V108 Z" fill="${f}" ${ist(10)}/>${IK.shine("M64 56 H98")}`, d)); }
+  { const [d, f] = IK.fill(IP.teal); out.push(ICN("right", `<path d="M114 64 L70 20 V44 H18 V84 H70 V108 Z" fill="${f}" ${ist(10)}/>${IK.shine("M30 56 H64")}`, d)); }
+  { // checkered finish flag on a wooden pole
+    const x = 30, y = 18, w = 84, h = 62, wave = 8, cols = 4, rows = 3;
+    const P = (a, b2) => [x + a * w, y + b2 * h + Math.sin(a * Math.PI * 1.6) * wave];
+    let b = `<rect x="16" y="12" width="13" height="106" rx="5" fill="${WOOD}" ${ist(6)}/><circle cx="22.5" cy="12" r="8" fill="${GOLD}" ${ist(5)}/>`;
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+      const a = P(i / cols, j / rows), bb = P((i + 1) / cols, j / rows), cc = P((i + 1) / cols, (j + 1) / rows), dd = P(i / cols, (j + 1) / rows);
+      b += `<path d="M${f2(a[0])} ${f2(a[1])} L${f2(bb[0])} ${f2(bb[1])} L${f2(cc[0])} ${f2(cc[1])} L${f2(dd[0])} ${f2(dd[1])} Z" fill="${(i + j) % 2 ? INK : "#fffaf2"}"/>`;
+    }
+    const pts = []; for (let i = 0; i <= 12; i++) pts.push(P(i / 12, 0)); for (let i = 12; i >= 0; i--) pts.push(P(i / 12, 1));
+    b += `<path d="M${pts.map((p) => f2(p[0]) + " " + f2(p[1])).join(" L")} Z" fill="none" ${ist(7)}/>`;
+    out.push(ICN("flag", `<g transform="translate(0 3)">${b}</g>`)); }
+  return out;
+}
+
 function trough() {
   const W = 120, H = 70;
   const defs = lin("wt", [[0, "#9fdcff"], [1, "#4fa8e0"]]) + lin("tt", [[0, "#c58a56"], [1, "#9a6a42"]]);
@@ -1019,6 +1170,7 @@ function build(jobs) {
   jobs.push(mud("mud_1", 3, "#a9784a"), mud("mud_2", 8, "#a27046"), straw(), curry(), logo(), splash(),
     icon("assets/favicon.png", 512), icon("assets/apple-touch-icon.png", 180), icon("assets/icon-192.png", 192), icon("assets/icon-maskable.png", 512, 0.78),
     ...gameIcons(),
+    ...Object.keys(COATS).map((c) => horseBack(c)), raceLog(), raceHurdle(), ...raceIcons(),
     ...IK.jobs(PAL, ["star", "heart", "heartEmpty", "sound", "soundOff", "help", "avatar", "goals", "close", "play", "resume", "check", "gift", "hand", "sparkle", "bell", "refresh", "arrow", "trophy", "joy", "moon", "calendar", "palette", "ball", "smile", "meh", "sad", "lock", "battery", "home"]));
   return jobs;
 }
