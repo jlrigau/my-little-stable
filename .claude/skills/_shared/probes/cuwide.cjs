@@ -49,7 +49,8 @@ module.exports = async (page) => {
   const p3 = await probe(); await shot(page, "cw-back");
   check(p3.mode === "narrow" && p3.src === p1.src && p3.n === p1.n && p3.out === 0, "rotating back failed: " + JSON.stringify(p3));
   await page.setViewportSize({ width: vp.height, height: vp.width }); await wait(page, 900);
-  await scrubAll(page); await wait(page, 700);
+  await scrubAll(page);
+  await page.waitForFunction(() => { const b2 = document.getElementById("closeup-bg2"); return b2 && b2.classList.contains("show"); }, null, { timeout: 4000 }).catch(() => {});
   const fin = await page.evaluate(() => { const b2 = document.getElementById("closeup-bg2"); return { show: b2.classList.contains("show"), src: (b2.src || "").split("/").pop() }; });
   await shot(page, "cw-finish");
   check(fin.show && /_wide/.test(fin.src), "landscape finish did not reveal the wide 'done' backdrop: " + JSON.stringify(fin));

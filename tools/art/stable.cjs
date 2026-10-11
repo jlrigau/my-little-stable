@@ -647,14 +647,14 @@ function rearHalf() {   // left half of the rump + hind leg, spine peak → crea
   return [
     ["C", [88, 64.5], [72, 69], [66, 80]],
     ["C", [64.5, 84], [64.5, 87], [65, 90]],        // hip
-    ["C", [65.5, 96], [66, 100], [67, 104]],        // stifle
-    ["C", [68, 109], [69.5, 114], [71, 118]],       // gaskin
-    ["C", [72.5, 123], [73.5, 128], [74.5, 131.5]],
-    ["C", [74, 133], [74, 135], [74.5, 136.5]],     // hock bump (pushed out)
-    ["C", [75, 137.3], [76.5, 137.6], [76.5, 138.5]],
-    ["L", [78.5, 154]], ["L", [84.5, 154]], ["L", [82.5, 141]],   // cannon leaning in
-    ["C", [82.5, 138], [85, 135.5], [86.5, 133.5]], // inner hock
-    ["C", [90, 126], [94, 120], [96, 116]],         // inner thigh
+    ["C", [65.5, 96], [66.5, 100], [68, 104]],      // stifle
+    ["C", [69.5, 109], [71.5, 114], [73, 118]],     // gaskin (narrower)
+    ["C", [74, 121], [75, 123.5], [75.4, 125]],
+    ["C", [74.6, 126], [74.6, 128.2], [75.4, 129.2]], // hock bump, raised to y≈127
+    ["C", [76.2, 130], [77, 130.6], [77, 131.6]],
+    ["L", [78.5, 154]], ["L", [84.5, 154]], ["L", [83.2, 133.5]],   // long cannon leaning in
+    ["C", [83.2, 130.6], [85, 128.2], [87, 126.4]], // inner hock
+    ["C", [90.5, 121], [94, 118], [96, 115.5]],     // inner thigh
     ["C", [97.5, 113.5], [99, 112], [100, 111.5]],  // crease top
   ];
 }
@@ -671,7 +671,7 @@ function rearPath() {
 }
 const REAR = rearPath();
 // rear-view colour tweaks (contrast from behind); the side-view COATS stay untouched
-const REAR_OVR = { noir: { body: "#3a3340", mane: "#1c1820", sheen: 0.6, ink: "#3d2c26", rim: "#9fb2d6" }, blanc: { mane: "#ddd5c6", strand: "#a9b0bb" }, gris: { mane: shade("#6c7380", -0.1), shadeAmt: -0.26 }, palomino: { shadeAmt: -0.28, rim: "#fff1c8" } };
+const REAR_OVR = { noir: { body: "#3a3340", mane: "#1c1820", sheen: 0.6, ink: "#3d2c26", rim: "#9fb2d6", rimOp: 0.5 }, blanc: { mane: "#ddd5c6", strand: "#a9b0bb" }, gris: { mane: shade("#6c7380", -0.1), shadeAmt: -0.26 }, palomino: { body: "#efb24a", legs: "#efb24a", shadeAmt: -0.28, rim: "#fff1c8" } };
 function horseBackParts(coatId, u, opts = {}) {
   const c = Object.assign({}, COATS[coatId], REAR_OVR[coatId] || {}), sw = 3;
   const ink = c.ink || INK, st = stk(sw, ink), pad = opts.pad || CORAL;
@@ -679,9 +679,9 @@ function horseBackParts(coatId, u, opts = {}) {
   const strand = c.strand || shade(maneC, 0.32);
   let defs = lin(`${u}b`, [[0, shade(bodyC, sh * 0.8)], [0.28, shade(bodyC, 0.1)], [0.62, bodyC], [1, shade(bodyC, sh)]], 0, 0, 1, 0) +
     lin(`${u}n`, [[0, shade(bodyC, -0.25)], [1, shade(bodyC, -0.05)]]) +
-    ulin(`${u}lg`, [[0, c.legs, 0], [0.30, c.legs, 0], [0.31, c.legs, 1], [1, shade(c.legs, -0.12), 1]], 124, 156) +
-    ulin(`${u}sk`, [[0, "#fffaf2", 0], [0.30, "#fffaf2", 0], [0.31, "#fffaf2", 1], [1, "#f2ebdf", 1]], 124, 156) +
-    lin(`${u}m`, [[0, shade(maneC, 0.14)], [1, shade(maneC, -0.18)]]) + lin(`${u}dw`, [[0, maneC, 0], [1, maneC, 1]]) +
+    ulin(`${u}lg`, [[0, c.legs, 0], [0.30, c.legs, 0], [0.31, c.legs, 1], [1, shade(c.legs, -0.12), 1]], 118, 156) +
+    ulin(`${u}sk`, [[0, "#fffaf2", 0], [0.30, "#fffaf2", 0], [0.31, "#fffaf2", 1], [1, "#f2ebdf", 1]], 118, 156) +
+    lin(`${u}m`, [[0, shade(maneC, 0.14)], [1, shade(maneC, -0.18)]]) +
     `<clipPath id="${u}c"><path d="${REAR}"/></clipPath>` + blur(`${u}bl`, 2.2) + blur(`${u}sb`, 1) + blur(`${u}db`, 1);
   let g = `<ellipse cx="100" cy="159" rx="34" ry="4.5" fill="#2a3a1a" opacity=".3" filter="url(#${u}bl)"/>`;
   // --- the front: neck (visible shape the ears stand on), ears ~15° out, mane on the RIGHT, forelock tuft
@@ -699,15 +699,15 @@ function horseBackParts(coatId, u, opts = {}) {
   g += `<path d="${REAR}" fill="url(#${u}b)" ${st}/>`;
   g += `<g clip-path="url(#${u}c)">`;
   const socks = c.socks ? [c.socks[3], c.socks[2]] : [0, 0];
-  [[70, 90], [110, 130]].forEach(([a, b], i) => { g += `<rect x="${a}" y="124" width="${b - a}" height="34" fill="url(#${u}${socks[i] ? "sk" : "lg"})"/>`; });   // crisp stocking edge under the hock
+  [[70, 90], [110, 130]].forEach(([a, b], i) => { g += `<rect x="${a}" y="118" width="${b - a}" height="40" fill="url(#${u}${socks[i] ? "sk" : "lg"})"/>`; });   // crisp stocking edge under the hock
   if (c.dapple) { defs += rad(`${u}dp`, [[0, shade(bodyC, 0.25)], [0.7, shade(bodyC, 0.12)], [1, shade(bodyC, -0.12)]]); [[76, 84, 5], [124, 83, 4.8], [71, 94, 5.5], [129, 93, 5.2], [81, 92, 4.4], [119, 91, 4.5]].forEach(([x, y, r]) => { g += `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#${u}dp)" opacity=".35"/>`; }); }
   g += `<path d="M64 72 Q100 66 136 72 L136 80 Q100 88 64 80 Z" fill="${shade(bodyC, 0.12)}" opacity=".75"/>`;   // croup highlight arc
-  g += `<path d="M100 66 V81" stroke="${shade(bodyC, -0.3)}" stroke-width="1.6" stroke-linecap="round" opacity=".45"/>`;   // spine groove
+  g += `<path d="M100 66 V74" stroke="${shade(bodyC, -0.3)}" stroke-width="1.5" stroke-linecap="round" opacity=".3"/>`;   // spine groove
   g += `<ellipse cx="100" cy="124" rx="15" ry="15" fill="${shade(bodyC, -0.25)}" opacity=".55" filter="url(#${u}sb)"/>`;   // inner thighs
-  g += `<path d="M79.5 134.5 Q81.5 133 83.5 134.2 M120.5 134.5 Q118.5 133 116.5 134.2" fill="none" stroke="${shade(c.legs, -0.4)}" stroke-width="1.4" stroke-linecap="round" opacity=".7"/>`;   // hock creases
-  g += `<path d="M71 94 Q73 82 86 75" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity="${sheen}"/><path d="M129 94 Q127 82 114 75" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="${sheen * 0.6}"/>`;
-  if (c.rim) g += `<path d="${REAR}" fill="none" stroke="${c.rim}" stroke-width="7" opacity=".35" transform="translate(0 1.5)"/>`;   // cool rim light
-  const tail = spline([[96, 85], [100, 82.5], [104, 85], [105, 96], [111, 110], [113, 126], [112, 138], [107, 142], [104, 136], [100, 140], [96, 134], [92, 138], [88, 126], [89, 110], [95, 96]], true);
+  g += `<path d="M79.6 128.6 Q81.6 127 83.6 128.2 M120.4 128.6 Q118.4 127 116.4 128.2" fill="none" stroke="${shade(c.legs, -0.4)}" stroke-width="1.4" stroke-linecap="round" opacity=".7"/>`;   // hock creases
+  g += `<path d="M71 94 Q73 82 86 75" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity="${sheen}"/><path d="M128 87 Q126 81 119 77.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity="${sheen * 0.45}"/>`;
+  if (c.rim) g += `<path d="${REAR}" fill="none" stroke="${c.rim}" stroke-width="7" opacity="${c.rimOp || 0.35}" transform="translate(0 1.5)"/>`;   // cool rim light
+  const tail = spline([[96, 85], [100, 82.5], [104, 85], [105.5, 96], [108.5, 110], [110.2, 122], [111, 131], [108, 135.5], [105, 132], [102, 134.6], [98.6, 131.6], [95, 133.5], [92.4, 124], [92.4, 110], [94.6, 96]], true);
   g += `<path d="${tail}" transform="translate(2 1.5)" fill="#000" opacity=".2"/>`;   // tail drop shadow
   g += `<ellipse cx="100" cy="94" rx="6" ry="3" fill="${shade(bodyC, -0.15)}" opacity=".5" filter="url(#${u}db)"/>`;   // soft shade under the dock
   g += `</g>`;
@@ -721,8 +721,8 @@ function horseBackParts(coatId, u, opts = {}) {
   defs += `<clipPath id="${u}t"><path d="${tail}"/></clipPath>`;
   g += `<path d="${tail}" fill="url(#${u}m)" ${st}/>`;
   g += `<path d="${tail}" fill="none" clip-path="url(#${u}t)" stroke="${shade(maneC, -0.3)}" stroke-width="6" opacity=".6"/>`;
-  g += `<path d="M97 100 Q94 118 95 132 M103 100 Q107 116 107 132 M100 102 Q101 120 100 136" fill="none" stroke="${strand}" stroke-width="1.8" stroke-linecap="round" opacity=".6"/>`;
-  g += `<path d="M96.5 83 Q100 81 103.5 83 L104 92 Q100 95.5 96 92 Z" fill="${bodyC}"/><path d="M98 91.5 Q100 90.6 102 91.5 L104.2 99 L95.8 99 Z" fill="url(#${u}dw)"/>`;   // dock + soft hair wedge
+  g += `<path d="M97 100 Q95.5 116 96.5 128 M103.5 100 Q106.5 114 107.5 127 M100 102 Q101 118 102 130" fill="none" stroke="${strand}" stroke-width="1.8" stroke-linecap="round" opacity=".6"/>`;
+  g += `<path d="M96.5 83 Q100 81 103.5 83 L104 92 Q100 95.5 96 92 Z" fill="${bodyC}"/><ellipse cx="100" cy="95.5" rx="4.2" ry="3" fill="${maneC}" opacity=".75" filter="url(#${u}db)"/>`;   // dock + feathered hair start
   return { defs, body: g };
 }
 function horseBack(coatId) { const r = horseBackParts(coatId, "hb" + coatId); return job(`assets/img/horse_back_${coatId}.png`, 200, 170, r.body, r.defs); }
@@ -743,16 +743,17 @@ function riderBackParts(k, u) {
     legs += `<path d="${capsule([X(64), 88], [X(63.5), 93], 5, 5)}" fill="${k.pants}" ${st()}/>`;   // knee (mostly hidden)
     legs += `<path d="M${X(64)} 83 L${X(57)} 85.5 Q${X(55.5)} 97 ${X(58.5)} 107 L${X(66)} 105 Z" fill="${shade(WOOD, 0.15)}" ${stk(2.4)}/>`;   // saddle flap (tan)
     legs += `<path d="M${X(63)} 86 L${X(60)} 112" stroke="${REIN}" stroke-width="2.2" stroke-linecap="round"/>`;   // stirrup leather, outer edge
-    legs += `<path d="M${X(56)} 93 Q${X(61)} 90 ${X(68)} 92 Q${X(69.5)} 101 ${X(68)} 112 Q${X(68.5)} 118.5 ${X(66)} 119 L${X(63)} 119 Q${X(60.5)} 118 ${X(60.5)} 112 Q${X(56.5)} 104 ${X(56)} 93 Z" fill="url(#${u}bt)" ${st()}/>`;   // boot
-    legs += `<path d="M${X(59.5)} 96 Q${X(59.6)} 99.5 ${X(60.2)} 102.5" fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round" opacity=".25"/>`;   // faint gloss, upper calf
-    legs += `<path d="M${X(57.8)} 94.5 Q${X(62.5)} 92 ${X(68)} 93.5" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`;   // cuff line
-    legs += `<path d="M${X(61.2)} 117.5 H${X(68.2)} V120 H${X(61.2)} Z" fill="#1e1612"/>`;   // sole
-    legs += `<path d="M${X(59.5)} 122 L${X(69)} 121" stroke="${INK}" stroke-width="4" stroke-linecap="round"/><path d="M${X(59.5)} 122 L${X(69)} 121" stroke="#9aa3ad" stroke-width="1.8" stroke-linecap="round"/>`;   // tread, tilted forward
-    legs += `<rect x="${Math.min(X(61.5), X(68.5))}" y="119.5" width="7" height="4.5" rx="1.5" fill="${shade(B, -0.15)}" ${st(2)}/>`;   // heel, toward the camera
+    let boot = `<path d="M${X(56)} 93 Q${X(61)} 90 ${X(68)} 92 Q${X(69.5)} 101 ${X(68)} 112 Q${X(68.5)} 118.5 ${X(66)} 119 L${X(63)} 119 Q${X(60.5)} 118 ${X(60.5)} 112 Q${X(56.5)} 104 ${X(56)} 93 Z" fill="url(#${u}bt)" ${st()}/>`;   // boot
+    boot += `<path d="M${X(59.5)} 96 Q${X(59.6)} 99.5 ${X(60.2)} 102.5" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".4"/>`;   // gloss, upper calf
+    boot += `<path d="M${X(57.8)} 94.5 Q${X(62.5)} 92 ${X(68)} 93.5" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`;   // cuff line
+    boot += `<path d="M${X(60.4)} 112 V121.5 Q${X(60.4)} 124 ${X(64.4)} 124 Q${X(68.4)} 124 ${X(68.4)} 121.5 V112" fill="none" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M${X(60.4)} 112 V121.5 Q${X(60.4)} 124 ${X(64.4)} 124 Q${X(68.4)} 124 ${X(68.4)} 121.5 V112" fill="none" stroke="#c9d0d8" stroke-width="1.6" stroke-linecap="round"/>`;   // U stirrup iron
+    boot += `<path d="M${X(61.2)} 118.5 H${X(68.2)} V121.4 H${X(61.2)} Z" fill="#1e1612"/>`;   // sole on the tread
+    boot += `<rect x="${Math.min(X(61.5), X(68.5))}" y="118.6" width="7" height="4.4" rx="1.5" fill="${shade(B, -0.15)}" ${st(2)}/>`;   // heel, toward the camera
+    legs += `<g transform="rotate(${-8 * d} ${X(62)} 93)">${boot}</g>`;   // toe tilted ~8° outward
   });
   g += `<g mask="url(#${u}x)">${legs}</g>`;
   // cream breeches cuff above each boot (~4 px)
-  [-1, 1].forEach((d) => { const X = (x) => 100 + d * (100 - x); g += `<path d="M${X(55.8)} 93 Q${X(55.4)} 88.6 ${X(59)} 88 L${X(64.5)} 88 L${X(65.5)} 92 Q${X(61)} 90.8 ${X(55.8)} 93 Z" fill="${k.pants}" ${st(2.2)}/>`; });
+  [-1, 1].forEach((d) => { const X = (x) => 100 + d * (100 - x); g += `<path d="M${X(55.8)} 93.5 Q${X(55.2)} 87 ${X(59)} 86.4 L${X(64.5)} 86.4 L${X(65.5)} 92.4 Q${X(61)} 91.2 ${X(55.8)} 93.5 Z" fill="${k.pants}" ${st(2.2)}/>`; });
   // --- upper body, sitting INTO the saddle: the croup (REAR mask) hides the seat and the jacket hem
   let b = "";
   [-1, 1].forEach((d) => { const X = (x) => 100 + d * (100 - x); b += `<path d="${capsule([X(77), 56], [X(89), 64], 6.5, 6)}" fill="${shade(k.jacket, -0.3)}" ${st()}/>`; });   // forearms (behind the torso)
@@ -762,7 +763,7 @@ function riderBackParts(k, u) {
   b += `<path d="M88.5 47 Q87.8 54 89 61" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".3"/>`;
   if (k.style !== "ponytail" && !k.bib) b += `<path d="M100 46 V66" stroke="${JD}" stroke-width="2" stroke-linecap="round"/>`;   // seam
   if (k.bib) {   // rivals: a big white emblem printed on the back (no card, so it never reads as a face)
-    const ey = 58, E = "#ffffff", es = stk(1.4, shade(k.jacket, -0.45)), ex = k.style === "ponytail" ? -5.5 : 0;
+    const ey = 58, E = "#ffffff", es = stk(1.4, shade(k.jacket, -0.45)), ex = k.style === "ponytail" ? -6 : 0;
     const em = {
       star: `<path d="${star(100, ey + 0.4, 6.4, 2.7)}" fill="${E}" ${es}/>`,
       heart: `<path d="${heartPath(100, ey - 1.2, 0.52)}" fill="${E}" ${es}/>`,
@@ -776,10 +777,9 @@ function riderBackParts(k, u) {
   let lock = "";
   if (k.style === "ponytail") {
     b += `<path d="M86 36 Q100 40 114 36 Q113 44.5 100 45 Q87 44.5 86 36 Z" fill="${k.hair}" ${st(2)}/><path d="M91 42 Q100 43.6 109 42" fill="none" stroke="${shade(k.hair, 0.35)}" stroke-width="1.3" stroke-linecap="round" opacity=".8"/>`;
-    // big bouncy lock (like the side view): ~12 px at the scrunchie, S-swing, tip at y≈60 (+3 px)
-    const dx = k.bib ? 3 : 0;
-    lock = `<path d="M${94 + dx} 40.5 Q${92.2 + dx} 47 ${94.6 + dx} 52.5 Q${97 + dx} 57.5 ${103 + dx} 60.5 Q${105.2 + dx} 58.2 ${103.6 + dx} 55.6 Q${107.6 + dx} 51.4 ${106.8 + dx} 45.4 Q${106.4 + dx} 42 ${105.5 + dx} 40 Z" fill="${k.hair}" ${st(2.2)}/>`;
-    lock += `<path d="M${98 + dx} 44 Q${96.6 + dx} 49.5 ${99.4 + dx} 54 Q${100.8 + dx} 56.4 ${102.4 + dx} 58 M${102.4 + dx} 44.4 Q${103.6 + dx} 48.6 ${102.4 + dx} 52.6" fill="none" stroke="${shade(k.hair, 0.32)}" stroke-width="1.3" stroke-linecap="round" opacity=".8"/>`;
+    // big high ponytail, OFF the centre axis: narrow root at x≈104–110 under the rim, swinging right to a point at (112,64)
+    lock = `<path d="M103.5 40 Q100.6 46.5 102.6 53 Q105 59.5 112.2 64.6 Q114.8 58.6 113.6 52 Q112.8 45.6 110 40 Z" fill="${k.hair}" ${st(2.2)}/>`;
+    lock += `<path d="M105.6 44 Q104 50 106 55.5 Q107.8 59 110.4 61.6 M108.4 44.5 Q109.6 49 109.4 54" fill="none" stroke="${shade(k.hair, 0.32)}" stroke-width="1.3" stroke-linecap="round" opacity=".8"/>`;
   } else {   // short: one solid hair mass under the rim (no scallops), outer tufts, then the jacket collar
     b += `<path d="M84 36 Q84 46 91 47.5 Q100 49 109 47.5 Q116 46 116 36 Z" fill="${k.hair}" ${st(2)}/>`;
     b += `<path d="M85.5 43 L84.5 47.5 L88.5 45.5 M114.5 43 L115.5 47.5 L111.5 45.5" fill="${k.hair}" ${st(1.6)}/>`;
@@ -797,18 +797,18 @@ function riderBackParts(k, u) {
   b += `<path d="M81.5 35.5 Q100 40.3 118.5 35.5" fill="none" stroke="${shade(helmet, white ? -0.15 : 0.4)}" stroke-width="1.8" opacity=".75"/>`;
   b += `<path d="M87 22 Q90.5 13.5 100 12.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".5"/>`;
   b += k.bib ? `<circle cx="100" cy="10.5" r="4" fill="${k.jacket}" ${st(1.6)}/>` : `<circle cx="100" cy="10.5" r="2.5" fill="${shade(helmet, 0.2)}" ${st(1.5)}/>`;
-  if (k.style === "ponytail") { const sx = 100 + (k.bib ? 3 : 0); b += `<circle cx="${sx - 5}" cy="44" r="2.3" fill="${k.tie}" ${st(1.5)}/><circle cx="${sx + 5.5}" cy="44" r="2.3" fill="${k.tie}" ${st(1.5)}/><ellipse cx="${sx + 0.3}" cy="44" rx="5.6" ry="2.5" fill="${k.tie}" ${st(1.6)}/><path d="M${sx - 3} 43.3 Q${sx} 42.4 ${sx + 3} 43.3" fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round" opacity=".6"/>`; }   // scrunchie
+  if (k.style === "ponytail") b += `<circle cx="111.4" cy="42" r="2.5" fill="${k.tie}" ${st(1.5)}/><circle cx="109.2" cy="40.6" r="1.7" fill="${k.tie}" ${st(1.3)}/>`;   // small scrunchie knot at the side
   g += `<g mask="url(#${u}x)"><g transform="translate(0 -1)">${b}</g></g>`;
   return { defs, body: g };
 }
 function riderBack(id) { const r = riderBackParts(KIDS[id], "rb" + id); return job(`assets/img/rider_back_${id}.png`, 200, 170, r.body, r.defs); }
 // 5 fixed race rivals (rider layers drawn over horse_back_<coat>): white helmet + bib emblem
 const RIVAL_RIDERS = [
-  { jacket: "#a98bf0", hair: "#6a4a2e", pants: "#ffffff", helmet: "#f4f4f8", style: "short", bib: "star" },
-  { jacket: "#4fbf5e", hair: "#d8a24a", pants: "#ffffff", helmet: "#f4f4f8", style: "ponytail", tie: CORAL, bib: "heart" },
-  { jacket: "#4a6fe0", hair: "#3a2a20", pants: "#ffffff", helmet: "#f4f4f8", style: "short", bib: "moon", bibColor: "#e0a020" },
-  { jacket: "#ff9640", hair: "#4a2e20", pants: "#ffffff", helmet: "#f4f4f8", style: "ponytail", tie: SKY, bib: "flower" },
-  { jacket: "#f5c23a", hair: "#2e2420", pants: "#ffffff", helmet: "#f4f4f8", style: "short", bib: "clover", bibColor: "#2fb3a8" },
+  { jacket: "#a98bf0", hair: "#6a4a2e", pants: "#ffffff", helmet: "#f4f4f8", style: "short", bib: "star", skin: "#e9b48c", freckles: true },
+  { jacket: "#4fbf5e", hair: "#d8a24a", pants: "#ffffff", helmet: "#f4f4f8", style: "ponytail", tie: CORAL, bib: "heart", skin: "#f8d6bb", gap: true, lashes: true },
+  { jacket: "#4a6fe0", hair: "#3a2a20", pants: "#ffffff", helmet: "#f4f4f8", style: "short", bib: "moon", bibColor: "#e0a020", skin: "#c98c64", thickBrows: true, mood: "smile" },
+  { jacket: "#ff9640", hair: "#4a2e20", pants: "#ffffff", helmet: "#f4f4f8", style: "ponytail", tie: SKY, bib: "flower", skin: "#f1c9a8", freckles: true, lashes: true },
+  { jacket: "#f5c23a", hair: "#2e2420", pants: "#ffffff", helmet: "#f4f4f8", style: "ponytail", tie: PINK, bib: "clover", bibColor: "#2fb3a8", skin: "#d9a47c", lashes: true, gap: true },
 ];
 // results-screen portraits: the kid's FRONT face (kidFace/kidHair) wearing the race helmet, 40×40
 function riderHeadFront(file, k, u) {
@@ -822,7 +822,16 @@ function riderHeadFront(file, k, u) {
   g += `<path d="M48 94 L64 106 L80 94 L76 91 L64 99 L52 91 Z" fill="${shade(k.jacket, -0.3)}" ${stk(2.6)}/>`;   // collar
   g += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${u}s)" ${st}/>`;
   g += `<ellipse cx="${cx - r}" cy="${cy + 4}" rx="5" ry="7" fill="${kk.skin}" ${st}/><ellipse cx="${cx + r}" cy="${cy + 4}" rx="5" ry="7" fill="${kk.skin}" ${st}/>`;
-  g += kidFace(kk, cx, cy + 4, r, "happy");
+  g += kidFace(kk, cx, cy + 4, r, k.mood || "happy");
+  {   // small per-person touches: eyebrows (hair colour), freckles, lashes, gap tooth
+    const ey = cy + 4 + r * 0.05, ex = r * 0.36, bw = k.thickBrows ? 3.4 : 2.2;
+    [-1, 1].forEach((d) => {
+      g += `<path d="M${cx + d * (ex - 5)} ${ey - 8} Q${cx + d * ex} ${ey - 11} ${cx + d * (ex + 5)} ${ey - 8.5}" fill="none" stroke="${shade(kk.hair, -0.15)}" stroke-width="${bw}" stroke-linecap="round"/>`;
+      if (k.lashes) g += `<path d="M${cx + d * (ex + 2.6)} ${ey - 2.6} l${d * 3} -2.2" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>`;
+      if (k.freckles) [[0, 0], [3, 2], [-2.5, 2.4]].forEach(([fx, fy]) => { g += `<circle cx="${cx + d * (r * 0.55 + fx)}" cy="${cy + 4 + r * 0.24 + fy}" r="1" fill="#b0704a" opacity=".8"/>`; });
+    });
+    if (k.gap && (k.mood || "happy") === "happy") { const my = cy + 4 + r * 0.42; g += `<rect x="${cx - 0.8}" y="${my - r * 0.03}" width="1.6" height="${r * 0.1}" fill="#9b3a4e"/>`; }
+  }
   g += kidHair(kk, cx, cy + 2, r, "down", "front");
   // race helmet over the top of the head, with a small peak
   g += `<path d="M44 66 Q46 80 54 86 M84 66 Q82 80 74 86" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>`;   // chin straps

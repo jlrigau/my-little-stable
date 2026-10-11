@@ -59,7 +59,10 @@ const arg = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 && proc
     let svg = j.svg;
     // Trap: a filter (glow, blur) on a <line> or a purely horizontal/vertical path has a zero-size bbox, so the
     // default filter region is empty and the stroke silently disappears. Warn (use a thin rect or filterUnits).
+    // (filters declared with filterUnits="userSpaceOnUse" and an explicit region are safe)
+    const safe = new Set((svg.match(/<filter\b[^>]*>/g) || []).filter((f) => /filterUnits="userSpaceOnUse"/.test(f)).map((f) => (f.match(/\bid="([^"]+)"/) || [])[1]));
     (svg.match(/<(?:path|line)\b[^>]*filter=[^>]*>/g) || []).forEach((el) => {
+      const fid = (el.match(/filter="url\(#([^)]+)\)"/) || [])[1]; if (fid && safe.has(fid)) return;
       const d = (el.match(/\sd="([^"]*)"/) || [])[1];
       const flat = /^<line/.test(el) ? /x1="([^"]*)"[^>]*x2="\1"|y1="([^"]*)"[^>]*y2="\2"/.test(el) : d && /^\s*M\s*[-\d.]+[ ,]+[-\d.]+\s*([HV]\s*[-\d.]+\s*)+$/i.test(d);
       if (flat) console.warn(`⚠ ${j.file}: filter on a zero-height/width ${/^<line/.test(el) ? "line" : "path"} renders NOTHING — use a thin <rect> or filterUnits="userSpaceOnUse": ${el.slice(0, 90)}…`);

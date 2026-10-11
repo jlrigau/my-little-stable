@@ -20,6 +20,12 @@ Small recolours / pure position tweaks don't need it.
 4. Send the kept fixes to the art agent, re-render, and run a NEW reviewer
    (fresh eyes again) until the verdict is ≥ 8/10 with no "reads wrong at game size" issue,
    or two rounds bring nothing new.
+   **Not converging?** If 3 rounds stay below 7/10 (scores oscillate, reviewers contradict each other's
+   coordinates), STOP patching numbers: re-brief the artist around ONE concrete real-world reference that
+   matches the situation (e.g. "a kid on a space hopper, from behind" for a robot riding a ball, "a jockey from
+   behind" for a horse rider) and redesign the pose from it; then review again from scratch.
+   Pass each reviewer the CURRENT in-game screenshots (re-shoot after every art change): a stale screenshot
+   once produced a false "start line" blocker.
 5. Only then show the owner, with a one-line summary of what the review caught.
    Big scope changes the review suggests (new engine feature, new art layers) — tell the owner
    in one line and proceed unless it reverses one of their decisions.
