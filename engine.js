@@ -2950,6 +2950,7 @@ function openCloseup(c, a) {
   const wide = cfg.wide ? {
     bg: (cv && cv.closeupBgWide) || cfg.wide.bg, done: (cv && cv.closeupBgWideDone) || cfg.wide.bgDone,
     areas: cfg.wide.area ? (Array.isArray(cfg.wide.area) ? cfg.wide.area : [cfg.wide.area]) : null, size: cfg.wide.size,
+    brushRest: cfg.wide.brushRest,
   } : null;
   const bg2 = cuEl("closeup-bg2", "closeup-bg closeup-bg2", "img");
   bg2.draggable = false; bg2.alt = "";
@@ -2972,7 +2973,7 @@ function openCloseup(c, a) {
     const ai = i % areas.length, ar = areas[ai];
     let fx = 0, fy = 0, u = 0, v = 0;
     for (let tries = 0; tries < 20; tries++) {
-      u = Math.random(); v = Math.random(); fx = ar.x + u * ar.w; fy = ar.y + v * ar.h;
+      u = Math.random(); v = Math.random(); [fx, fy] = cuAreaPoint(ar, u, v);
       if (!placed.some((p) => Math.hypot((p.x - fx) * 1.3, p.y - fy) < (sp.minGap || 0.07))) break;
     }
     placed.push({ x: fx, y: fy });
@@ -3010,7 +3011,7 @@ function openCloseup(c, a) {
     stage.appendChild(h);
   }
   cuState = { c, a, remaining: count, total: count, pressed: false, ang: 0, lx: null, foamT: 0, scrubT: 0, bgRes: RES(bgKey),
-              narrow: { bg: bgKey, done: doneKey, areas, size }, wide: wide && wide.bg ? wide : null, mode: null };
+              narrow: { bg: bgKey, done: doneKey, areas, size, brushRest: cfg.brushRest }, wide: wide && wide.bg ? wide : null, mode: null };
   // Cinematic in: the camera swoops onto the creature, then the scene fades in.
   if (sc && RENDER.closeupZoom !== false) {
     zoomFx = true;
@@ -3027,6 +3028,15 @@ function openCloseup(c, a) {
   if (bg) bg.onload = cuPlaceSpots;        // re-place once natural size is known
 }
 
+// A point of a spot area at (u, v) in 0..1: a box {x,y,w,h}, or a QUAD {quad:[[x,y]×4]} (a slanted panel seen
+// in perspective, corners in order around it) sampled bilinearly — kept a little inside its edges.
+function cuAreaPoint(ar, u, v) {
+  if (!ar.quad) return [ar.x + u * ar.w, ar.y + v * ar.h];
+  const m = ar.margin != null ? ar.margin : 0.15, a = m + u * (1 - 2 * m), b = m + v * (1 - 2 * m), q = ar.quad;
+  const lerp = (p, r, t) => [p[0] + (r[0] - p[0]) * t, p[1] + (r[1] - p[1]) * t];
+  const top = lerp(q[0], q[1], a), bot = lerp(q[3], q[2], a);
+  return lerp(top, bot, b);
+}
 // Pick the portrait or landscape (closeup.wide) backdrop for the current stage shape and
 // re-map every spot onto that backdrop's areas (same area index, same relative u/v).
 function cuSetMode() {
@@ -3042,11 +3052,14 @@ function cuSetMode() {
   if (bg) bg.src = imgPath(m.bg);
   if (bg2) { if (m.done) bg2.src = imgPath(m.done); else bg2.removeAttribute("src"); }
   const areas = m.areas || n.areas, size = m.size || n.size;
+  // closeup.brushRest / wide.brushRest {x,y} (fractions of the screen): where the sponge waits, on empty floor
+  const br = $("closeup-brush"), rest = m.brushRest || n.brushRest;
+  if (br && rest && !cuState.scrubT) { br.style.left = (rest.x * 100) + "%"; br.style.top = (rest.y * 100) + "%"; }
   stage.querySelectorAll(".cu-spot").forEach((s) => {
     const ar = areas[(parseInt(s.dataset.ai, 10) || 0) % areas.length];
     if (s.dataset.u == null || !ar) return;
-    s.dataset.fx = (ar.x + parseFloat(s.dataset.u) * ar.w).toFixed(4);
-    s.dataset.fy = (ar.y + parseFloat(s.dataset.v) * ar.h).toFixed(4);
+    const pt = cuAreaPoint(ar, parseFloat(s.dataset.u), parseFloat(s.dataset.v));
+    s.dataset.fx = pt[0].toFixed(4); s.dataset.fy = pt[1].toFixed(4);
     s.dataset.sz = String(size * (parseFloat(s.dataset.k) || 1));
   });
 }
@@ -3607,6 +3620,7 @@ function startRace() {
   R3.maxSpeed = R3.baseMax * rideEmptyMul(); R3.drainAcc = 0; R3.tired = false;
   R3.time = RACE.time || 60; R3.over = false; R3.shake = R3.hitFlash = 0;
   R3.input = { left: false, right: false };
+  r3Rivals();
   const kd = (e) => r3Key(e, true), ku = (e) => r3Key(e, false);
   const set = (e) => { const r = cv.getBoundingClientRect(); const x = e.clientX - r.left; R3.input.left = x < r.width / 2; R3.input.right = x >= r.width / 2; };
   const pd = (e) => { try { cv.setPointerCapture(e.pointerId); } catch (_) {} set(e); };
@@ -3619,7 +3633,7 @@ function startRace() {
   document.documentElement.dataset.screen = "race";
   navPath = []; moveTarget = null;
   Sound.play("whoosh");
-  message(RACE.startMessage || "Go!");
+  message((R3.rivals.length && RACE.rivals.startMessage) || RACE.startMessage || "Go!");
   R3.on = true; R3.last = 0; R3.raf = requestAnimationFrame(r3Loop);
   panelId = PANEL_DIRTY; refreshInteraction();
 }
@@ -3661,7 +3675,7 @@ function r3Track() {
 function r3Loop(ts) {
   if (!R3.on) return;
   if (!R3.last) R3.last = ts;
-  const dt = Math.min((ts - R3.last) / 1000, 0.05); R3.last = ts;
+  const dt = Math.min((ts - R3.last) / 1000, 0.05); R3.rawDt = Math.min((ts - R3.last) / 1000, 0.25); R3.last = ts;
   r3Update(dt); if (!R3.on) return;
   r3Render(); r3Hud(false);
   R3.raf = requestAnimationFrame(r3Loop);
@@ -3669,7 +3683,16 @@ function r3Loop(ts) {
 function r3Update(dt) {
   if (R3.over) return;
   const T = RACE.track || {};
-  R3.time -= dt; R3.prevPos = R3.pos;
+  // grid start: the field lines up ahead of the player (once the ride's drawn depth is known), then waits for 3-2-1
+  if (R3.rivals.length && !R3.gridSet && R3.carDepth) r3Grid();
+  if (R3.count > 0) {
+    const before = Math.ceil(R3.count); R3.count -= R3.rawDt || dt; const after = Math.ceil(R3.count);   // real seconds, even at a low fps
+    if (after !== before) Sound.play(after > 0 ? "tap" : "goal");
+    if (R3.count > 0) return;
+  }
+  if (R3.count > -1) R3.count -= R3.rawDt || dt;     // lets the "GO!" fade out
+  if (R3.rivals.length) R3.time += dt; else R3.time -= dt;
+  R3.prevPos = R3.pos;
   // race.drain (per second, default 2.4 like running): the ride's fatigue need burns while racing
   const RD = CREATURE && CREATURE.ride;
   if (RD && RD.fatigueNeed && mounted && RACE.drain !== 0) {
@@ -3697,25 +3720,121 @@ function r3Update(dt) {
     const s = R3.segs[i]; if (!s || !s.obstacles.length || s.z <= a0 || s.z > a1) continue;
     s.obstacles.forEach((o) => {
       if (o.dead || Math.abs(R3.playerX - o.offset) >= o.hw + 0.16) return;
-      o.dead = true; R3.speed *= 0.32; R3.time -= (RACE.hitPenalty || 3); R3.shake = 0.4; R3.hitFlash = 0.5;
+      o.dead = true; R3.speed *= 0.32; R3.shake = 0.4; R3.hitFlash = 0.5;
       Sound.play("error");
-      message((RACE.hitMessage || "−{n}s").replace("{n}", RACE.hitPenalty || 3));
+      if (R3.rivals.length) { if (RACE.rivals.hitMessage) message(RACE.rivals.hitMessage); }   // a real race: the hit costs speed, not time
+      else { R3.time -= (RACE.hitPenalty || 3); message((RACE.hitMessage || "−{n}s").replace("{n}", RACE.hitPenalty || 3)); }
     });
   }
+  if (R3.rivals.length) r3RivalsUpdate(dt);
   if (R3.shake > 0) R3.shake = Math.max(0, R3.shake - dt);
   if (R3.hitFlash > 0) R3.hitFlash = Math.max(0, R3.hitFlash - dt * 1.6);
-  if (R3.pos >= R3.finishZ) { R3.over = true; endRace(true); }
+  if (R3.rivals.length) {
+    // a real race ends when the player crosses the line (place = rivals already home + 1), or at the safety cap
+    if (R3.pos + (R3.carDepth || 0) >= R3.finishZ || R3.time >= (RACE.rivals.maxTime || 240)) { R3.over = true; endRace(true); }
+  } else if (R3.pos >= R3.finishZ) { R3.over = true; endRace(true); }
   else if (R3.time <= 0) { R3.time = 0; R3.over = true; endRace(false); }
 }
+
+/* ---- race.rivals: a fixed field of competitors to overtake (grid start, ranking, results) ---- */
+function r3Rivals() {
+  const RV = RACE.rivals; R3.rivals = []; R3.count = 0; R3.place = 0; R3.bumpT = 0;
+  if (!RV || !(RV.list || []).length) return;
+  const n = Math.min(RV.count || RV.list.length, RV.list.length), sk = RV.skill || [0.84, 0.97];
+  for (let k = 0; k < n; k++) {
+    const d = RV.list[k], base = r3Img(d.sprite); if (!base) continue;
+    const rid = d.rider ? r3Img(d.rider) : null;
+    R3.rivals.push({
+      name: d.name || "#" + (k + 1), color: d.color || null, img: r3Tint(base, d.tint || null), rider: rid ? r3Tint(rid, d.riderTint || null) : null,
+      scale: d.scale || RV.scale || 6.5, hw: d.hw != null ? d.hw : (RV.hw != null ? RV.hw : 0.28),
+      // the front of the grid is the strongest; everybody gets a little personality (wobble phase, lane)
+      skill: n > 1 ? sk[1] - (sk[1] - sk[0]) * (k / (n - 1)) : sk[1], row: k,
+      x: RV.lanes ? RV.lanes[k % RV.lanes.length] : (k % 2 ? 0.45 : -0.45), tx: RV.lanes ? RV.lanes[k % RV.lanes.length] : (k % 2 ? 0.45 : -0.45),
+      ph: k * 1.7, z: 0, speed: 0, done: 0,
+    });
+  }
+  R3.count = RV.countdown != null ? RV.countdown : 3.2;
+  R3.time = 0; R3.gridSet = false;
+}
+// two-by-two grid ahead of the player: the strongest (row 0) in front, the player starts last
+function r3Grid() {
+  // gridFirst (segments): the first row starts far enough ahead not to overlap the player's sprite
+  const RV = RACE.rivals, gap = R3.segLen * (RV.gridGap || 4), first = R3.segLen * (RV.gridFirst || 0), pz = r3PlayerZ(), n = R3.rivals.length;
+  R3.rivals.forEach((r) => { r.z = pz + first + gap * (Math.floor((n - 1 - r.row) / 2) + 1) + (r.row % 2) * gap * 0.5; });
+  R3.gridSet = true;
+}
+// player's track position = where the ride is DRAWN (camera + carDepth)
+function r3PlayerZ() { return R3.pos + (R3.carDepth || 0); }
+function r3RivalsUpdate(dt) {
+  const RV = RACE.rivals, pz = r3PlayerZ();
+  if (!R3.gridSet) r3Grid();
+  const rubber = RV.rubber != null ? RV.rubber : 0.12, reach = R3.segLen * 60;
+  R3.rivals.forEach((r) => {
+    if (r.done) return;
+    // target speed: own skill x the player's top speed, a slow wobble, and a rubber band that keeps the pack in reach
+    const lead = clamp((r.z - pz) / reach, -1, 1);
+    const target = R3.baseMax * r.skill * (1 + 0.04 * Math.sin(R3.time * 0.7 + r.ph)) * (1 - rubber * lead);
+    r.speed += (target - r.speed) * Math.min(1, dt * 0.9);
+    r.z += r.speed * dt;
+    // steer around obstacles a few segments ahead, otherwise drift back to a racing line
+    const si = Math.floor(r.z / R3.segLen); let avoid = null;
+    for (let i = si + 1; i < si + 9 && i < R3.segs.length; i++) {
+      const o = R3.segs[i].obstacles.find((ob) => !ob.dead && Math.abs(ob.offset - r.tx) < ob.hw + r.hw + 0.1); if (o) { avoid = o; break; }
+    }
+    if (avoid) r.tx = clamp(avoid.offset + (avoid.offset > 0 ? -1 : 1) * (avoid.hw + r.hw + 0.2), -0.85, 0.85);
+    else if (Math.random() < dt * 0.25) r.tx = clamp(r.tx + (Math.random() - 0.5) * 0.6, -0.7, 0.7);
+    r.x += (r.tx - r.x) * Math.min(1, dt * 2.2);
+    if (r.z >= R3.finishZ) { r.done = R3.time; r.z = R3.finishZ + R3.segLen * 3; }
+  });
+  // bumping a rival: the player loses speed and is pushed aside (no time penalty)
+  if (R3.bumpT > 0) R3.bumpT -= dt;
+  else R3.rivals.forEach((r) => {
+    if (r.done || R3.bumpT > 0) return;
+    const dz = r.z - pz;
+    if (dz > -R3.segLen * 0.6 && dz < R3.segLen * 1.4 && Math.abs(R3.playerX - r.x) < r.hw + 0.22) {
+      R3.speed *= 0.62; R3.shake = 0.25; R3.bumpT = 0.7;
+      const side = R3.playerX >= r.x ? 1 : -1; R3.playerX += side * 0.28; r.x -= side * 0.12; r.speed *= 1.03;
+      Sound.play("error"); if (RV.bumpMessage) message(RV.bumpMessage.replace("{name}", r.name));
+    }
+  });
+  // live place (1 = first): rivals home or ahead of the player
+  const place = 1 + R3.rivals.filter((r) => r.done || r.z > pz).length;
+  if (R3.place && place < R3.place) { Sound.play("reward"); const c = $("rh-place"); if (c) { c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); } }
+  R3.place = place;
+}
+// rivals are billboards on their segment, drawn far → near with the scenery
+function r3RivalsDraw(seg) {
+  if (!R3.rivals.length) return;
+  R3.rivals.forEach((r) => {
+    if (Math.floor(r.z / R3.segLen) !== seg.i || r.z - R3.pos < R3.camD) return;
+    const bob = Math.sin(R3.time * 9 + r.ph) * 0.004;
+    r.rect = r.rect || {}; r3Billboard(seg, { img: r.img, offset: r.x, scale: r.scale, lift: bob, rect: r.rect });
+    if (r.rider) r3Billboard(seg, { img: r.rider, offset: r.x, scale: r.scale, lift: bob });   // the rider moves WITH its mount
+  });
+}
+function r3Countdown() {
+  if (!(R3.count > 0) && !(R3.count > -0.7 && R3.rivals.length)) return;
+  const ctx = R3.ctx, W = R3.W, H = R3.H, n = Math.ceil(R3.count), f = R3.count > 0 ? R3.count - Math.floor(R3.count) : (R3.count + 0.7) / 0.7;
+  const txt = R3.count > 0 ? String(n) : (RACE.rivals.goLabel || "GO!");
+  ctx.save(); ctx.globalAlpha = Math.min(1, f * 2.2);
+  ctx.font = `800 ${Math.round(Math.min(W, H) * (0.22 + (1 - f) * 0.06))}px ${getComputedStyle(document.body).fontFamily || "sans-serif"}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+  ctx.lineWidth = Math.max(6, W * 0.02); ctx.strokeStyle = "rgba(20,14,40,.85)"; ctx.strokeText(txt, W / 2, H * 0.36);
+  ctx.fillStyle = R3.count > 0 ? "#fff" : (raceColors().rumble[1] || "#ffd24a"); ctx.fillText(txt, W / 2, H * 0.36);
+  ctx.restore();
+}
+// race.horizon: the horizon height as a fraction of the screen (0.5); lower it (0.4) on tall phones so the road
+// and the field fill more of the screen instead of empty sky
+function r3Hz() { return RACE.horizon || 0.5; }
 function r3Project(p, camX) {
   const sc0 = R3.camD / Math.max(p.z - R3.pos, 1);
-  p.sc = sc0; p.sx = R3.W / 2 - sc0 * camX * R3.W / 2; p.sy = R3.H / 2 + sc0 * R3.camH * R3.H / 2; p.sw = sc0 * R3.roadW * R3.W / 2;
+  p.sc = sc0; p.sx = R3.W / 2 - sc0 * camX * R3.W / 2; p.sy = R3.H * r3Hz() + sc0 * R3.camH * R3.H / 2; p.sw = sc0 * R3.roadW * R3.W / 2;
 }
 function r3Render() {
   const ctx = R3.ctx, W = R3.W, H = R3.H, C = raceColors();
   ctx.save(); ctx.translate(R3.shake > 0 ? (Math.random() - 0.5) * 18 * R3.shake : 0, 0);
   r3Sky(C);
-  ctx.fillStyle = C.ground; ctx.fillRect(0, H * 0.5, W, H * 0.5);
+  ctx.fillStyle = C.ground; ctx.fillRect(0, H * r3Hz(), W, H * (1 - r3Hz()));
   const base = Math.floor(R3.pos / R3.segLen), drawn = []; let x = 0, dx = 0, maxy = H;
   for (let n = 0; n < R3.draw; n++) {
     const seg = R3.segs[base + n]; if (!seg) break;
@@ -3725,28 +3844,33 @@ function r3Render() {
     if (p1.z - R3.pos < R3.camD || p2.sy >= maxy) continue;
     r3Segment(seg, p1, p2, C); maxy = p2.sy; drawn.push(seg);
   }
-  for (let n = drawn.length - 1; n >= 0; n--) { const s = drawn[n]; s.sprites.forEach((sp) => r3Billboard(s, sp)); s.obstacles.forEach((o) => { if (!o.dead) r3Billboard(s, o); }); }
+  for (let n = drawn.length - 1; n >= 0; n--) { const s = drawn[n]; s.sprites.forEach((sp) => r3Billboard(s, sp)); s.obstacles.forEach((o) => { if (!o.dead) r3Billboard(s, o); }); r3RivalsDraw(s); }
   if (R3.car) {
     // race.rideWidth: the ride's FRAME width as a fraction of the screen (0.32); a narrow drawing (e.g. a horse
     // from behind) needs a larger frame. Capped so the ride never exceeds 55 % of the height (landscape).
     const asp = R3.car.height / R3.car.width, w = Math.min(W * (RACE.rideWidth || 0.32), H * 0.55 / asp), h = w * asp, bob = Math.sin(R3.pos * 0.05) * 2;
     // the depth (world units ahead of the camera) whose road row is under the car's wheels
     const carY = H - Math.max(90, H * 0.12) - h * 0.12;
-    R3.carDepth = carY > H / 2 + 1 ? R3.camD * R3.camH * (H / 2) / (carY - H / 2) : 0;
+    const hzY = H * r3Hz();
+    R3.carDepth = carY > hzY + 1 ? R3.camD * R3.camH * (H / 2) / (carY - hzY) : 0;
     const lean = R3.playerX * 16 + (R3.input.left ? -10 : 0) + (R3.input.right ? 10 : 0);
     ctx.drawImage(R3.car, W / 2 - w / 2 + lean, H - h - Math.max(90, H * 0.12) + bob, w, h);
-    // the rider rises and sinks a little against the mount (gallop), never detached from the saddle
-    if (R3.rider) ctx.drawImage(R3.rider, W / 2 - w / 2 + lean, H - h - Math.max(90, H * 0.12) + bob + Math.sin(R3.pos * 0.1) * h * 0.006, w, h);
+    R3.carRect = { l: W / 2 - w / 2 + lean, t: H - h - Math.max(90, H * 0.12) + bob, w, h };   // for probes
+    // the rider layer moves WITH the mount (an independent bob opened a gap at the saddle)
+    if (R3.rider) ctx.drawImage(R3.rider, W / 2 - w / 2 + lean, H - h - Math.max(90, H * 0.12) + bob, w, h);
   }
   ctx.restore();
   if (R3.hitFlash > 0) { ctx.fillStyle = "rgba(255,60,60," + (R3.hitFlash * 0.4).toFixed(3) + ")"; ctx.fillRect(0, 0, W, H); }
+  r3Countdown();
 }
 function r3Sky(C) {
-  const ctx = R3.ctx, W = R3.W, H = R3.H, hz = H * 0.5, g = ctx.createLinearGradient(0, 0, 0, hz);
+  const ctx = R3.ctx, W = R3.W, H = R3.H, hz = H * r3Hz(), g = ctx.createLinearGradient(0, 0, 0, hz);
   g.addColorStop(0, C.sky[0]); g.addColorStop(0.55, C.sky[1]); g.addColorStop(1, C.sky[2]);
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, hz);
   if (C.sun) {
-    const cx = W / 2 - R3.playerX * 46, cy = hz * 0.82, r = Math.min(W, H) * 0.15, sg = ctx.createLinearGradient(0, cy - r, 0, cy + r);
+    // colors.sunPos {x, y, r} (fractions: x of the width, y of the sky height, r of min(W,H)) moves the sun
+    // off the centre — the countdown is drawn there
+    const SP = C.sunPos || {}, cx = W * (SP.x != null ? SP.x : 0.5) - R3.playerX * 46, cy = hz * (SP.y != null ? SP.y : 0.82), r = Math.min(W, H) * (SP.r || 0.15), sg = ctx.createLinearGradient(0, cy - r, 0, cy + r);
     sg.addColorStop(0, C.sun[0]); sg.addColorStop(1, C.sun[1]);
     ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
   }
@@ -3775,9 +3899,10 @@ function r3Billboard(seg, sp) {
   const p = seg._p1; if (!p || p.sc <= 0 || !sp.img) return;
   const w = p.sw * (sp.scale || 1) * (RACE.spriteZoom || 0.045), h = w * (sp.img.height / sp.img.width);
   if (w < 1 || h < 1 || w > R3.W * 4) return;
+  if (sp.rect) Object.assign(sp.rect, { l: p.sx + sp.offset * p.sw - w / 2, t: p.sy - h - (sp.lift || 0) * h * 10, w, h });
   const ctx = R3.ctx; ctx.save();
   if (seg._clip != null) { ctx.beginPath(); ctx.rect(0, 0, R3.W, seg._clip); ctx.clip(); }
-  ctx.drawImage(sp.img, p.sx + sp.offset * p.sw - w / 2, p.sy - h, w, h);
+  ctx.drawImage(sp.img, p.sx + sp.offset * p.sw - w / 2, p.sy - h - (sp.lift || 0) * h * 10, w, h);
   ctx.restore();
 }
 // DOM HUD over the race canvas: chips with the game's icons + a quit button + steering hints.
@@ -3790,7 +3915,8 @@ function r3Hud(build) {
     // that slows down mid-race (an empty tank, ride.empty:"slow") is understood
     const RN = RACE.showNeed !== false && CREATURE && CREATURE.ride && CREATURE.ride.fatigueNeed && NEEDS.find((n) => n.id === CREATURE.ride.fatigueNeed);
     h.innerHTML = `<div class="rh-head"><div class="rh-top"><span class="resource" id="rh-time"><span class="r-ico">${iconHTML(I.time || "calendar")}</span><b>0</b></span>
-        <span class="resource" id="rh-dist"><span class="r-ico">${iconHTML(I.distance || "arrow")}</span><b>0</b></span>
+        ${R3.rivals.length ? `<span class="resource rh-place" id="rh-place"><span class="r-ico">${iconHTML(I.place || "trophy")}</span><b>0</b></span>`
+          : `<span class="resource" id="rh-dist"><span class="r-ico">${iconHTML(I.distance || "arrow")}</span><b>0</b></span>`}
         <span class="resource" id="rh-speed"><span class="r-ico">${iconHTML(I.speed || "star")}</span><b>0</b></span>
         <button class="mini-btn rh-quit" id="rh-quit" aria-label="${esc(stripIcons(RACE.quitLabel || "Quit"))}">${iconHTML(I.quit || "close")}</button></div>
       ${RN ? `<span class="resource rh-need" id="rh-need"><span class="r-ico">${iconHTML(RN.icon || "battery")}</span><span class="rh-gauge"><i></i></span><b>0%</b></span>` : ""}</div>
@@ -3801,9 +3927,10 @@ function r3Hud(build) {
   }
   const set = (id, v) => { const b = $(id) && $(id).querySelector("b"); if (b && b.textContent !== v) b.textContent = v; };
   set("rh-time", Math.max(0, R3.time).toFixed(1) + "s");
-  set("rh-dist", Math.max(0, Math.round((R3.finishZ - R3.pos) / 100)) + " " + (RACE.distUnit || "m"));
+  if (R3.rivals.length) set("rh-place", r3PlaceLabel(R3.place || R3.rivals.length + 1) + "/" + (R3.rivals.length + 1));
+  else set("rh-dist", Math.max(0, Math.round((R3.finishZ - R3.pos) / 100)) + " " + (RACE.distUnit || "m"));
   set("rh-speed", Math.round((R3.speed / R3.maxSpeed) * (RACE.topSpeed || 210)) + " " + (RACE.speedUnit || "km/h"));
-  const t = $("rh-time"); if (t) t.classList.toggle("warn", R3.time <= 8);
+  const t = $("rh-time"); if (t) t.classList.toggle("warn", !R3.rivals.length && R3.time <= 8);
   const ng = $("rh-need");
   if (ng && mounted) {
     const v = Math.max(0, Math.min(100, mounted[CREATURE.ride.fatigueNeed] || 0)), w = Math.round(v) + "%";
@@ -3820,9 +3947,11 @@ function r3Teardown() {
   syncEdge();
 }
 // End the race: win → reward + stat; quit → neutral; else → time-out.
+function r3PlaceLabel(p) { const L = (RACE.rivals && RACE.rivals.placeLabels) || ["1st", "2nd", "3rd"]; return L[p - 1] || (p + ((RACE.rivals && RACE.rivals.placeSuffix) || "th")); }
 function endRace(win, quit) {
   if (!R3.on) return;
   r3Teardown();
+  if (R3.rivals.length && !quit) { r3Results(); return; }
   if (win) {
     const r = RACE.reward || 0; earn(r);
     const st = RACE.stat || "raceWin"; state.stats[st] = (state.stats[st] || 0) + 1;
@@ -3832,6 +3961,34 @@ function endRace(win, quit) {
     if (r && player) setTimeout(() => flyReward(player.x, player.y - 60, "+" + r + " " + coinTok()), 300);
   } else if (quit) message(RACE.quitMessage || "");
   else { Sound.play("error"); message(RACE.loseMessage || "Time's up!"); }
+  lastInputT = nowMs(); refreshHud(); save();
+  panelId = PANEL_DIRTY; refreshInteraction();
+}
+
+// Results of a race with rivals: final ranking (rivals not yet home are ranked by distance), reward by place,
+// stats (raceWin for 1st, racePodium for top 3), results modal with the podium.
+function r3Results() {
+  const RV = RACE.rivals, pz = r3PlayerZ(), you = { name: state.player.name || "You", you: true, done: R3.time, z: pz };
+  const field = R3.rivals.map((r) => ({ name: r.name, color: r.color, done: r.done, z: r.z })).concat([you]);
+  field.sort((a, b) => (a.done && b.done) ? a.done - b.done : a.done ? -1 : b.done ? 1 : b.z - a.z);
+  const place = field.indexOf(you) + 1;
+  const rewards = RV.rewards || [RACE.reward || 30, 15, 8, 4];
+  const r = rewards[Math.min(place, rewards.length) - 1] || 0;
+  if (r) earn(r);
+  const bump = (k) => { state.stats[k] = (state.stats[k] || 0) + 1; };
+  bump("raceRun"); if (place === 1) bump(RACE.stat || "raceWin"); if (place <= 3) bump(RV.podiumStat || "racePodium");
+  state.stats.raceBest = Math.min(state.stats.raceBest || 99, place);
+  state.actionsSinceRest = (state.actionsSinceRest || 0) + 1;
+  if (place <= 3) { Sound.play("celebrate"); confetti(); } else Sound.play("reward");
+  const medal = (k) => k <= 3 ? `<span class="rr-medal m${k}">${iconHTML(RV.medalIcon || "trophy")}</span>` : `<span class="rr-medal">${k}</span>`;
+  // rivals.list[].color: a swatch of the colour seen in the race (jacket, car), so the names match the field
+  const rows = field.map((f, i) => `<div class="rr-row${f.you ? " you" : ""}">${medal(i + 1)}${f.color ? `<i class="rr-swatch" style="background:${esc(f.color)}"></i>` : ""}<b>${esc(f.name)}</b>
+      <span class="rr-time">${f.done ? f.done.toFixed(1) + "s" : ""}</span></div>`).join("");
+  const msgs = RV.placeMessages || [];
+  const head = (msgs[Math.min(place, msgs.length) - 1] || "{place}").replace("{place}", r3PlaceLabel(place)).replace("{r}", r);
+  openModal(RV.resultsTitle || "{i:flag} Results", `<div class="race-results"><p class="rr-head">${fmt(head)}</p>
+    <div class="rr-list">${rows}</div>${r ? `<p class="rr-reward">${fmt("+" + r + " " + coinTok())}</p>` : ""}</div>`);
+  if (r && player) setTimeout(() => flyReward(player.x, player.y - 60, "+" + r + " " + coinTok()), 300);
   lastInputT = nowMs(); refreshHud(); save();
   panelId = PANEL_DIRTY; refreshInteraction();
 }

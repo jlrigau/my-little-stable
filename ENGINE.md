@@ -358,6 +358,8 @@ action = {
                                   //    spots are placed cover-aware so they stay on the teeth).
                                   //   May be an ARRAY of regions (e.g. upper + lower teeth) —
                                   //   spots alternate between them so each region gets some.
+                                  //   A region can be a QUAD { quad:[[x,y],[x,y],[x,y],[x,y]], margin:0.15 }
+                                  //   (corners in order) for a slanted panel seen in perspective (car door).
     },
     finishParticles: ["star","heart"], // icon keys bursting when the scene is cleared
     popParticles: ["sparkle","star"], // icon keys when one spot is cleared
@@ -366,7 +368,10 @@ action = {
     progress: false,              // hide the progress bar (fixed size: one star slot per spot up to
                                   //   spots.max — this round's stars grey→gold, later ones dimmed)
     finishDelay: 1900,            // ms before returning to the world
-    wide: { bg, bgDone?, area?, size? }?, // LANDSCAPE backdrop (e.g. the whole car in 3/4 view) used while the
+    brushRest: { x, y }?,         // where the brush waits before the first scrub (screen fractions, default 0.5/0.82)
+    keepVisible: [{x,y,w,h}]?,    // key art (a face, a car's nose) as image fractions: probes/cuwide.cjs fails when
+                                  //   it falls out of the phone crop or under the HUD (progress bar, close button)
+    wide: { bg, bgDone?, area?, size?, brushRest?, keepVisible? }?, // LANDSCAPE backdrop (e.g. the whole car in 3/4 view) used while the
                                   //   screen is wider than tall, swapped live on rotation; per creature via
                                   //   variant.closeupBgWide / closeupBgWideDone. `area` = the same NUMBER of
                                   //   regions in the same order as spots.area: a spot keeps its region and
@@ -533,6 +538,22 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, rideWidth:0.32 /* ride
   startMessage, hitMessage("{n}"), winMessage("{r}"), loseMessage, quitMessage }
 // drain (per s, default 2.4): the ride's fatigue need burns while racing; at 0 the ride slows to tiredSpeed (0.5)
 // for the rest of the race (tiredMessage("{name}")), or to ride.emptySpeed with ride.empty:"slow".
+// rivals (optional) — a REAL race instead of a time trial: a fixed field to overtake.
+//   rivals: { list:[{ name, sprite, tint?, rider?, riderTint?, color? /* results swatch */, scale?, hw? }], count?, scale:6.5, hw:0.28,
+//             lanes:[-0.45,0.45] /* grid lanes */, gridFirst:0 /* segments before the first row */,
+//             skill:[0.84,0.97] /* top-speed share, front of the grid = strongest */, gridGap:4 /* segments */,
+//             rubber:0.12 /* pack stays in reach */, countdown:3.2, maxTime:240,
+//             rewards:[1st,2nd,3rd,...], placeLabels:["1st","2nd","3rd"], placeSuffix:"th",
+//             placeMessages:["{place}"...] /* by place, last one reused */, resultsTitle, startMessage,
+//             bumpMessage("{name}"), hitMessage, goLabel:"GO!", podiumStat:"racePodium", medalIcon:"trophy" }
+//   The player starts LAST on a two-by-two grid after a 3-2-1 countdown (real seconds); rivals drive their own
+//   speed with a wobble and a rubber band, steer around obstacles; bumping one costs speed (no time penalty);
+//   the time chip counts UP; a live place chip "n/N" (icons.place) replaces the distance and pops on overtakes.
+//   At the line: results modal (ranking, medals, player row highlighted, reward by place); stats raceRun,
+//   raceWin (1st), racePodium (top 3), raceBest. A rival = sprite (tinted) + optional rider layer (tinted).
+//   Probe: probes/racerivals.cjs.
+// horizon: 0.5 (fraction of the screen; 0.4 fills a tall phone with road); colors.sunPos:{x,y,r} moves the sun
+// off the centre (the countdown is drawn there).
 // showNeed (default true): the ride's fatigue need (e.g. fuel) as a gauge under the HUD chips — turns red and
 // pulses below 25 %, so a ride slowing down mid-race (empty tank, ride.empty:"slow") is understood. false hides it.
 ```
