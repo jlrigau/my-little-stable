@@ -7,7 +7,7 @@ français. On se promène dans son centre, on s'occupe de ses chevaux — **nour
 la carrière. Des poulains naissent quand deux chevaux sont très heureux, et le centre
 s'embellit au fil des progrès.
 
-▶ **[Jouer à Mon Centre Équestre](https://jlrigau.github.io/my-little-stable/)**
+▶ **[Jouer à Mon Centre Équestre](https://ludea.ai/my-little-stable/)**
 
 > Les parties de l'ancienne version sont **reprises automatiquement** (chevaux, noms,
 > robes, pièces, décorations, objectifs).
