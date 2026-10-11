@@ -553,7 +553,8 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, rideWidth:0.32 /* ride
 //   raceWin (1st), racePodium (top 3), raceBest. A rival = sprite (tinted) + optional rider layer (tinted).
 //   Probe: probes/racerivals.cjs.
 // horizon: 0.5 (fraction of the screen; 0.4 fills a tall phone with road); colors.sunPos:{x,y,r} moves the sun
-// off the centre (the countdown is drawn there).
+// off the centre (the countdown is drawn there); colors.sunOutline:"#hex" outlines it. rivals.startLine:false hides
+// the chequered start line drawn just ahead of the player.
 // showNeed (default true): the ride's fatigue need (e.g. fuel) as a gauge under the HUD chips — turns red and
 // pulses below 25 %, so a ride slowing down mid-race (empty tank, ride.empty:"slow") is understood. false hides it.
 ```

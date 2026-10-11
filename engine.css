@@ -399,6 +399,8 @@ input[type="text"]::placeholder { color: var(--muted); opacity: 0.65; }
 .rr-medal .ico { width: 26px; height: 26px; }
 .rr-medal.m1 { background: linear-gradient(#ffe27a, #f2b33d); } .rr-medal.m2 { background: linear-gradient(#f1f3f8, #b9c0cf); }
 .rr-medal.m3 { background: linear-gradient(#f2c49a, #c9844e); }
+.rr-sub { text-align: center; margin: 0; opacity: .8; }
+.rh-chase .rh-gauge i { background: linear-gradient(90deg, #5aa0ff, #ff4d6a); }
 .rr-reward { text-align: center; font-size: 1.3rem; font-weight: 800; margin: 2px 0 0; }
 .rr-reward .ico { width: 1.6em; height: 1.6em; vertical-align: -0.5em; }
 .rh-top .resource.warn { border-color: var(--bad); animation: heatPulse .6s ease-in-out infinite; }

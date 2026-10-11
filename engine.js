@@ -2293,8 +2293,9 @@ function buildPanel() {
     if (isMounted) {
       const rideAct = ACTIONS.find((a) => a.type === "ride");
       const jumpAct = ACTIONS.find((a) => a.type === "jump");
-      const raceAct = RACE && ACTIONS.find((a) => a.type === "race");
-      actions = (raceAct ? actBtn(`data-creature="${raceAct.id}"`, raceAct.icon, raceAct.label, raceAct.color, "act-primary") : "")
+      // several race actions = several race modes (e.g. a race against rivals AND a chase): one button each
+      const raceActs = RACE ? ACTIONS.filter((a) => a.type === "race") : [];
+      actions = raceActs.map((ra, i) => actBtn(`data-creature="${ra.id}"`, ra.icon, ra.label, ra.color, i === 0 ? "act-primary" : "")).join("")
         + (jumpAct ? actBtn(`data-creature="${jumpAct.id}"`, jumpAct.icon, jumpAct.label, jumpAct.color) : "")
         + actBtn(`data-creature="${rideAct.id}"`, rideAct.dismountIcon || "close", rideAct.dismountLabel || "Get off", "var(--bad)");
     } else {
@@ -2390,7 +2391,7 @@ function creatureAction(actionId) {
   if (a.type === "jump") { doJump(); return; }
   if (a.type === "customize") { openCustomize(c); return; }
   if (a.type === "closeup") { openCloseup(c, a); return; }
-  if (a.type === "race") { if (R3.on) endRace(false, true); else startRace(); return; }
+  if (a.type === "race") { if (R3.on) endRace(false, true); else startRace(a); return; }
 
   // resource cost
   if (a.cost) {
@@ -3599,7 +3600,9 @@ function r3Tint(img, hex) {
   if (hex) { x.globalCompositeOperation = "multiply"; x.fillStyle = hex; x.fillRect(0, 0, c.width, c.height); x.globalCompositeOperation = "destination-in"; x.drawImage(img, 0, 0); }
   return c;
 }
-function startRace() {
+// startRace(action): action.mode "chase" = escape a pursuer to the finish (race.chase); otherwise a race against
+// race.rivals when configured, else the classic time trial
+function startRace(a) {
   if (!RACE || R3.on || !mounted || !sc) return;
   let cv = $("race3d");
   if (!cv) { cv = document.createElement("canvas"); cv.id = "race3d"; cv.className = "race3d"; document.body.appendChild(cv); }
@@ -3620,6 +3623,8 @@ function startRace() {
   R3.maxSpeed = R3.baseMax * rideEmptyMul(); R3.drainAcc = 0; R3.tired = false;
   R3.time = RACE.time || 60; R3.over = false; R3.shake = R3.hitFlash = 0;
   R3.input = { left: false, right: false };
+  R3.mode = (a && a.mode) || (RACE.rivals ? "rivals" : "time");
+  if (R3.mode === "chase" && !RACE.chase) R3.mode = RACE.rivals ? "rivals" : "time";
   r3Rivals();
   const kd = (e) => r3Key(e, true), ku = (e) => r3Key(e, false);
   const set = (e) => { const r = cv.getBoundingClientRect(); const x = e.clientX - r.left; R3.input.left = x < r.width / 2; R3.input.right = x >= r.width / 2; };
@@ -3633,7 +3638,7 @@ function startRace() {
   document.documentElement.dataset.screen = "race";
   navPath = []; moveTarget = null;
   Sound.play("whoosh");
-  message((R3.rivals.length && RACE.rivals.startMessage) || RACE.startMessage || "Go!");
+  message((R3.chaser && RACE.chase.startMessage) || (R3.rivals.length && RACE.rivals.startMessage) || RACE.startMessage || "Go!");
   R3.on = true; R3.last = 0; R3.raf = requestAnimationFrame(r3Loop);
   panelId = PANEL_DIRTY; refreshInteraction();
 }
@@ -3685,13 +3690,14 @@ function r3Update(dt) {
   const T = RACE.track || {};
   // grid start: the field lines up ahead of the player (once the ride's drawn depth is known), then waits for 3-2-1
   if (R3.rivals.length && !R3.gridSet && R3.carDepth) r3Grid();
+  if (R3.chaser && !R3.chaser.set && R3.carDepth) { R3.chaser.z = r3PlayerZ() - R3.segLen * (RACE.chase.startGap || 30); R3.chaser.set = true; }
   if (R3.count > 0) {
     const before = Math.ceil(R3.count); R3.count -= R3.rawDt || dt; const after = Math.ceil(R3.count);   // real seconds, even at a low fps
     if (after !== before) Sound.play(after > 0 ? "tap" : "goal");
     if (R3.count > 0) return;
   }
   if (R3.count > -1) R3.count -= R3.rawDt || dt;     // lets the "GO!" fade out
-  if (R3.rivals.length) R3.time += dt; else R3.time -= dt;
+  if (R3.rivals.length || R3.chaser) R3.time += dt; else R3.time -= dt;
   R3.prevPos = R3.pos;
   // race.drain (per second, default 2.4 like running): the ride's fatigue need burns while racing
   const RD = CREATURE && CREATURE.ride;
@@ -3722,14 +3728,18 @@ function r3Update(dt) {
       if (o.dead || Math.abs(R3.playerX - o.offset) >= o.hw + 0.16) return;
       o.dead = true; R3.speed *= 0.32; R3.shake = 0.4; R3.hitFlash = 0.5;
       Sound.play("error");
-      if (R3.rivals.length) { if (RACE.rivals.hitMessage) message(RACE.rivals.hitMessage); }   // a real race: the hit costs speed, not time
+      if (R3.rivals.length || R3.chaser) { const hm = (R3.chaser ? RACE.chase : RACE.rivals).hitMessage; if (hm) message(hm); }   // a real race: the hit costs speed, not time
       else { R3.time -= (RACE.hitPenalty || 3); message((RACE.hitMessage || "−{n}s").replace("{n}", RACE.hitPenalty || 3)); }
     });
   }
   if (R3.rivals.length) r3RivalsUpdate(dt);
+  if (R3.chaser) { r3ChaseUpdate(dt); if (R3.over) return; }
   if (R3.shake > 0) R3.shake = Math.max(0, R3.shake - dt);
   if (R3.hitFlash > 0) R3.hitFlash = Math.max(0, R3.hitFlash - dt * 1.6);
-  if (R3.rivals.length) {
+  if (R3.chaser) {
+    if (R3.caught) return;                                          // the "caught" beat plays, then the results
+    if (r3PlayerZ() >= R3.finishZ || R3.time >= (RACE.chase.maxTime || 240)) { R3.over = true; endRace(true); }
+  } else if (R3.rivals.length) {
     // a real race ends when the player crosses the line (place = rivals already home + 1), or at the safety cap
     if (R3.pos + (R3.carDepth || 0) >= R3.finishZ || R3.time >= (RACE.rivals.maxTime || 240)) { R3.over = true; endRace(true); }
   } else if (R3.pos >= R3.finishZ) { R3.over = true; endRace(true); }
@@ -3738,8 +3748,9 @@ function r3Update(dt) {
 
 /* ---- race.rivals: a fixed field of competitors to overtake (grid start, ranking, results) ---- */
 function r3Rivals() {
-  const RV = RACE.rivals; R3.rivals = []; R3.count = 0; R3.place = 0; R3.bumpT = 0;
-  if (!RV || !(RV.list || []).length) return;
+  const RV = RACE.rivals; R3.rivals = []; R3.count = 0; R3.place = 0; R3.bumpT = 0; R3.chaser = null; R3.caught = 0;
+  if (R3.mode === "chase") { r3ChaseInit(); return; }
+  if (R3.mode !== "rivals" || !RV || !(RV.list || []).length) return;
   const n = Math.min(RV.count || RV.list.length, RV.list.length), sk = RV.skill || [0.84, 0.97];
   for (let k = 0; k < n; k++) {
     const d = RV.list[k], base = r3Img(d.sprite); if (!base) continue;
@@ -3756,11 +3767,81 @@ function r3Rivals() {
   R3.count = RV.countdown != null ? RV.countdown : 3.2;
   R3.time = 0; R3.gridSet = false;
 }
+/* ---- race.chase (action.mode "chase"): a pursuer starts behind and closes in; reach the finish before it
+   catches you. Obstacles and bumps slow you down, so they are what lets it catch up. ---- */
+function r3ChaseInit() {
+  const C = RACE.chase, base = r3Img(C.sprite); if (!base) return;
+  const rid = C.rider ? r3Img(C.rider) : null;
+  R3.chaser = { name: C.name || "", img: r3Tint(base, C.tint || null), rider: rid ? r3Tint(rid, C.riderTint || null) : null,
+    scale: C.scale || 6.5, x: 0, z: -1e9, speed: 0, set: false };
+  R3.count = C.countdown != null ? C.countdown : 3.2; R3.time = 0; R3.sirenT = 0;
+}
+function r3ChaseUpdate(dt) {
+  const C = RACE.chase, ch = R3.chaser, pz = r3PlayerZ(); if (!ch.set) return;
+  if (R3.caught) {
+    R3.caught -= dt; R3.speed *= (1 - Math.min(1, dt * 2.5));
+    ch.z = Math.max(ch.z, pz + R3.segLen * 1.2) + R3.speed * dt * 0.6;     // it pulls alongside, then in front
+    ch.x += ((R3.playerX > 0 ? -0.55 : 0.55) - ch.x) * Math.min(1, dt * 3);
+    if (R3.caught <= 0) { R3.caught = 0.0001; R3.over = true; endRace(true); }
+    return;
+  }
+  // the pursuer's pace ramps from skill[0] to skill[1] of the player's top speed over the race, so a clean
+  // run escapes and a few crashes get you caught
+  const sk = C.skill || [0.9, 1.04], prog = clamp(pz / R3.finishZ, 0, 1);
+  const target = R3.baseMax * (sk[0] + (sk[1] - sk[0]) * prog);
+  ch.speed += (target - ch.speed) * Math.min(1, dt * 0.8); ch.z += ch.speed * dt;
+  ch.x += (R3.playerX - ch.x) * Math.min(1, dt * 1.5);
+  const gap = pz - ch.z;
+  if (gap <= R3.segLen * (C.catchGap || 0.8)) {
+    R3.caught = C.caughtBeat || 1.4; R3.shake = 0.35; Sound.play("error");
+    if (C.caughtMessage) message(C.caughtMessage.replace("{name}", ch.name));
+    return;
+  }
+  // a siren cue that speeds up as it closes in
+  const close = clamp(1 - gap / (R3.segLen * (C.startGap || 30) * 1.6), 0, 1);
+  R3.sirenT += dt * (2 + close * 6);
+  if (close > 0.55 && Math.floor(R3.sirenT) !== Math.floor(R3.sirenT - dt * (2 + close * 6))) Sound.play("tap");
+}
+function r3ChaserDraw(seg) {
+  const ch = R3.chaser; if (!ch || !ch.set || Math.floor(ch.z / R3.segLen) !== seg.i || ch.z - R3.pos < R3.camD) return;
+  r3Billboard(seg, { img: ch.img, offset: ch.x, scale: ch.scale });
+  if (ch.rider) r3Billboard(seg, { img: ch.rider, offset: ch.x, scale: ch.scale });
+}
+// red / blue glow on the screen edges, stronger as the pursuer closes in (race.chase.siren:false disables)
+function r3Siren() {
+  const ch = R3.chaser; if (!ch || !ch.set || RACE.chase.siren === false) return;
+  const gap = r3PlayerZ() - ch.z, close = R3.caught ? 1 : clamp(1 - gap / (R3.segLen * (RACE.chase.startGap || 30) * 1.6), 0, 1);
+  if (close < 0.2) return;
+  const ctx = R3.ctx, W = R3.W, H = R3.H, on = Math.floor(R3.sirenT * 2 + (R3.caught ? R3.time * 6 : 0)) % 2;
+  const cols = RACE.chase.sirenColors || ["255,60,80", "60,120,255"], a = Math.min(0.75, (close - 0.2) * 1.0);
+  [[0, cols[on]], [W, cols[1 - on]]].forEach(([x, c]) => {
+    const g = ctx.createLinearGradient(x, 0, x === 0 ? W * 0.34 : W * 0.66, 0);
+    g.addColorStop(0, `rgba(${c},${a.toFixed(3)})`); g.addColorStop(1, `rgba(${c},0)`);
+    ctx.fillStyle = g; ctx.fillRect(x === 0 ? 0 : W * 0.66, 0, W * 0.34, H);
+  });
+}
+function r3ChaseResults() {
+  const C = RACE.chase, escaped = !R3.caught && r3PlayerZ() >= R3.finishZ, r = escaped ? (C.reward || 0) : (C.caughtReward || 0);
+  if (r) earn(r);
+  state.stats.chaseRun = (state.stats.chaseRun || 0) + 1;
+  if (escaped) { const k = C.stat || "chaseEscape"; state.stats[k] = (state.stats[k] || 0) + 1; }
+  state.actionsSinceRest = (state.actionsSinceRest || 0) + 1;
+  if (escaped) { Sound.play("celebrate"); confetti(); } else Sound.play("error");
+  const msg = escaped ? (C.escapeMessage || "{i:trophy} You escaped!") : (C.caughtTitle || "Caught!");
+  openModal(C.resultsTitle || "{i:flag} Results", `<div class="race-results"><p class="rr-head">${fmt(msg.replace("{name}", (R3.chaser && R3.chaser.name) || ""))}</p>
+    <p class="rr-sub">${fmt((escaped ? C.escapeHint : C.caughtHint) || "").replace("{t}", R3.time.toFixed(1))}</p>
+    ${r ? `<p class="rr-reward">${fmt("+" + r + " " + coinTok())}</p>` : ""}</div>`);
+  if (r && player) setTimeout(() => flyReward(player.x, player.y - 60, "+" + r + " " + coinTok()), 300);
+  lastInputT = nowMs(); refreshHud(); save();
+  panelId = PANEL_DIRTY; refreshInteraction();
+}
 // two-by-two grid ahead of the player: the strongest (row 0) in front, the player starts last
 function r3Grid() {
   // gridFirst (segments): the first row starts far enough ahead not to overlap the player's sprite
   const RV = RACE.rivals, gap = R3.segLen * (RV.gridGap || 4), first = R3.segLen * (RV.gridFirst || 0), pz = r3PlayerZ(), n = R3.rivals.length;
   R3.rivals.forEach((r) => { r.z = pz + first + gap * (Math.floor((n - 1 - r.row) / 2) + 1) + (r.row % 2) * gap * 0.5; });
+  // a chequered start line just in front of the player (rivals.startLine:false hides it)
+  if (RV.startLine !== false) { const i0 = Math.floor((pz + R3.segLen * 1.5) / R3.segLen); for (let i = i0; i < i0 + 2 && R3.segs[i]; i++) R3.segs[i].start = true; }
   R3.gridSet = true;
 }
 // player's track position = where the ride is DRAWN (camera + carDepth)
@@ -3813,9 +3894,9 @@ function r3RivalsDraw(seg) {
   });
 }
 function r3Countdown() {
-  if (!(R3.count > 0) && !(R3.count > -0.7 && R3.rivals.length)) return;
+  if (!(R3.count > 0) && !(R3.count > -0.7 && (R3.rivals.length || R3.chaser))) return;
   const ctx = R3.ctx, W = R3.W, H = R3.H, n = Math.ceil(R3.count), f = R3.count > 0 ? R3.count - Math.floor(R3.count) : (R3.count + 0.7) / 0.7;
-  const txt = R3.count > 0 ? String(n) : (RACE.rivals.goLabel || "GO!");
+  const txt = R3.count > 0 ? String(n) : (((R3.chaser ? RACE.chase : RACE.rivals) || {}).goLabel || "GO!");
   ctx.save(); ctx.globalAlpha = Math.min(1, f * 2.2);
   ctx.font = `800 ${Math.round(Math.min(W, H) * (0.22 + (1 - f) * 0.06))}px ${getComputedStyle(document.body).fontFamily || "sans-serif"}`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
@@ -3844,7 +3925,7 @@ function r3Render() {
     if (p1.z - R3.pos < R3.camD || p2.sy >= maxy) continue;
     r3Segment(seg, p1, p2, C); maxy = p2.sy; drawn.push(seg);
   }
-  for (let n = drawn.length - 1; n >= 0; n--) { const s = drawn[n]; s.sprites.forEach((sp) => r3Billboard(s, sp)); s.obstacles.forEach((o) => { if (!o.dead) r3Billboard(s, o); }); r3RivalsDraw(s); }
+  for (let n = drawn.length - 1; n >= 0; n--) { const s = drawn[n]; s.sprites.forEach((sp) => r3Billboard(s, sp)); s.obstacles.forEach((o) => { if (!o.dead) r3Billboard(s, o); }); r3RivalsDraw(s); r3ChaserDraw(s); }
   if (R3.car) {
     // race.rideWidth: the ride's FRAME width as a fraction of the screen (0.32); a narrow drawing (e.g. a horse
     // from behind) needs a larger frame. Capped so the ride never exceeds 55 % of the height (landscape).
@@ -3861,6 +3942,7 @@ function r3Render() {
   }
   ctx.restore();
   if (R3.hitFlash > 0) { ctx.fillStyle = "rgba(255,60,60," + (R3.hitFlash * 0.4).toFixed(3) + ")"; ctx.fillRect(0, 0, W, H); }
+  r3Siren();
   r3Countdown();
 }
 function r3Sky(C) {
@@ -3873,6 +3955,7 @@ function r3Sky(C) {
     const SP = C.sunPos || {}, cx = W * (SP.x != null ? SP.x : 0.5) - R3.playerX * 46, cy = hz * (SP.y != null ? SP.y : 0.82), r = Math.min(W, H) * (SP.r || 0.15), sg = ctx.createLinearGradient(0, cy - r, 0, cy + r);
     sg.addColorStop(0, C.sun[0]); sg.addColorStop(1, C.sun[1]);
     ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    if (C.sunOutline) { ctx.lineWidth = Math.max(2, r * 0.07); ctx.strokeStyle = C.sunOutline; ctx.stroke(); }   // match an outlined art style
   }
   if (C.skyline) {
     ctx.fillStyle = C.skyline; const bx = -((R3.playerX * 60) % 90);
@@ -3887,7 +3970,7 @@ function r3Segment(seg, p1, p2, C) {
   const ctx = R3.ctx;
   ctx.fillStyle = seg.grass; ctx.fillRect(0, p2.sy, R3.W, p1.sy - p2.sy + 1);
   r3Trap(p1.sx, p1.sy, p1.sw * 1.15, p2.sx, p2.sy, p2.sw * 1.15, seg.rumble);
-  if (seg.finish) {
+  if (seg.finish || seg.start) {
     const n = 10;
     for (let c = 0; c < n; c++) { const t = (c + 0.5) / n - 0.5; r3Trap(p1.sx + t * p1.sw * 2, p1.sy, p1.sw / n, p2.sx + t * p2.sw * 2, p2.sy, p2.sw / n, C.finish[(c + seg.i) % 2]); }
   } else {
@@ -3919,6 +4002,7 @@ function r3Hud(build) {
           : `<span class="resource" id="rh-dist"><span class="r-ico">${iconHTML(I.distance || "arrow")}</span><b>0</b></span>`}
         <span class="resource" id="rh-speed"><span class="r-ico">${iconHTML(I.speed || "star")}</span><b>0</b></span>
         <button class="mini-btn rh-quit" id="rh-quit" aria-label="${esc(stripIcons(RACE.quitLabel || "Quit"))}">${iconHTML(I.quit || "close")}</button></div>
+      ${R3.chaser ? `<span class="resource rh-need rh-chase" id="rh-chase"><span class="r-ico">${iconHTML(RACE.chase.icon || "wanted")}</span><span class="rh-gauge"><i></i></span><b>0</b></span>` : ""}
       ${RN ? `<span class="resource rh-need" id="rh-need"><span class="r-ico">${iconHTML(RN.icon || "battery")}</span><span class="rh-gauge"><i></i></span><b>0%</b></span>` : ""}</div>
       <div class="rh-steer"><span class="rh-l">${iconHTML(I.left || "arrow")}</span><span class="rh-hint">${fmt(RACE.hint || "")}</span><span class="rh-r">${iconHTML(I.right || "arrow")}</span></div>`;
     $("rh-quit").addEventListener("click", (e) => { e.stopPropagation(); endRace(false, true); });
@@ -3930,7 +4014,15 @@ function r3Hud(build) {
   if (R3.rivals.length) set("rh-place", r3PlaceLabel(R3.place || R3.rivals.length + 1) + "/" + (R3.rivals.length + 1));
   else set("rh-dist", Math.max(0, Math.round((R3.finishZ - R3.pos) / 100)) + " " + (RACE.distUnit || "m"));
   set("rh-speed", Math.round((R3.speed / R3.maxSpeed) * (RACE.topSpeed || 210)) + " " + (RACE.speedUnit || "km/h"));
-  const t = $("rh-time"); if (t) t.classList.toggle("warn", !R3.rivals.length && R3.time <= 8);
+  const t = $("rh-time"); if (t) t.classList.toggle("warn", !R3.rivals.length && !R3.chaser && R3.time <= 8);
+  const ch = $("rh-chase");
+  if (ch && R3.chaser) {
+    // the pursuer's distance: the gauge fills as it closes in (full = caught)
+    const gap = Math.max(0, r3PlayerZ() - R3.chaser.z), start = R3.segLen * (RACE.chase.startGap || 30);
+    const close = R3.caught ? 1 : clamp(1 - gap / (start * 1.6), 0, 1), w = Math.round(close * 100) + "%";
+    const bar = ch.querySelector(".rh-gauge i"); if (bar && bar.style.width !== w) bar.style.width = w;
+    set("rh-chase", Math.round(gap / 100) + " " + (RACE.distUnit || "m")); ch.classList.toggle("low", close > 0.7);
+  }
   const ng = $("rh-need");
   if (ng && mounted) {
     const v = Math.max(0, Math.min(100, mounted[CREATURE.ride.fatigueNeed] || 0)), w = Math.round(v) + "%";
@@ -3951,6 +4043,7 @@ function r3PlaceLabel(p) { const L = (RACE.rivals && RACE.rivals.placeLabels) ||
 function endRace(win, quit) {
   if (!R3.on) return;
   r3Teardown();
+  if (R3.chaser && !quit) { r3ChaseResults(); return; }
   if (R3.rivals.length && !quit) { r3Results(); return; }
   if (win) {
     const r = RACE.reward || 0; earn(r);

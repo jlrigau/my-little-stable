@@ -289,13 +289,13 @@ window.GAME = {
     horizon: 0.42,                           // tall phones: more road, less empty sky
     rivals: {
       list: [
-        { name: "Léa", sprite: "horse_back_gris", rider: "rider_rival_1", color: "#a98bf0" },
-        { name: "Tom", sprite: "horse_back_noir", rider: "rider_rival_2", color: "#4fbf5e" },
-        { name: "Inès", sprite: "horse_back_palomino", rider: "rider_rival_3", color: "#4a6fe0" },
-        { name: "Hugo", sprite: "horse_back_bai", rider: "rider_rival_4", color: "#ff9640" },
+        { name: "Hugo", sprite: "horse_back_gris", rider: "rider_rival_1", color: "#a98bf0" },
+        { name: "Léa", sprite: "horse_back_noir", rider: "rider_rival_2", color: "#4fbf5e" },
+        { name: "Tom", sprite: "horse_back_palomino", rider: "rider_rival_3", color: "#4a6fe0" },
+        { name: "Inès", sprite: "horse_back_bai", rider: "rider_rival_4", color: "#ff9640" },
         { name: "Jade", sprite: "horse_back_blanc", rider: "rider_rival_5", color: "#f27fb8" },
       ],
-      scale: 11, hw: 0.28, skill: [0.8, 0.95], gridGap: 5, gridFirst: 4, lanes: [-0.62, 0.62],
+      scale: 11, hw: 0.28, skill: [0.8, 0.95], gridGap: 5, gridFirst: 4, lanes: [-0.62, 0.62, -0.25, 0.25],
       rewards: [40, 25, 15, 8, 5, 3],
       placeLabels: ["1er", "2e", "3e", "4e", "5e", "6e"],
       placeMessages: ["{i:trophy} Tu as gagné la course !", "{i:star} Bravo, tu finis 2e !", "{i:star} Super, tu montes sur le podium : 3e !", "Tu finis {place}. Essaie de doubler plus de cavaliers !"],
@@ -304,7 +304,7 @@ window.GAME = {
       bumpMessage: "Attention, tu as bousculé {name} !",
       goLabel: "Partez !",
     },
-    colors: { sky: ["#7cc6f0", "#a8dcf5", "#e8f6ff"], sun: ["#fff3a8", "#ffd24a"], sunPos: { x: 0.78, y: 0.55, r: 0.07 }, skyline: false, ground: "#5ea446",
+    colors: { sky: ["#7cc6f0", "#a8dcf5", "#e8f6ff"], sun: ["#fff3a8", "#ffd24a"], sunPos: { x: 0.78, y: 0.55, r: 0.07 }, sunOutline: "#4a3428", skyline: false, ground: "#5ea446",
               grass: ["#78bb58", "#6cae4e"], road: ["#d9b37a", "#cfa86e"], rumble: ["#b88a55", "#a87c4a"], lane: "#e3c491", finish: ["#ffffff", "#4a3428"] },   // sandy cross path
     icons: { time: "timer", distance: "distance", speed: "speed", quit: "quit", left: "left", right: "right", place: "flag" },
     quitLabel: "Quitter", hint: "Touche à gauche ou à droite pour diriger ton cheval",
