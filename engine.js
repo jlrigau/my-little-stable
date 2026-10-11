@@ -3772,7 +3772,8 @@ function r3Rivals() {
 function r3ChaseInit() {
   const C = RACE.chase, base = r3Img(C.sprite); if (!base) return;
   const rid = C.rider ? r3Img(C.rider) : null;
-  R3.chaser = { name: C.name || "", img: r3Tint(base, C.tint || null), rider: rid ? r3Tint(rid, C.riderTint || null) : null,
+  const fr = C.front ? r3Img(C.front) : null;
+  R3.chaser = { name: C.name || "", img: r3Tint(base, C.tint || null), rider: rid ? r3Tint(rid, C.riderTint || null) : null, front: fr,
     scale: C.scale || 6.5, x: 0, z: -1e9, speed: 0, set: false };
   R3.count = C.countdown != null ? C.countdown : 3.2; R3.time = 0; R3.sirenT = 0;
 }
@@ -3819,6 +3820,67 @@ function r3Siren() {
     g.addColorStop(0, `rgba(${c},${a.toFixed(3)})`); g.addColorStop(1, `rgba(${c},0)`);
     ctx.fillStyle = g; ctx.fillRect(x === 0 ? 0 : W * 0.66, 0, W * 0.34, H);
   });
+}
+// how close the pursuer is: 0 (start gap x1.6 or more) → 1 (caught)
+function r3Close() {
+  const ch = R3.chaser; if (!ch || !ch.set) return 0;
+  return R3.caught ? 1 : clamp(1 - (r3PlayerZ() - ch.z) / (R3.segLen * (RACE.chase.startGap || 30) * 1.6), 0, 1);
+}
+// A REAR-VIEW MIRROR at the top of the screen (race.chase.front = the pursuer seen from the front): the road behind
+// recedes to a horizon and the pursuer grows as it closes in, its lights flashing. race.chase.mirror:false hides it.
+function r3Mirror() {
+  const ch = R3.chaser, C = RACE.chase; if (!ch || !ch.set || C.mirror === false || R3.caught) return;
+  const ctx = R3.ctx, W = R3.W, H = R3.H, col = raceColors(), close = r3Close();
+  const mw = Math.min(W * 0.46, 230), mh = mw * 0.42, mx = (W - mw) / 2, my = Math.max(150, H * 0.17), rad = mh * 0.45;
+  const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
+  ctx.save();
+  // frame + drop shadow
+  ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
+  rr(mx - 5, my - 5, mw + 10, mh + 10, rad + 5); ctx.fillStyle = C.mirrorFrame || "#2a2340"; ctx.fill();
+  ctx.shadowColor = "transparent";
+  rr(mx, my, mw, mh, rad); ctx.clip();
+  // what is behind: sky, ground, the road narrowing to the horizon (mirrored: no left/right sway needed)
+  const hz = my + mh * 0.38, g = ctx.createLinearGradient(0, my, 0, hz);
+  g.addColorStop(0, col.sky[1]); g.addColorStop(1, col.sky[2]); ctx.fillStyle = g; ctx.fillRect(mx, my, mw, hz - my);
+  if (col.stars) { ctx.fillStyle = "#fff"; const rnd = r3Rng(77); for (let i = 0; i < 14; i++) { ctx.globalAlpha = 0.5 + 0.5 * rnd(); ctx.fillRect(mx + rnd() * mw, my + rnd() * (hz - my), 1.2, 1.2); } ctx.globalAlpha = 1; }
+  ctx.fillStyle = col.ground; ctx.fillRect(mx, hz, mw, my + mh - hz);
+  ctx.fillStyle = col.road[0]; ctx.beginPath(); ctx.moveTo(mx + mw * 0.48, hz); ctx.lineTo(mx + mw * 0.52, hz); ctx.lineTo(mx + mw * 0.9, my + mh); ctx.lineTo(mx + mw * 0.1, my + mh); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = col.lane || "#fff"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 6]); ctx.lineDashOffset = -(R3.pos * 0.05) % 11;
+  ctx.beginPath(); ctx.moveTo(mx + mw * 0.5, hz); ctx.lineTo(mx + mw * 0.5, my + mh); ctx.stroke(); ctx.setLineDash([]);
+  // the pursuer: tiny on the horizon when far, big at the bottom when close
+  const img = ch.front || ch.img;
+  if (img) {
+    const k = 0.18 + close * 0.95, w = mw * 0.5 * k, h = w * img.height / img.width, x = mx + mw / 2 - w / 2 - (R3.playerX - ch.x) * mw * 0.08;
+    const y = hz + (my + mh - hz) * (0.05 + close * 0.85) - h * 0.85;
+    ctx.drawImage(img, x, y, w, h);
+    // flashing lights in the mirror
+    const on = Math.floor(R3.sirenT * 2) % 2, cols = C.sirenColors || ["255,60,80", "60,120,255"];
+    [[-0.25, cols[on]], [0.25, cols[1 - on]]].forEach(([dx, c]) => {
+      const gx = x + w / 2 + dx * w, gy = y + h * 0.12, gr = ctx.createRadialGradient(gx, gy, 0, gx, gy, w * 0.35);
+      gr.addColorStop(0, `rgba(${c},.75)`); gr.addColorStop(1, `rgba(${c},0)`); ctx.fillStyle = gr; ctx.fillRect(gx - w * 0.35, gy - w * 0.35, w * 0.7, w * 0.7);
+    });
+  }
+  // glass sheen
+  const sh = ctx.createLinearGradient(mx, my, mx + mw, my + mh); sh.addColorStop(0, "rgba(255,255,255,.18)"); sh.addColorStop(0.4, "rgba(255,255,255,0)");
+  ctx.fillStyle = sh; ctx.fillRect(mx, my, mw, mh);
+  ctx.restore();
+  R3.mirrorRect = { l: mx - 5, t: my - 5, w: mw + 10, h: mh + 10 };
+}
+// red chevrons rising on both sides of the ride: more, brighter and faster as the pursuer closes in
+function r3Chevrons() {
+  if (!R3.chaser || !R3.chaser.set || !R3.carRect || RACE.chase.arrows === false) return;
+  const close = r3Close(); if (close < 0.3) return;
+  const ctx = R3.ctx, c = R3.carRect, n = close > 0.75 ? 3 : close > 0.5 ? 2 : 1, t = (R3.time || 0) * (1.2 + close * 2.5);
+  ctx.save(); ctx.lineJoin = "round"; ctx.lineCap = "round";
+  [c.l - 18, c.l + c.w + 18].forEach((x) => {
+    for (let i = 0; i < n; i++) {
+      const f = (t + i / n) % 1, y = c.t + c.h * (0.95 - f * 0.55), a = Math.sin(f * Math.PI) * (0.5 + close * 0.5), s = 11 + close * 7;
+      ctx.globalAlpha = a; ctx.lineWidth = 7; ctx.strokeStyle = "rgba(30,10,30,.7)";
+      ctx.beginPath(); ctx.moveTo(x - s, y + s * 0.6); ctx.lineTo(x, y - s * 0.4); ctx.lineTo(x + s, y + s * 0.6); ctx.stroke();
+      ctx.lineWidth = 4; ctx.strokeStyle = RACE.chase.arrowColor || "#ff4d6a"; ctx.stroke();
+    }
+  });
+  ctx.restore();
 }
 function r3ChaseResults() {
   const C = RACE.chase, escaped = !R3.caught && r3PlayerZ() >= R3.finishZ, r = escaped ? (C.reward || 0) : (C.caughtReward || 0);
@@ -3900,8 +3962,9 @@ function r3Countdown() {
   ctx.save(); ctx.globalAlpha = Math.min(1, f * 2.2);
   ctx.font = `800 ${Math.round(Math.min(W, H) * (0.22 + (1 - f) * 0.06))}px ${getComputedStyle(document.body).fontFamily || "sans-serif"}`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
-  ctx.lineWidth = Math.max(6, W * 0.02); ctx.strokeStyle = "rgba(20,14,40,.85)"; ctx.strokeText(txt, W / 2, H * 0.36);
-  ctx.fillStyle = R3.count > 0 ? "#fff" : (raceColors().rumble[1] || "#ffd24a"); ctx.fillText(txt, W / 2, H * 0.36);
+  const cyT = R3.mirrorRect ? Math.max(H * 0.36, R3.mirrorRect.t + R3.mirrorRect.h + Math.min(W, H) * 0.16) : H * 0.36;   // below the mirror
+  ctx.lineWidth = Math.max(6, W * 0.02); ctx.strokeStyle = "rgba(20,14,40,.85)"; ctx.strokeText(txt, W / 2, cyT);
+  ctx.fillStyle = R3.count > 0 ? "#fff" : (raceColors().rumble[1] || "#ffd24a"); ctx.fillText(txt, W / 2, cyT);
   ctx.restore();
 }
 // race.horizon: the horizon height as a fraction of the screen (0.5); lower it (0.4) on tall phones so the road
@@ -3942,13 +4005,26 @@ function r3Render() {
   }
   ctx.restore();
   if (R3.hitFlash > 0) { ctx.fillStyle = "rgba(255,60,60," + (R3.hitFlash * 0.4).toFixed(3) + ")"; ctx.fillRect(0, 0, W, H); }
-  r3Siren();
+  r3Siren(); r3Mirror(); r3Chevrons();
   r3Countdown();
 }
 function r3Sky(C) {
   const ctx = R3.ctx, W = R3.W, H = R3.H, hz = H * r3Hz(), g = ctx.createLinearGradient(0, 0, 0, hz);
   g.addColorStop(0, C.sky[0]); g.addColorStop(0.55, C.sky[1]); g.addColorStop(1, C.sky[2]);
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, hz);
+  // colors.stars {count, color, twinkle}: a starfield in the sky (space / night races), with a slight parallax
+  if (C.stars) {
+    const S = C.stars === true ? {} : C.stars, n = S.count || 90, rnd = r3Rng(4242), t = (R3.time || 0);
+    ctx.fillStyle = S.color || "#ffffff";
+    for (let i = 0; i < n; i++) {
+      const sx = ((rnd() * W * 1.2 - R3.playerX * 18 * (0.5 + rnd())) % (W * 1.2) + W * 1.2) % (W * 1.2) - W * 0.1;
+      const sy = rnd() * hz * 0.96, r = 0.5 + rnd() * 1.4, ph = rnd() * 6.28;
+      ctx.globalAlpha = (S.twinkle === false ? 0.8 : 0.45 + 0.45 * Math.sin(t * (1 + ph % 2) + ph)) * (0.4 + 0.6 * (1 - sy / hz));
+      ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+      if (r > 1.6) { ctx.globalAlpha *= 0.5; ctx.fillRect(sx - r * 2.2, sy - 0.4, r * 4.4, 0.8); ctx.fillRect(sx - 0.4, sy - r * 2.2, 0.8, r * 4.4); }
+    }
+    ctx.globalAlpha = 1;
+  }
   if (C.sun) {
     // colors.sunPos {x, y, r} (fractions: x of the width, y of the sky height, r of min(W,H)) moves the sun
     // off the centre — the countdown is drawn there

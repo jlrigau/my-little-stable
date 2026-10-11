@@ -538,6 +538,15 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, rideWidth:0.32 /* ride
   startMessage, hitMessage("{n}"), winMessage("{r}"), loseMessage, quitMessage }
 // drain (per s, default 2.4): the ride's fatigue need burns while racing; at 0 the ride slows to tiredSpeed (0.5)
 // for the rest of the race (tiredMessage("{name}")), or to ride.emptySpeed with ride.empty:"slow".
+// chase (optional; an action with mode:"chase") — escape a pursuer to the finish:
+//   chase: { name, sprite /* rear view, shown when it catches you */, front /* front view, in the mirror */, tint?, scale,
+//            icon, startGap:30 /* segments behind */, skill:[0.9,1.04] /* its pace, ramping over the race */, catchGap:0.8,
+//            reward, caughtReward, stat:"chaseEscape", mirror:true, arrows:true, arrowColor, siren:true, sirenColors,
+//            startMessage, hitMessage, caughtMessage("{name}"), resultsTitle, escapeMessage, escapeHint("{t}"),
+//            caughtTitle, caughtHint, goLabel }
+//   HUD: a gauge + distance to the pursuer; a REAR-VIEW MIRROR (top centre) shows it growing as it closes in;
+//   red chevrons rise beside the ride and a red/blue glow pulses on the edges when it is near. Caught = it pulls
+//   alongside and passes, then the "caught" result. Probe: probes/racechase.cjs.
 // rivals (optional) — a REAL race instead of a time trial: a fixed field to overtake.
 //   rivals: { list:[{ name, sprite, tint?, rider?, riderTint?, color? /* results swatch */, scale?, hw? }], count?, scale:6.5, hw:0.28,
 //             lanes:[-0.45,0.45] /* grid lanes */, gridFirst:0 /* segments before the first row */,
@@ -553,7 +562,8 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, rideWidth:0.32 /* ride
 //   raceWin (1st), racePodium (top 3), raceBest. A rival = sprite (tinted) + optional rider layer (tinted).
 //   Probe: probes/racerivals.cjs.
 // horizon: 0.5 (fraction of the screen; 0.4 fills a tall phone with road); colors.sunPos:{x,y,r} moves the sun
-// off the centre (the countdown is drawn there); colors.sunOutline:"#hex" outlines it. rivals.startLine:false hides
+// off the centre (the countdown is drawn there); colors.sunOutline:"#hex" outlines it; colors.stars:{count,color,twinkle} draws a
+// twinkling starfield in the sky (space / night). rivals.startLine:false hides
 // the chequered start line drawn just ahead of the player.
 // showNeed (default true): the ride's fatigue need (e.g. fuel) as a gauge under the HUD chips — turns red and
 // pulses below 25 %, so a ride slowing down mid-race (empty tank, ride.empty:"slow") is understood. false hides it.
