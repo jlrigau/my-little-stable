@@ -1168,6 +1168,31 @@ function inProtectedZone(x, y) {
   return false;
 }
 
+// Visible (opaque) bounds of a texture in LOGICAL px from its top-left, cached: collision footprints are
+// fitted to what is actually drawn (transparent margins and soft glows — alpha < 55% — excluded).
+const OPAQUE = {};
+function opaqueBounds(key) {
+  if (OPAQUE[key]) return OPAQUE[key];
+  const img = sc.textures.get(key).getSourceImage(), r = RES(key), W = img.width, H = img.height;
+  let b = { x0: 0, y0: 0, x1: W / r, y1: H / r, w: W / r, h: H / r };
+  try {
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, W, H).data; let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let yy = 0; yy < H; yy += 2) for (let xx = 0; xx < W; xx += 2) {
+      if (d[(yy * W + xx) * 4 + 3] > 140) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; }
+    }
+    if (x1 >= 0) b = { x0: x0 / r, y0: y0 / r, x1: (x1 + 2) / r, y1: (y1 + 2) / r, w: W / r, h: H / r };
+  } catch (_) {}
+  return (OPAQUE[key] = b);
+}
+// World box of the visible part of an image placed at (x,y) with origin (ox,oy) at logical scale s.
+function drawnBox(key, x, y, ox, oy, s) {
+  const b = opaqueBounds(key);
+  const L = x + (b.x0 - ox * b.w) * s, R = x + (b.x1 - ox * b.w) * s, T = y + (b.y0 - oy * b.h) * s, B = y + (b.y1 - oy * b.h) * s;
+  return { x: L, y: T, w: R - L, h: B - T };
+}
+
 function buildEnvironment() {
   if (!ENV) return;
   // --- Arena (fenced obstacle area) ---
@@ -1194,21 +1219,32 @@ function buildEnvironment() {
     const hedgeM = f.hedgeMargin || 80;
     // sprite scales: [min, max] (defaults sized for the legacy 64-px pixel-art sprites)
     const tS = f.treeScale || [1.5, 1.9], bS = f.bushScale || [1.1, 1.4], hb = f.hedgeBox || { dx: -22, dy: -10, w: 44, h: 14 };
+    // Collision footprints FIT THE DRAWING: on a side facing the path or the play area, the box stops at the
+    // visible edge of the sprite (its opaque pixels, at its scale) so the player walks right up to it; on a side
+    // facing another band cell it extends to the cell boundary, so the band stays gapless (no slipping between
+    // two bushes / rocks). forest.hedgeSolid:false → legacy small hedgeBox; trees collide only with treeBox.
+    const bandCell = (cx, cy) => cx >= 24 && cy >= 24 && cx <= WORLD.w && cy <= WORLD.h && inBand(cx, cy) && !nearStation(cx, cy) &&
+      !inProtectedZone(cx, cy) && !onPath(cx, cy, 6) && !LOGS.some((l) => Math.abs(cx - l.x) < 34 && Math.abs(cy - l.y) < PW);
+    const fitBox = (key, x, y, oy, s, gx, gy) => {
+      const d = drawnBox(key, x, y, 0.5, oy, s);
+      const L = bandCell(gx - step, gy) ? Math.min(d.x, gx - step / 2) : d.x, R = bandCell(gx + step, gy) ? Math.max(d.x + d.w, gx + step / 2) : d.x + d.w;
+      const T = bandCell(gx, gy - step) ? Math.min(d.y, gy - step / 2) : d.y, B = bandCell(gx, gy + step) ? Math.max(d.y + d.h, gy + step / 2) : d.y + d.h;
+      return { x: L, y: T, w: R - L, h: B - T };
+    };
     for (let gy = 24; gy <= WORLD.h; gy += step) {
       for (let gx = 24; gx <= WORLD.w; gx += step) {
-        if (!inBand(gx, gy) || nearStation(gx, gy) || inProtectedZone(gx, gy)) continue;
-        if (onPath(gx, gy, 6)) continue;                      // keep the path clear
+        if (!bandCell(gx, gy)) continue;
         const x = gx + randInt(-7, 7), y = gy + randInt(-6, 6);
         if (onPath(gx, gy, hedgeM)) {                          // path edge → low hedge (bush)
-          if (LOGS.some((l) => Math.abs(x - l.x) < 34 && Math.abs(y - l.y) < PW)) continue;   // not ON a barrier (its box seals the edge)
-          sc.add.image(x, y, bush).setOrigin(0.5, 0.9).setScale(rand(bS[0], bS[1]) / RES(bush)).setDepth(y);
-          // the edge is a WALL: one step x step box per grid cell (gapless along the top/bottom AND the sides of the
-          // loop — small per-bush boxes left gaps on the vertical sides). forest.hedgeSolid:false → old per-bush box.
+          const s = rand(bS[0], bS[1]);
+          sc.add.image(x, y, bush).setOrigin(0.5, 0.9).setScale(s / RES(bush)).setDepth(y);
           if (f.hedgeSolid === false) COLLISIONS.push({ x: x + hb.dx, y: y + hb.dy, w: hb.w, h: hb.h });
-          else COLLISIONS.push({ x: gx - step / 2, y: gy - step / 2, w: step, h: step });
+          else COLLISIONS.push(fitBox(bush, x, y, 0.9, s, gx, gy));
         } else {                                               // farther → forest (trees: no collision unless forest.treeBox)
-          sc.add.image(x, y, tree).setOrigin(0.5, 0.95).setScale(rand(tS[0], tS[1]) / RES(tree)).setDepth(y);
-          if (f.treeBox) COLLISIONS.push({ x: gx + f.treeBox.dx, y: gy + f.treeBox.dy, w: f.treeBox.w, h: f.treeBox.h });   // on the grid → no gaps
+          const s = rand(tS[0], tS[1]);
+          sc.add.image(x, y, tree).setOrigin(0.5, 0.95).setScale(s / RES(tree)).setDepth(y);
+          if (f.treeBox === "fit") COLLISIONS.push(fitBox(tree, x, y, 0.95, s, gx, gy));
+          else if (f.treeBox) COLLISIONS.push({ x: gx + f.treeBox.dx, y: gy + f.treeBox.dy, w: f.treeBox.w, h: f.treeBox.h });   // on the grid → no gaps
         }
       }
     }

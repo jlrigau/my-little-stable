@@ -527,11 +527,12 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys],
 band,                                  // forest band thickness around the world
 arena: { rect, tile, label, fence, gates:"left", gateA:0.4, gateB:0.6, obstacleSprite, obstacleScale, obstacleBox, obstacles:[{x,y}] },
 forest: { tree, bush, step, hedgeMargin, treeScale:[min,max], bushScale:[min,max], hedgeBox:{dx,dy,w,h}, treeBox?:{dx,dy,w,h} },
-   // hedges (bushes along the path) form a gapless wall: one step x step box per grid cell (hedgeSolid:false →
-   // the legacy per-bush hedgeBox, which leaves gaps on the vertical sides of the loop)
-   // treeBox: give the band's "trees" a collision on the grid (≥ step wide → solid, e.g. an asteroid belt
-   // nobody can walk into); omit it for a walkable forest. Make it as TALL as the drawn sprite (dy ≈ −sprite
-   // height): a box shorter than the art lets the player stand "inside" the drawing (probes/barriers.cjs checks it)
+   // hedges (bushes along the path) and solid trees get collision footprints FITTED TO THE DRAWING: on a side
+   // facing the path / play area the box stops at the sprite's visible (opaque) edge at its scale, so the player
+   // walks right up to it; on a side facing another band cell it extends to the cell boundary (gapless band).
+   // hedgeSolid:false → the legacy small per-bush hedgeBox. treeBox:"fit" → trees fitted the same way (a solid
+   // band, e.g. an asteroid belt); treeBox:{dx,dy,w,h} → a fixed box per grid cell; omit → walkable forest.
+   // Tests: probes/edges.cjs (nobody gets past the edge) + probes/edgegap.cjs (stops <= 14 px from the drawing).
 path: { width, sand, inset, tile, label, labelY,
         openings:[{x,y,w,h}], logs:{ xs:[...], dec, sprite, scale, boxW:44, box?:{dx,dy,w,h}, depthLift } },
    // logs: jumpable barriers across the top/bottom sides. Without `box`, each one blocks the WHOLE path width

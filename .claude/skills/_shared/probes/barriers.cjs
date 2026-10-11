@@ -67,10 +67,11 @@ module.exports = async (page) => {
       await page.evaluate((p) => { player.x = p.x; player.y = p.y; moveTarget = null; navPath = []; }, p);
       await page.keyboard.down(s.key); await sleep(1400); await page.keyboard.up(s.key);
       out.push(await page.evaluate((key) => {
-        // drawn rocks the player's feet overlap
-        const hit = sc.children.list.filter((o) => o.texture && o.texture.key === GAME.environment.forest.tree && o.visible).filter((o) => {
-          const w = o.displayWidth * 0.36, top = o.y - o.displayHeight * 0.8;
-          return Math.abs(player.x - o.x) < w && player.y > top && player.y < o.y + 6;
+        // feet clearly INSIDE a drawn band sprite (more than 8 px into it, in its middle 60 %): the box is too small
+        const t = GAME.environment.forest.tree;
+        const hit = sc.children.list.filter((o) => o.texture && o.texture.key === t && o.visible).filter((o) => {
+          const d = drawnBox(t, o.x, o.y, o.originX, o.originY, o.scaleX * RES(t));
+          return Math.abs(player.x - (d.x + d.w / 2)) < d.w * 0.3 && player.y > d.y + 8 && player.y < d.y + d.h - 8;
         }).length;
         return { key, at: [Math.round(player.x), Math.round(player.y)], insideRocks: hit };
       }, s.key));

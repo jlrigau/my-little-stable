@@ -42,3 +42,10 @@ Stop the player crossing an element (or make it hop-over-able).
 
 ## Chaining
 (placing an element) → **add-collision** → map-verify → release-deploy.
+
+## Calibrate to the drawing (owner feedback)
+The player must stop RIGHT AT what is drawn — not 50 px before (oversized box) nor inside the sprite
+(undersized box). The engine's `drawnBox(key, x, y, originX, originY, scale)` returns the visible (opaque)
+footprint of a placed sprite; the trail-loop band uses it automatically (hedges, `treeBox:"fit"`). For a
+hand-placed obstacle, measure it the same way in a probe and size `box` from it. Verify with
+`probes/edgegap.cjs` (gap <= 14 px in the 4 directions) and `probes/edges.cjs` (nothing gets past).
