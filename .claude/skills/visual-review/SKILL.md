@@ -98,9 +98,16 @@ Checklist:
   (`racehud.cjs`: one row, no overlap, values inside their pills); longest names; short screen.
 - **Feedback**: every tap/action has a visible + audible response.
 
+## 3b. Adversarial fresh-eyes review — MANDATORY for new/redrawn art and UI redesigns
+Before showing new art to the owner, spawn an INDEPENDENT reviewer agent (no shared context,
+never the one that drew it) with the template in `references/adversarial-review.md`, triage
+its findings against the owner's decisions, fix, and loop with a NEW reviewer until ≥ 8/10
+with nothing that reads wrong at game size. This replaces owner round-trips: the owner
+should see art that already survived a critical review.
+
 ## 4. Report
 List what you checked and every defect found → fix → re-run 1–3. Never declare "done"
 on art/UI without having looked at full-size crops and the tour screenshots.
 
 ## Chaining
-asset generation / UI change → **visual-review** → test-debug → release-deploy.
+asset generation / UI change → **visual-review** (incl. the adversarial review) → test-debug → release-deploy.

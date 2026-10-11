@@ -162,6 +162,11 @@ like a game made by a studio — not a prototype. Concretely:
   riding, GTA-style pick-up → drop-off deliveries, chase, race…) but never copies one game's
   world layout (a fenced pen + arena + forest loop read as "the horse game"). Each game must
   look like its own universe.
+- **Adversarial review before the owner sees new art** (owner request): every new/redrawn
+  character, mount, vehicle, backdrop or UI redesign is critiqued by a FRESH independent agent
+  (`visual-review/references/adversarial-review.md`), fixed and re-reviewed until ≥ 8/10 —
+  so the owner doesn't have to find defects one by one. Pass the owner's past decisions to
+  the reviewer so it never proposes to undo them.
 - New owner feedback → add it to this section (via **capitalize-learnings**).
 
 ## 10. This game — « Mon Centre Équestre » (my-little-stable)
