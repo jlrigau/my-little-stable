@@ -671,7 +671,7 @@ function rearPath() {
 }
 const REAR = rearPath();
 // rear-view colour tweaks (contrast from behind); the side-view COATS stay untouched
-const REAR_OVR = { noir: { body: "#3a3340", mane: "#1c1820", sheen: 0.6, ink: "#3d2c26", rim: "#9fb2d6", rimOp: 0.5 }, blanc: { mane: "#ddd5c6", strand: "#a9b0bb" }, gris: { mane: shade("#6c7380", -0.1), shadeAmt: -0.26 }, palomino: { body: "#efb24a", legs: "#efb24a", shadeAmt: -0.28, rim: "#fff1c8" } };
+const REAR_OVR = { noir: { body: "#3a3340", mane: "#1c1820", sheen: 0.6, ink: "#3d2c26", rim: "#9fb2d6", rimOp: 0.5 }, blanc: { mane: "#ddd5c6", strand: "#a9b0bb" }, gris: { body: shade("#b8bec6", -0.06), mane: shade("#6c7380", -0.1), shadeAmt: -0.26 }, palomino: { body: "#efb24a", legs: "#efb24a", shadeAmt: -0.28, rim: "#fff1c8" } };
 function horseBackParts(coatId, u, opts = {}) {
   const c = Object.assign({}, COATS[coatId], REAR_OVR[coatId] || {}), sw = 3;
   const ink = c.ink || INK, st = stk(sw, ink), pad = opts.pad || CORAL;
@@ -687,10 +687,10 @@ function horseBackParts(coatId, u, opts = {}) {
   // --- the front: neck (visible shape the ears stand on), ears ~15° out, mane on the RIGHT, forelock tuft
   const earC = shade(bodyC, -0.18);
   [1, -1].forEach((s) => { const X = (x) => (s > 0 ? x : 200 - x);
-    g += `<path d="M${X(76)} 56 Q${X(70)} 51 ${X(69.5)} 42 Q${X(77.5)} 44 ${X(82)} 52 Z" fill="${earC}" ${st}/><path d="M${X(69.6)} 42.6 Q${X(77)} 44.3 ${X(78.6)} 46.6 Q${X(73.4)} 47.6 ${X(70.2)} 46.6 Z" fill="${shade(bodyC, -0.4)}"/><path d="M${X(75.2)} 55 Q${X(70.6)} 50.5 ${X(70.3)} 43.5" fill="none" stroke="${shade(bodyC, 0.25)}" stroke-width="1.4" stroke-linecap="round" opacity=".8"/><path d="M${X(73)} 51 Q${X(71.5)} 48.5 ${X(71.3)} 47.5" fill="none" stroke="${shade(bodyC, -0.3)}" stroke-width="1.4" stroke-linecap="round" opacity=".7"/>`; });
+    g += `<path d="M${X(76)} 56 Q${X(70)} 51 ${X(69.5)} 42 Q${X(77.5)} 44 ${X(82)} 52 Z" fill="${earC}" ${st}/><path d="M${X(69.6)} 42.6 Q${X(77)} 44.3 ${X(78.6)} 46.6 Q${X(73.4)} 47.6 ${X(70.2)} 46.6 Z" fill="${shade(bodyC, -0.4)}"/><path d="M${X(75.2)} 55 Q${X(70.6)} 50.5 ${X(70.3)} 43.5" fill="none" stroke="${shade(bodyC, 0.25)}" stroke-width="1.4" stroke-linecap="round" opacity=".8"/><path d="M${X(76.5)} 54 Q${X(73)} 50.5 ${X(72.2)} 47.8 Q${X(75.4)} 49 ${X(78.6)} 52.6 Z" fill="${mix(bodyC, "#f6cdb2", 0.5)}" opacity=".9"/>`; });
   g += `<path d="M72 80 C71 68 74 58 78 53 Q100 46 122 53 C126 58 129 68 128 80 Z" fill="url(#${u}n)" ${st}/>`;   // neck under the ears
   g += `<ellipse cx="100" cy="58" rx="24" ry="4.5" fill="#000" opacity=".18" filter="url(#${u}sb)"/>`;   // soft shade under the rider's shoulders
-  g += `<path d="M116 53 Q124 55.5 128 63 L125.5 64 Q121.5 58 115 56 Z" fill="url(#${u}m)" ${stk(1.8, ink)}/>`;   // thin mane crest, right
+  g += [[116.5, 53.5], [119.8, 55.2], [122.8, 57.4], [125.4, 60]].map(([x, y], i) => `<path d="M${x - 2} ${y - 1} Q${x + 3.4} ${y + 0.4} ${x + 2.4} ${y + 5.2 - i * 0.4} Q${x + 0.4} ${y + 2.6} ${x - 2} ${y - 1} Z" fill="url(#${u}m)" ${stk(1.4, ink)}/>`).join("");   // short mane fringe along the crest
   // --- front legs peeking between the hocks
   [[89, 96], [104, 111]].forEach(([a, b]) => { g += `<rect x="${a}" y="132" width="${b - a}" height="19" rx="2" fill="${shade(c.legs, -0.15)}" ${stk(2.4, ink)}/><path d="M${a - 0.5} 148 H${b + 0.5} L${b + 0.8} 153 Q${(a + b) / 2} 154.5 ${a - 0.8} 153 Z" fill="${shade(c.hoof, -0.2)}" ${stk(2.2, ink)}/>`; });
   // --- barrel (hidden behind the rump)
@@ -730,10 +730,10 @@ function horseBack(coatId) { const r = horseBackParts(coatId, "hb" + coatId); re
 // Rider from behind (same 200×170 frame). spec: jacket, hair, pants, boots, helmet, style (ponytail|short), tie, bib
 function riderBackParts(k, u) {
   const helmet = k.helmet || "#2f3456", st = (w) => stk(w || 2.6);
-  const JD = shade(k.jacket, -0.22), white = helmet === "#f4f4f8", REIN = "#5a3a28", B = "#4a3a34", skin = k.skin || "#f1c9a8";
+  const JD = shade(k.jacket, -0.22), white = helmet === "#f4f4f8", REIN = "#5a3a28", B = "#2b2630", skin = k.skin || "#f1c9a8";
   let defs = lin(`${u}j`, [[0, shade(k.jacket, 0.15)], [1, shade(k.jacket, -0.12)]]) +
     rad(`${u}h`, [[0, shade(helmet, 0.4)], [0.55, helmet], [1, shade(helmet, -0.3)]], 0.36, 0.28, 0.8) +
-    lin(`${u}bt`, [[0, shade(B, 0.1)], [1, shade(B, -0.1)]], 0, 0, 1, 0) +
+    lin(`${u}bt`, [[0, "#2b2630"], [1, "#17141b"]], 0, 0, 1, 0) +
     `<mask id="${u}x" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="170"><rect width="200" height="170" fill="#fff"/><path d="${REAR}" fill="#000" stroke="#000" stroke-width="2.2"/></mask>`;
   let g = "";
   // --- lower legs BEHIND the rump: tan saddle flap, glossy near-black boot tapering to the ankle, stirrup
@@ -744,26 +744,28 @@ function riderBackParts(k, u) {
     legs += `<path d="M${X(64)} 83 L${X(57)} 85.5 Q${X(55.5)} 97 ${X(58.5)} 107 L${X(66)} 105 Z" fill="${shade(WOOD, 0.15)}" ${stk(2.4)}/>`;   // saddle flap (tan)
     legs += `<path d="M${X(63)} 86 L${X(60)} 112" stroke="${REIN}" stroke-width="2.2" stroke-linecap="round"/>`;   // stirrup leather, outer edge
     let boot = `<path d="M${X(56)} 93 Q${X(61)} 90 ${X(68)} 92 Q${X(69.5)} 101 ${X(68)} 112 Q${X(68.5)} 118.5 ${X(66)} 119 L${X(63)} 119 Q${X(60.5)} 118 ${X(60.5)} 112 Q${X(56.5)} 104 ${X(56)} 93 Z" fill="url(#${u}bt)" ${st()}/>`;   // boot
-    boot += `<path d="M${X(59.5)} 96 Q${X(59.6)} 99.5 ${X(60.2)} 102.5" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".4"/>`;   // gloss, upper calf
+    boot += `<path d="M${X(59.4)} 95 Q${X(59.5)} 105 ${X(61.6)} 115" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".55"/>`;   // long calf highlight
     boot += `<path d="M${X(57.8)} 94.5 Q${X(62.5)} 92 ${X(68)} 93.5" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`;   // cuff line
-    boot += `<path d="M${X(60.4)} 112 V121.5 Q${X(60.4)} 124 ${X(64.4)} 124 Q${X(68.4)} 124 ${X(68.4)} 121.5 V112" fill="none" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M${X(60.4)} 112 V121.5 Q${X(60.4)} 124 ${X(64.4)} 124 Q${X(68.4)} 124 ${X(68.4)} 121.5 V112" fill="none" stroke="#c9d0d8" stroke-width="1.6" stroke-linecap="round"/>`;   // U stirrup iron
-    boot += `<path d="M${X(61.2)} 118.5 H${X(68.2)} V121.4 H${X(61.2)} Z" fill="#1e1612"/>`;   // sole on the tread
-    boot += `<rect x="${Math.min(X(61.5), X(68.5))}" y="118.6" width="7" height="4.4" rx="1.5" fill="${shade(B, -0.15)}" ${st(2)}/>`;   // heel, toward the camera
-    legs += `<g transform="rotate(${-8 * d} ${X(62)} 93)">${boot}</g>`;   // toe tilted ~8° outward
+    const U = `M${X(60.4)} 112 V121.5 Q${X(60.4)} 124 ${X(64.4)} 124 Q${X(68.4)} 124 ${X(68.4)} 121.5 V112`;
+    boot += `<path d="${U}" fill="none" stroke="${INK}" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/><path d="${U}" fill="none" stroke="#cfd6e0" stroke-width="2" stroke-linecap="round"/>`;   // U stirrup iron (metal)
+    boot += `<path d="M${X(61.2)} 118.5 H${X(68.2)} V121 H${X(61.2)} Z" fill="#0f0c12"/>`;   // sole
+    boot += `<rect x="${Math.min(X(59.2), X(68.2))}" y="121" width="9" height="2.2" rx="1" fill="#cfd6e0" ${stk(1.2)}/>`;   // tread, wider than the sole on the outer side
+    boot += `<rect x="${Math.min(X(61.5), X(68.5))}" y="118.6" width="7" height="4.4" rx="1.5" fill="#3a3440" ${st(2)}/>`;   // heel, toward the camera
+    legs += `<g transform="rotate(${-14 * d} ${X(62)} 93)">${boot}</g>`;   // toe-out ≈14°
   });
   g += `<g mask="url(#${u}x)">${legs}</g>`;
   // cream breeches cuff above each boot (~4 px)
   [-1, 1].forEach((d) => { const X = (x) => 100 + d * (100 - x); g += `<path d="M${X(55.8)} 93.5 Q${X(55.2)} 87 ${X(59)} 86.4 L${X(64.5)} 86.4 L${X(65.5)} 92.4 Q${X(61)} 91.2 ${X(55.8)} 93.5 Z" fill="${k.pants}" ${st(2.2)}/>`; });
   // --- upper body, sitting INTO the saddle: the croup (REAR mask) hides the seat and the jacket hem
   let b = "";
-  [-1, 1].forEach((d) => { const X = (x) => 100 + d * (100 - x); b += `<path d="${capsule([X(77), 56], [X(89), 64], 6.5, 6)}" fill="${shade(k.jacket, -0.3)}" ${st()}/>`; });   // forearms (behind the torso)
+  [-1, 1].forEach((d) => { const X = (x) => 100 + d * (100 - x); b += `<path d="${capsule([X(75), 56], [X(89), 64], 6.5, 6)}" fill="${shade(k.jacket, -0.38)}" ${st()}/>`; });   // forearms (behind the torso), one step darker
   b += `<path d="M81.5 61 Q79.5 70 88 74 H112 Q120.5 70 118.5 61 Z" fill="${k.pants}" ${st()}/>`;   // seat / pelvis (sides peek above the cantle)
   b += `<path d="M79 49 Q79 40 90 39 L110 39 Q121 40 121 49 L117 66 Q100 70.5 83 66 Z" fill="url(#${u}j)" ${st(2.8)}/>`;   // torso, hem flaring at the belt
   b += `<path d="M84.5 63.8 Q100 68 115.5 63.8" fill="none" stroke="${shade(k.jacket, -0.35)}" stroke-width="2.2"/>`;   // belt line
   b += `<path d="M88.5 47 Q87.8 54 89 61" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".3"/>`;
   if (k.style !== "ponytail" && !k.bib) b += `<path d="M100 46 V66" stroke="${JD}" stroke-width="2" stroke-linecap="round"/>`;   // seam
   if (k.bib) {   // rivals: a big white emblem printed on the back (no card, so it never reads as a face)
-    const ey = 58, E = "#ffffff", es = stk(1.4, shade(k.jacket, -0.45)), ex = k.style === "ponytail" ? -6 : 0;
+    const ey = 58, E = "#ffffff", es = stk(1.4, shade(k.jacket, -0.45)), ex = k.style === "ponytail" ? 6 : 0;
     const em = {
       star: `<path d="${star(100, ey + 0.4, 6.4, 2.7)}" fill="${E}" ${es}/>`,
       heart: `<path d="${heartPath(100, ey - 1.2, 0.52)}" fill="${E}" ${es}/>`,
@@ -773,7 +775,7 @@ function riderBackParts(k, u) {
     };
     b += `<g transform="translate(${ex} 0)">${em[k.bib] || em.star}</g>`;
   }
-  [-1, 1].forEach((d) => { const X = (x) => 100 + d * (100 - x); b += `<path d="${capsule([X(83), 45], [X(77), 56], 7.5, 7)}" fill="${JD}" ${st()}/>`; });   // upper arms, angled out at the elbow
+  [-1, 1].forEach((d) => { const X = (x) => 100 + d * (100 - x); b += `<path d="${capsule([X(83), 45], [X(75), 56], 7.5, 7)}" fill="${JD}" ${st()}/><path d="M${X(73.6)} 53.8 Q${X(75.4)} 55.4 ${X(77.6)} 55" fill="none" stroke="${INK}" stroke-width="1.2" stroke-linecap="round" opacity=".8"/>`; });   // upper arms + elbow crease
   let lock = "";
   if (k.style === "ponytail") {
     b += `<path d="M86 36 Q100 40 114 36 Q113 44.5 100 45 Q87 44.5 86 36 Z" fill="${k.hair}" ${st(2)}/><path d="M91 42 Q100 43.6 109 42" fill="none" stroke="${shade(k.hair, 0.35)}" stroke-width="1.3" stroke-linecap="round" opacity=".8"/>`;
@@ -786,7 +788,7 @@ function riderBackParts(k, u) {
     b += `<path d="M91 41.5 Q97 43.6 103 42.6" fill="none" stroke="${shade(k.hair, 0.35)}" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>`;
   }
   b += `<path d="M87 42 Q100 47.5 113 42 L113.5 46 Q100 51.5 86.5 46 Z" fill="${shade(k.jacket, -0.3)}" ${st(2)}/>`;   // jacket collar
-  if (k.style === "ponytail") b += lock;
+  if (k.style === "ponytail") b += `<g transform="translate(200 0) scale(-1 1)">${lock}</g>`;
   // helmet: half-width 20, bottom unchanged (reads more like a child) + chin straps
   b += `<path d="M83.5 36 L87.5 44 M116.5 36 L112.5 44" stroke="${INK}" stroke-width="1.3" stroke-linecap="round"/>`;
   b += `<path d="M80 37 Q79 10 100 10 Q121 10 120 37 Q100 42 80 37 Z" fill="url(#${u}h)" ${st(2.8)}/>`;
@@ -797,7 +799,7 @@ function riderBackParts(k, u) {
   b += `<path d="M81.5 35.5 Q100 40.3 118.5 35.5" fill="none" stroke="${shade(helmet, white ? -0.15 : 0.4)}" stroke-width="1.8" opacity=".75"/>`;
   b += `<path d="M87 22 Q90.5 13.5 100 12.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".5"/>`;
   b += k.bib ? `<circle cx="100" cy="10.5" r="4" fill="${k.jacket}" ${st(1.6)}/>` : `<circle cx="100" cy="10.5" r="2.5" fill="${shade(helmet, 0.2)}" ${st(1.5)}/>`;
-  if (k.style === "ponytail") b += `<circle cx="111.4" cy="42" r="2.5" fill="${k.tie}" ${st(1.5)}/><circle cx="109.2" cy="40.6" r="1.7" fill="${k.tie}" ${st(1.3)}/>`;   // small scrunchie knot at the side
+  if (k.style === "ponytail") b += `<circle cx="88.6" cy="42" r="2.5" fill="${k.tie}" ${st(1.5)}/><circle cx="90.8" cy="40.6" r="1.7" fill="${k.tie}" ${st(1.3)}/>`;   // small scrunchie knot at the side
   g += `<g mask="url(#${u}x)"><g transform="translate(0 -1)">${b}</g></g>`;
   return { defs, body: g };
 }

@@ -46,7 +46,9 @@ module.exports = async (page) => {
   // overtake: put the player just ahead of the whole field → place 1
   const o = await page.evaluate(() => new Promise((res) => {
     const top = Math.max(...R3.rivals.map((x) => x.z)); R3.pos = top - (R3.carDepth || 0) + R3.segLen * 3;
-    setTimeout(() => res({ place: R3.place, chip: document.querySelector("#rh-place b").textContent }), 400);
+    // wait for a few frames (slow WebKit in CI): the place is recomputed each frame
+    const t0 = Date.now(), poll = () => (R3.place === 1 || Date.now() - t0 > 4000) ? res({ place: R3.place, chip: document.querySelector("#rh-place b").textContent }) : setTimeout(poll, 100);
+    setTimeout(poll, 200);
   }));
   check(o.place === 1, "overtaking everybody does not give 1st place: " + JSON.stringify(o));
   // finish line → results modal

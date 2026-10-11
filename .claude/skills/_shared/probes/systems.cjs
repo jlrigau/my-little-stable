@@ -88,6 +88,8 @@ module.exports = async (page) => {
     const out = await page.evaluate(async () => {
       if (!mounted) return { skipped: "not mounted" };
       startRace();
+      // a race with rivals / a chase holds the start for a 3-2-1 countdown (real seconds): wait for GO
+      for (let i = 0; i < 80 && R3.count > 0; i++) await new Promise((res) => setTimeout(res, 100));
       await new Promise((res) => setTimeout(res, 1200));
       return { on: R3.on, hud: !!document.querySelector("#race-hud:not(.hidden)"), pos: Math.round(R3.pos), time: R3.time };
     });
@@ -100,7 +102,11 @@ module.exports = async (page) => {
     check(steer > 0, "race: steering right did not move the car right");
     const fin = await page.evaluate(async () => {
       const wins = state.stats[GAME.race.stat || "raceWin"] || 0, coins = state.coins;
-      R3.pos = R3.finishZ - 10; await new Promise((res) => setTimeout(res, 300));
+      // put the player past the whole field (a race with rivals ranks it 1st), then over the line
+      (R3.rivals || []).forEach((x) => { x.z = Math.min(x.z, R3.finishZ - R3.segLen * 40); });
+      R3.pos = R3.finishZ - (R3.carDepth || 0) - 10;
+      for (let i = 0; i < 30 && R3.on; i++) await new Promise((res) => setTimeout(res, 100));
+      if (typeof closeModal === "function") closeModal();
       return { off: !R3.on, won: (state.stats[GAME.race.stat || "raceWin"] || 0) === wins + 1, paid: state.coins - coins };
     });
     out.finish = fin; check(fin.off && fin.won, "race: finishing did not end + count a win");

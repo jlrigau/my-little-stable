@@ -3032,7 +3032,7 @@ function openCloseup(c, a) {
   if (bg) bg.onload = cuPlaceSpots;        // re-place once natural size is known
 }
 
-// A point of a spot area at (u, v) in 0..1: a box {x,y,w,h}, or a QUAD {quad:[[x,y]×4]} (a slanted panel seen
+// A point of a spot area at (u, v) in 0..1: a box {x,y,w,h}, or a QUAD {quad:[[x,y]x4]} (a slanted panel seen
 // in perspective, corners in order around it) sampled bilinearly — kept a little inside its edges.
 function cuAreaPoint(ar, u, v) {
   if (!ar.quad) return [ar.x + u * ar.w, ar.y + v * ar.h];
