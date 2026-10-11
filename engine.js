@@ -2943,13 +2943,17 @@ function openCloseup(c, a) {
   // The backdrop can be overridden per creature variant (e.g. each child's own face).
   const cv = variantDef(variantId(c));
   const bgKey = (cv && cv.closeupBg) || cfg.bg;
-  const src = imgPath(bgKey, "closeup");
-  if (bg) { bg.src = src; bg.classList.remove("cu-fade"); }
   // optional "after" backdrop revealed on finish (e.g. the same face, now smiling)
   const doneKey = (cv && cv.closeupBgDone) || cfg.bgDone;
+  // optional LANDSCAPE backdrop (closeup.wide): used while the screen is wider than tall,
+  // swapped live on rotation; spots keep their place relative to their area.
+  const wide = cfg.wide ? {
+    bg: (cv && cv.closeupBgWide) || cfg.wide.bg, done: (cv && cv.closeupBgWideDone) || cfg.wide.bgDone,
+    areas: cfg.wide.area ? (Array.isArray(cfg.wide.area) ? cfg.wide.area : [cfg.wide.area]) : null, size: cfg.wide.size,
+  } : null;
   const bg2 = cuEl("closeup-bg2", "closeup-bg closeup-bg2", "img");
   bg2.draggable = false; bg2.alt = "";
-  if (doneKey) bg2.src = imgPath(doneKey, "closeup"); else bg2.removeAttribute("src");
+  if (bg) bg.classList.remove("cu-fade");
   bg2.classList.remove("show");
   if (bg && bg.nextSibling !== bg2) bg.parentNode.insertBefore(bg2, bg.nextSibling);   // just above the backdrop, under the spots
   stage.querySelectorAll(".cu-spot, .cu-emoji, .cu-foam, .cu-hint").forEach((n) => n.remove());
@@ -2965,10 +2969,10 @@ function openCloseup(c, a) {
   const placed = [];
   const sprites = cfg.spotSprites || (cfg.spotSprite ? [cfg.spotSprite] : null);
   for (let i = 0; i < count; i++) {
-    const ar = areas[i % areas.length];
-    let fx = 0, fy = 0;
+    const ai = i % areas.length, ar = areas[ai];
+    let fx = 0, fy = 0, u = 0, v = 0;
     for (let tries = 0; tries < 20; tries++) {
-      fx = ar.x + Math.random() * ar.w; fy = ar.y + Math.random() * ar.h;
+      u = Math.random(); v = Math.random(); fx = ar.x + u * ar.w; fy = ar.y + v * ar.h;
       if (!placed.some((p) => Math.hypot((p.x - fx) * 1.3, p.y - fy) < (sp.minGap || 0.07))) break;
     }
     placed.push({ x: fx, y: fy });
@@ -2979,7 +2983,9 @@ function openCloseup(c, a) {
     // to screen pixels in cuPlaceSpots() so it stays on the subject under object-fit:cover.
     s.dataset.fx = fx.toFixed(4);
     s.dataset.fy = fy.toFixed(4);
-    s.dataset.sz = String(size * rand(0.88, 1.12));
+    s.dataset.ai = String(ai); s.dataset.u = u.toFixed(4); s.dataset.v = v.toFixed(4);   // re-mapped onto closeup.wide areas
+    s.dataset.k = String(rand(0.88, 1.12));
+    s.dataset.sz = String(size * parseFloat(s.dataset.k));
     s.style.setProperty("--rot", (sp.rotate === false ? 0 : Math.floor(Math.random() * 50 - 25)) + "deg");
     s.style.animationDelay = (-Math.random() * 2).toFixed(2) + "s";
     s.dataset.rubs0 = String(rubs); s.dataset.rubs = String(rubs); s.dataset.t = "0";
@@ -3003,7 +3009,8 @@ function openCloseup(c, a) {
     const h = document.createElement("div"); h.className = "cu-hint"; h.innerHTML = iconHTML(cfg.hint || "hand");
     stage.appendChild(h);
   }
-  cuState = { c, a, remaining: count, total: count, pressed: false, ang: 0, lx: null, foamT: 0, scrubT: 0, bgRes: RES(bgKey) };
+  cuState = { c, a, remaining: count, total: count, pressed: false, ang: 0, lx: null, foamT: 0, scrubT: 0, bgRes: RES(bgKey),
+              narrow: { bg: bgKey, done: doneKey, areas, size }, wide: wide && wide.bg ? wide : null, mode: null };
   // Cinematic in: the camera swoops onto the creature, then the scene fades in.
   if (sc && RENDER.closeupZoom !== false) {
     zoomFx = true;
@@ -3020,6 +3027,30 @@ function openCloseup(c, a) {
   if (bg) bg.onload = cuPlaceSpots;        // re-place once natural size is known
 }
 
+// Pick the portrait or landscape (closeup.wide) backdrop for the current stage shape and
+// re-map every spot onto that backdrop's areas (same area index, same relative u/v).
+function cuSetMode() {
+  if (!cuState) return;
+  const stage = $("closeup-stage"), bg = $("closeup-bg"), bg2 = $("closeup-bg2");
+  const isWide = !!cuState.wide && stage && stage.clientWidth > stage.clientHeight * 1.05;
+  const mode = isWide ? "wide" : "narrow";
+  if (cuState.mode === mode) return;
+  cuState.mode = mode;
+  const m = isWide ? cuState.wide : cuState.narrow, n = cuState.narrow;
+  const imgPath = (k) => av(assetPath(k) || ("assets/img/" + k + ".png"));
+  cuState.bgRes = RES(m.bg);
+  if (bg) bg.src = imgPath(m.bg);
+  if (bg2) { if (m.done) bg2.src = imgPath(m.done); else bg2.removeAttribute("src"); }
+  const areas = m.areas || n.areas, size = m.size || n.size;
+  stage.querySelectorAll(".cu-spot").forEach((s) => {
+    const ar = areas[(parseInt(s.dataset.ai, 10) || 0) % areas.length];
+    if (s.dataset.u == null || !ar) return;
+    s.dataset.fx = (ar.x + parseFloat(s.dataset.u) * ar.w).toFixed(4);
+    s.dataset.fy = (ar.y + parseFloat(s.dataset.v) * ar.h).toFixed(4);
+    s.dataset.sz = String(size * (parseFloat(s.dataset.k) || 1));
+  });
+}
+
 // Map each spot's image-fraction (fx,fy) to screen px under object-fit:cover, so the
 // backdrop can fill the whole screen (cropped) while spots stay glued to the subject.
 function cuCover() {
@@ -3033,6 +3064,7 @@ function cuCover() {
 }
 function cuPlaceSpots() {
   const stage = $("closeup-stage"); if (!stage) return;
+  cuSetMode();
   const c = cuCover();
   stage.querySelectorAll(".cu-spot").forEach((s) => {
     const px = (parseFloat(s.dataset.sz) || 64) * c.s;
@@ -3691,7 +3723,9 @@ function r3Render() {
   }
   for (let n = drawn.length - 1; n >= 0; n--) { const s = drawn[n]; s.sprites.forEach((sp) => r3Billboard(s, sp)); s.obstacles.forEach((o) => { if (!o.dead) r3Billboard(s, o); }); }
   if (R3.car) {
-    const w = W * 0.32, h = w * (R3.car.height / R3.car.width), bob = Math.sin(R3.pos * 0.05) * 2;
+    // race.rideWidth: the ride's FRAME width as a fraction of the screen (0.32); a narrow drawing (e.g. a horse
+    // from behind) needs a larger frame. Capped so the ride never exceeds 55 % of the height (landscape).
+    const asp = R3.car.height / R3.car.width, w = Math.min(W * (RACE.rideWidth || 0.32), H * 0.55 / asp), h = w * asp, bob = Math.sin(R3.pos * 0.05) * 2;
     // the depth (world units ahead of the camera) whose road row is under the car's wheels
     const carY = H - Math.max(90, H * 0.12) - h * 0.12;
     R3.carDepth = carY > H / 2 + 1 ? R3.camD * R3.camH * (H / 2) / (carY - H / 2) : 0;

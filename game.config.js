@@ -269,6 +269,7 @@ window.GAME = {
   race: {
     time: 60, reward: 30, stat: "raceWin", hitPenalty: 3,
     sprite: "horse_back_bai",               // each coat has its own rear view (variant.raceSprite)
+    rideWidth: 0.56,                         // the horse from behind is tall and narrow: bigger frame
     roadside: ["pine", "tree", "pine", "bush", "pine", "tree"], roadsideScale: 5,   // a forest cross: dense trees
     topSpeed: 55, speedUnit: "km/h",         // a galloping horse, not a car
     spriteZoom: 0.13,
@@ -276,10 +277,10 @@ window.GAME = {
     tiredSpeed: 0.5, tiredMessage: "{name} est épuisé, il ralentit !",
     track: { segments: 900, speed: 0.85, steer: 2.4, centrifugal: 0.5 },
     obstacles: [
-      { sprite: "race_log", every: 34, phase: 0, scale: 3.4, hw: 0.32, spread: 0.5 },
-      { sprite: "race_hurdle", every: 46, phase: 20, scale: 3.4, hw: 0.32, spread: 0.5 },
-      { sprite: "horse_back_noir", every: 58, phase: 38, scale: 6.5, hw: 0.32, spread: 0.45 },
-      { sprite: "horse_back_gris", every: 58, phase: 9, scale: 6.5, hw: 0.32, spread: 0.45 },
+      { sprite: "race_log", every: 34, phase: 0, scale: 6.5, hw: 0.32, spread: 0.5 },
+      { sprite: "race_hurdle", every: 46, phase: 20, scale: 6.5, hw: 0.32, spread: 0.5 },
+      { sprite: "horse_back_noir", every: 58, phase: 38, scale: 11, hw: 0.3, spread: 0.45 },
+      { sprite: "horse_back_gris", every: 58, phase: 9, scale: 11, hw: 0.3, spread: 0.45 },
     ],
     colors: { sky: ["#7cc6f0", "#a8dcf5", "#e8f6ff"], sun: ["#fff3a8", "#ffd24a"], skyline: false, ground: "#5ea446",
               grass: ["#78bb58", "#6cae4e"], road: ["#d9b37a", "#cfa86e"], rumble: ["#b88a55", "#a87c4a"], lane: "#e3c491", finish: ["#ffffff", "#4a3428"] },   // sandy cross path

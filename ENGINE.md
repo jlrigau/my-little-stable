@@ -229,7 +229,7 @@ moodFrom: ["food","energy","clean","joy"],   // needs averaged into the mood hea
 showBars: true,                        // false → hide the per-need bars in the panel (kid-friendly)
 moodDay: { base, lowPenalty, lowAt, highBonus, highAt },   // overnight mood rule
 needs: [ { id, icon, label, start, perDay } ],      // perDay = overnight delta (0..100 bars)
-variants: [ { id, name, color, tint?, sheet?, happySheet?, closeupBg?, closeupBgDone?, thumb?, fixedName?, raceSprite? } ],
+variants: [ { id, name, color, tint?, sheet?, happySheet?, closeupBg?, closeupBgDone?, closeupBgWide?, closeupBgWideDone?, thumb?, fixedName?, raceSprite? } ],
    // sheet = a dedicated, animated spritesheet for this variant (else base sheet + optional tint);
    // raceSprite = this variant's own rear-view image in the race (else race.sprite tinted by `tint`);
    // thumb = image path shown in the customize preview; fixedName = the variant IS a person
@@ -364,6 +364,11 @@ action = {
     progress: false,              // hide the progress bar (fixed size: one star slot per spot up to
                                   //   spots.max — this round's stars grey→gold, later ones dimmed)
     finishDelay: 1900,            // ms before returning to the world
+    wide: { bg, bgDone?, area?, size? }?, // LANDSCAPE backdrop (e.g. the whole car in 3/4 view) used while the
+                                  //   screen is wider than tall, swapped live on rotation; per creature via
+                                  //   variant.closeupBgWide / closeupBgWideDone. `area` = the same NUMBER of
+                                  //   regions in the same order as spots.area: a spot keeps its region and
+                                  //   relative position when the backdrop swaps. Omitted → spots.area / size.
   },
   effects:{ need:+/- }, reward?, stat?, message?, celebrateMessage?,
 }
@@ -516,7 +521,7 @@ runs out while dodging obstacles (hit where they reach the car on screen, not at
 A variant with its own `raceSprite` (e.g. creatures drawn as separate sheets) uses it instead of the tinted `race.sprite`. The ride's `speedMul` / `grip` change top speed / steering.
 The HUD (timer, distance, speed, quit, steering hints) is DOM with the game's icons.
 ```
-race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys], roadsideScale:3.4, spriteZoom,   // sprite width = road half-width × scale × spriteZoom
+race: { time, reward, stat:"raceWin", hitPenalty, sprite, rideWidth:0.32 /* ride frame width / screen width (capped at 55 % of the height) */, roadside:[image keys], roadsideScale:3.4, spriteZoom,   // sprite width = road half-width × scale × spriteZoom
                                          // (≈0.13 makes an obstacle car the size of yours when it reaches you)
   track:{ segments, speed, steer, centrifugal, curveEvery, seed },
   obstacles:[{ sprite, every, phase, scale, hw, spread }],

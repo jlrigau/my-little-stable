@@ -43,6 +43,11 @@ Checklist — answer each explicitly (write down the defects you find):
   goes — draw its walk strip with the face turned ~3/4 towards the left (eye, mouth, cheeks
   shifted; e.g. `critter({look, turn})` in nebula.cjs), never a straight front face. Check a
   ridden one going left AND right (rider and mount face the same way).
+- **Realistic proportions in unusual views** (rear view for a race, 3/4…): compare with a real
+  reference in your head and SCRIPT a ratio check. A horse from behind is TALL and NARROW (rump
+  ≤ ~2× the rider's back, art ≤ ~half the frame width); a rider's thighs are hidden by the rump,
+  only the lower legs hang along the flanks. (The owner once saw "big buttocks" and frog legs.)
+  A narrow drawing then needs a bigger frame in-game (`race.rideWidth`), not a wider drawing.
 - **Variants** differ clearly (colour, hair…) but share the same anatomy.
 - **Sharpness (no blur)**: crop at the DPR-3 (iPhone) resolution — art must be rendered at
   ≥ 2× its displayed size (`svg-kit` `hidpi()` rules + `res` in `GAME.assets`, see ENGINE.md
@@ -50,7 +55,8 @@ Checklist — answer each explicitly (write down the defects you find):
 - **App icons**: look at `apple-touch-icon`, `icon-192` and the maskable icon cropped to a
   circle — subject centred, nothing touching the edge, readable at 60 px.
 - **Backdrops / close-ups**: the subject's important area stays inside the phone crop
-  (portrait cover-fit crops ~17% on each side of a 900-wide image).
+  (portrait cover-fit crops ~17% on each side of a 900-wide image). A close-up that should also
+  look good with the phone held sideways gets a `closeup.wide` landscape backdrop.
 
 ## 3. Look at the game — real screenshots
 ```bash
