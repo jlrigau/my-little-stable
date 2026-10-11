@@ -21,6 +21,7 @@
 window.GAME = {
   /* ---- Identity, theming, UI strings ---- */
   meta: {
+    lang: "en",                        // source language of every text (translations: game.i18n.js, see ENGINE.md Languages)
     title: "Nebula Nursery",
     titleIcon: "critter",
     logo: "assets/img/logo.webp",       // big illustrated logo on the home screen

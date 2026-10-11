@@ -71,8 +71,9 @@ window.GAME = {
 
 ### `meta`
 Identity, theming and **all UI strings** (every label has an engine fallback, so you
-can override only what you want).
+can override only what you want). Texts are in `meta.lang`; translations: see **Languages**.
 ```
+lang: "en" | "fr" | …,                // source language of every text in this config
 title, titleIcon, logo ("assets/img/logo.png" — big home-screen image), shortName, tagline, saveKey, assetVersion: "vN",
 legacySave: { key: "old-key" | ["k1","k2"], migrate: (old) => stateLike },   // see below
 audience: { minAge, notes },          // used by the asset skills' content policy
@@ -619,6 +620,33 @@ help: [ "html string", ... ]
 `check` is a function receiving the full `state` (`state.coins`, `state.day`,
 `state.creatures`, `state.stats`, `state.capacity`, `state.resources`, …).
 Action `stat` ids are auto-tracked in `state.stats`; declare extra ones in `extraStats`.
+
+### Languages (`meta.lang` + `game.i18n.js`)
+A game is written in ONE source language (`meta.lang`, default `"en"`); every other language is a
+**dictionary keyed by the exact source string** in `game.i18n.js` (loaded by `index.html` between
+`game.config.js` and `engine.js`):
+```
+window.GAME_I18N = window.GAME_I18N || {};
+window.GAME_I18N.en = { "Nourrir": "Feed", "{name} a faim !": "{name} is hungry!", ... };
+window.GAME_I18N.fr = { "Shop": "Boutique", ... };   // in a FRENCH game: only the engine's English fallbacks
+```
+- Active language = saved choice (`<saveKey>-lang`) > browser language > `meta.lang`. The engine
+  translates the whole `GAME` object once at boot (keys that hold ids/assets are skipped:
+  `id`, `sheet`, `sprite`, `path`, `icon`, `*Id`, `*Sheet`, `*Bg`…), so every system stays
+  language-agnostic and texts that reference each other (a mission target inside a message)
+  stay consistent. Engine fallbacks go through `L("...")` / `T(key, "...")`.
+- A missing or `""` entry falls back to the source text. Keep `{i:key}` / `{name}` tokens and
+  `<b>` markup identical. Proper names may map to themselves.
+- Names already stored in a save (creatures, current mission places) are re-languaged at load.
+- UI: when a second language exists, two round flags (built-in fr / en, or `GAME.icons.flag_<lang>`)
+  form ONE toggle at the home screen's top-left: a small pill (`--chip-bg`) with the round flags and
+  a `--primary` knob sliding behind the active one (44 px tap target). A tap switches to
+  the next language, saves it and reloads. Nothing in the game screen. Keep that corner of the logo clear.
+- Tooling: `node .claude/skills/_shared/i18n-extract.cjs --to <lang>` adds the missing keys,
+  `--check` lists untranslated ones (run it after ANY text change in the config), `--prune` drops
+  stale keys. Probe: `probes/i18n.cjs` (other language: no source text left on screen, toggle
+  placement, toggle round-trip). Text baked into images (logos, signs) is not translated: keep
+  it language-neutral (names, numbers) or provide per-language art.
 
 ## Art pipeline (SVG → PNG)
 ```bash

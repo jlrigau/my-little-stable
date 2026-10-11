@@ -49,9 +49,13 @@ module.exports = async (page) => {
   const p3 = await probe(); await shot(page, "cw-back");
   check(p3.mode === "narrow" && p3.src === p1.src && p3.n === p1.n && p3.out === 0, "rotating back failed: " + JSON.stringify(p3));
   await page.setViewportSize({ width: vp.height, height: vp.width }); await wait(page, 900);
+  // latch the reveal: under load the whole reveal can play (and the close-up close) during scrubAll
+  await page.evaluate(() => { const b2 = document.getElementById("closeup-bg2"); window.__cuFin = null;
+    const grab = () => { if (b2.classList.contains("show") && !window.__cuFin) window.__cuFin = { show: true, src: (b2.src || "").split("/").pop() }; };
+    new MutationObserver(grab).observe(b2, { attributes: true, attributeFilter: ["class", "src"] }); });
   await scrubAll(page);
-  await page.waitForFunction(() => { const b2 = document.getElementById("closeup-bg2"); return b2 && b2.classList.contains("show"); }, null, { timeout: 4000 }).catch(() => {});
-  const fin = await page.evaluate(() => { const b2 = document.getElementById("closeup-bg2"); return { show: b2.classList.contains("show"), src: (b2.src || "").split("/").pop() }; });
+  await page.waitForFunction(() => !!window.__cuFin, null, { timeout: 4000 }).catch(() => {});
+  const fin = await page.evaluate(() => { const b2 = document.getElementById("closeup-bg2"); return window.__cuFin || { show: b2.classList.contains("show"), src: (b2.src || "").split("/").pop() }; });
   await shot(page, "cw-finish");
   check(fin.show && /_wide/.test(fin.src), "landscape finish did not reveal the wide 'done' backdrop: " + JSON.stringify(fin));
   await wait(page, 2500);

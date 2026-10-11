@@ -32,6 +32,9 @@ Whenever the engine gains a capability, **add it to Nebula too** (it must show e
 - `style.css` — the game's **theme only** (CSS variables + `@font-face` + a few decorative rules).
 - `engine.js` — the engine (all systems, parameterised by `GAME`).
 - `game.config.js` — THE GAME (data + asset refs). The file you edit/replace per game.
+- `game.i18n.js` — translations of the config's texts (`meta.lang` = source language; dictionary
+  keyed by source string). After ANY text change: `node .claude/skills/_shared/i18n-extract.cjs --to <lang>`
+  then fill the "" values (`--check` must pass; probe `probes/i18n.cjs`).
 - `ENGINE.md` — full `GAME` config schema + capability list. **Read it before editing config.**
 - `assets/` — `img/` (single sprites), `sheet/` (spritesheets), `ui/` (thumbnails),
   `CREDITS.md`. `vendor/phaser.min.js` + `vendor/fonts/` (Fredoka, OFL) — vendored.
@@ -71,7 +74,7 @@ guide arrow · unlocks (milestones add scenery) · juice (toast queue, flying re
 confetti, cinematic close-up zoom, before/after reveal) · vehicles & city systems
 (top-down `dirSheet` creatures, hidden/seated riders, station menus + paid restyle,
 missions, chase/wanted level, buyable models with stats, pseudo-3D race) · legacy save
-migration (`meta.legacySave`).
+migration (`meta.legacySave`) · languages (`game.i18n.js`, flag toggle on the home screen).
 
 ## 7. Skills (`.claude/skills/`)
 Game-agnostic Claude Code skills operating on the config/assets. Orchestrators:
@@ -167,6 +170,11 @@ like a game made by a studio — not a prototype. Concretely:
   (`visual-review/references/adversarial-review.md`), fixed and re-reviewed until ≥ 8/10 —
   so the owner doesn't have to find defects one by one. Pass the owner's past decisions to
   the reviewer so it never proposes to undo them.
+- **Every game is bilingual French / English** (owner request): texts in `meta.lang`, the other
+  language in `game.i18n.js`. The switch lives on the HOME screen only, top-left: ONE button, a small pill in the game's
+  `--chip-bg` with two ROUND flags and a `--primary` knob that slides behind the active one; a tap
+  switches. Owner iterations (don't redo them): text `FR · EN` = invisible; big 40 px flags = too
+  big; tiny footer flags = no; flags merged into a split pill = "pas fan" → KEEP this knob toggle. Any new/changed text ships translated (`--check`).
 - New owner feedback → add it to this section (via **capitalize-learnings**).
 
 ## 10. This game — « Mon Centre Équestre » (my-little-stable)
