@@ -676,7 +676,7 @@ function horseBack(coatId) {
   g += `<path d="M92 20 Q94 14 100 13" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".5"/><circle cx="100" cy="10.5" r="2.2" fill="${shade(R.helmet, 0.2)}" ${stk(1.6)}/>`;
   g += `<path d="M84 72 Q100 66 116 72 Q114 78 100 77 Q86 78 84 72 Z" fill="${shade(WOOD_D, -0.1)}" ${stk(2.6, ink)}/>`;   // cantle: hips sunk in the saddle
   // thighs down along the barrel (hip → knee), partly behind the croup
-  const HIP = [90, 72], KNEE = [64.5, 94], BOOT = [64, 124];
+  const HIP = [90, 72], KNEE = [76, 88];
   const mx = (p, d) => [100 + (p[0] - 100) * d, p[1]];
   [-1, 1].forEach((d) => { const dd = -d; g += `<path d="${capsule(mx(HIP, dd), mx(KNEE, dd), 13, 11)}" fill="${R.pants}" ${stk(2.6)}/>`; });
   // --- hind legs: slim columns (gaskin → hock → cannon → small hoof)
@@ -702,14 +702,12 @@ function horseBack(coatId) {
   const tail = spline([[93, 74], [100, 70], [107, 74], [108, 96], [110, 118], [111, 135], [107, 141], [103, 137], [100, 141], [97, 137], [93, 141], [89, 135], [90, 118], [92, 96]], true);
   g += `<path d="${tail}" fill="url(#${u}m)" ${st}/>`;
   g += `<path d="M97 80 Q95 108 95 132 M103 80 Q105 106 105 130 M100 84 Q100 110 100 134" fill="none" stroke="${shade(maneC, 0.32)}" stroke-width="1.8" stroke-linecap="round" opacity=".55"/>`;
-  // --- lower legs hanging vertically against the flanks, boots in small stirrups (y≈126)
+  // --- the rider's legs are hidden by the horse: only the boot heels in the stirrups peek out under the belly
   [-1, 1].forEach((d) => {
-    const k = mx(KNEE, -d), b = mx(BOOT, -d);
-    g += `<path d="M${b[0]} 100 L${b[0]} 126" stroke="${INK}" stroke-width="1.8"/>`;
-    g += `<path d="${capsule(k, b, 9.5, 8.5)}" fill="${R.boots}" ${stk(2.6)}/>`;
-    g += `<path d="${capsule([k[0], k[1] - 2], [k[0], k[1] + 6], 10.5, 10)}" fill="${R.pants}" ${stk(2.6)}/>`;   // knee peeking at the barrel edge
-    g += `<path d="M${b[0] - 3.5} 127 H${b[0] + 3.5}" stroke="${INK}" stroke-width="5" stroke-linecap="round"/><path d="M${b[0] - 3.5} 127 H${b[0] + 3.5}" stroke="#d8dde4" stroke-width="2.4" stroke-linecap="round"/>`;
-    g += `<path d="M${b[0] + 2 * d} 106 L${b[0] + 2 * d} 118" stroke="#fff" stroke-width="1.4" opacity=".35" stroke-linecap="round"/>`;
+    const x = 100 + d * 30;
+    g += `<path d="M${x - 4} 103.5 Q${x - 4} 101 ${x} 101 Q${x + 4} 101 ${x + 4} 103.5 L${x + 4} 110 Q${x} 112 ${x - 4} 110 Z" fill="${R.boots}" ${stk(2.4)}/>`;
+    g += `<path d="M${x - 1.5 * d} 103 V108" stroke="#fff" stroke-width="1.2" opacity=".35" stroke-linecap="round"/>`;
+    g += `<path d="M${x - 4.5} 112.5 H${x + 4.5}" stroke="${INK}" stroke-width="4.6" stroke-linecap="round"/><path d="M${x - 4.5} 112.5 H${x + 4.5}" stroke="#d8dde4" stroke-width="2" stroke-linecap="round"/>`;
   });
   return job(`assets/img/horse_back_${coatId}.png`, W, H, g, defs);
 }
