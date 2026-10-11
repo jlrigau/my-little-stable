@@ -382,6 +382,29 @@ input[type="text"]::placeholder { color: var(--muted); opacity: 0.65; }
 .rh-top .resource b { display: inline-block; text-align: right; }
 #rh-time b { min-width: 3em; } #rh-dist b { min-width: 3.6em; } #rh-speed b { min-width: 4.5em; }
 @media (max-width: 359px) { .rh-top .resource { padding: 0 7px 0 26px; } .rh-top .resource b { min-width: 0 !important; } .rh-top { gap: 2px; } }
+.rh-top .resource.rh-place b { min-width: 3.2em; }
+.rh-top .resource.rh-place.pop { animation: rhPop .45s cubic-bezier(.3,1.6,.5,1); }
+@keyframes rhPop { 0% { transform: scale(1); } 40% { transform: scale(1.28); } 100% { transform: scale(1); } }
+/* race results (race.rivals): podium list in the ribbon modal */
+.race-results { display: flex; flex-direction: column; gap: 10px; }
+.rr-head { text-align: center; font-size: 1.15rem; font-weight: 700; margin: 0; }
+.rr-list { display: flex; flex-direction: column; gap: 6px; }
+.rr-row { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 14px; background: rgba(0, 0, 0, 0.06); }
+.rr-row.you { background: var(--accent, #ffd24a); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15); font-weight: 700; }
+.rr-row b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr-head-ico { width: 32px; height: 32px; flex: 0 0 32px; object-fit: cover; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, .25); }
+.rr-medal.m2 .ico { filter: grayscale(1) brightness(1.15); } .rr-medal.m3 .ico { filter: sepia(1) saturate(1.6) hue-rotate(-12deg) brightness(.85); }
+.rr-swatch { width: 14px; height: 14px; flex: 0 0 14px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, 0.35); }
+.rr-time { font-variant-numeric: tabular-nums; opacity: .75; font-size: .9rem; }
+.rr-medal { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; background: rgba(0, 0, 0, 0.12); }
+.rr-medal .ico { width: 26px; height: 26px; }
+.rr-medal.m1 { background: linear-gradient(#ffe27a, #f2b33d); } .rr-medal.m2 { background: linear-gradient(#f1f3f8, #b9c0cf); }
+.rr-medal.m3 { background: linear-gradient(#f2c49a, #c9844e); }
+.rr-sub { text-align: center; margin: 0; opacity: .8; }
+.rh-chase .rh-gauge i { background: linear-gradient(90deg, #5aa0ff, #ff4d6a); }
+.rr-reward { text-align: center; font-size: 1.3rem; font-weight: 800; margin: 2px 0 0; }
+.rr-reward .ico { width: 1.6em; height: 1.6em; vertical-align: -0.5em; }
 .rh-top .resource.warn { border-color: var(--bad); animation: heatPulse .6s ease-in-out infinite; }
 .rh-quit { margin-left: auto; pointer-events: auto; }
 .rh-steer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

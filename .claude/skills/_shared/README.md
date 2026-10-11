@@ -22,6 +22,8 @@ run by Claude Code through the **Bash** tool.
 | `contact-sheet.py` | Labelled contact sheet(s) of a folder of screenshots: `python3 contact-sheet.py DIR`. |
 | `probes/jitter.cjs` | A ridden creature/vehicle must not shake: three tap-to-move rides at ~15 fps (CPU ×6), fails on flip-flopping facing or a destination never reached. |
 | `probes/racehud.cjs` | Race HUD on one row: time / distance / speed chips never wrap, overlap or spill their value, even with the longest values. Run on 390, 360 and 320 px wide devices. |
+| `probes/racerivals.cjs` | Real race (`race.rivals`): grid start behind the field, countdown holds the start, live place chip, overtaking gives 1st, finish opens the results (full ranking, player highlighted), reward + raceWin/racePodium stats. |
+| `probes/cuwide.cjs` | Close-up rotation (`closeup.wide`): portrait → landscape → portrait swaps the backdrop, keeps every spot on the subject, finishes on the wide "done" image. Run on WebKit iPhone 13 for any game whose close-up has a `wide` backdrop. |
 | `probes/barriers.cjs` | Trail-loop barriers seal the path: riding, nothing gets past at any height (only Jump clears it); on foot the character hops over and tap-to-move reaches every section (no soft-lock). |
 | `probes/edges.cjs` | The trail-loop edges are a wall: walking from the path towards each edge (on foot and riding) never ends up past the hedge band. |
 | `probes/edgegap.cjs` | The player stops right at the drawn edge of the band (hedges, rocks): gap <= 14 px walking towards it in the 4 directions, never inside the drawing. |

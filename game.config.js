@@ -47,7 +47,7 @@ window.GAME = {
       };
     } },
     audience: { minAge: 9, notes: "kids 9–10, girls AND boys, cute but NOT manga, horses & riding, no scary content, light reading" },
-    assetVersion: "v16",
+    assetVersion: "v17",
     theme: { home: "#bfe6f5", play: "#7cbf5a", closeup: "#e9f6ff" },
 
     showCoins: true,
@@ -108,6 +108,8 @@ window.GAME = {
     horseshoe: "assets/ui/icons/horseshoe.webp", jump: "assets/ui/icons/jump.webp", house: "assets/ui/icons/house.webp",
     shop: "assets/ui/icons/shop.webp", energy: "assets/ui/icons/energy.webp", clean: "assets/ui/icons/clean.webp",
     food: "assets/ui/icons/food.webp", rest: "assets/ui/icons/rest.webp", foal: "assets/ui/icons/foal.webp", stall: "assets/ui/icons/stall.webp",
+    timer: "assets/ui/icons/timer.webp", distance: "assets/ui/icons/distance.webp", speed: "assets/ui/icons/speed.webp", quit: "assets/ui/icons/quit.webp",
+    left: "assets/ui/icons/left.webp", right: "assets/ui/icons/right.webp", flag: "assets/ui/icons/flag.webp",
   },
 
   /* ---- Look & feel: smooth hi-res art, sunny pollen motes ---- */
@@ -151,6 +153,23 @@ window.GAME = {
       flank_gray: { path: "assets/img/flank_gris.webp", res: 2 }, flank_gray_done: { path: "assets/img/flank_gris_done.webp", res: 2 },
       flank_golden: { path: "assets/img/flank_palomino.webp", res: 2 }, flank_golden_done: { path: "assets/img/flank_palomino_done.webp", res: 2 },
       flank_white: { path: "assets/img/flank_blanc.webp", res: 2 }, flank_white_done: { path: "assets/img/flank_blanc_done.webp", res: 2 },
+      horse_back_bai: { path: "assets/img/horse_back_bai.webp", res: 2 }, horse_back_noir: { path: "assets/img/horse_back_noir.webp", res: 2 },
+      // race: the player's own rider seen from behind (drawn over the horse) + rival competitors
+      rider_back_fille: { path: "assets/img/rider_back_fille.webp", res: 2 }, rider_back_garcon: { path: "assets/img/rider_back_garcon.webp", res: 2 },
+      rider_rival_1: { path: "assets/img/rider_rival_1.webp", res: 2 }, rider_rival_2: { path: "assets/img/rider_rival_2.webp", res: 2 },
+      rider_rival_3: { path: "assets/img/rider_rival_3.webp", res: 2 }, rider_rival_4: { path: "assets/img/rider_rival_4.webp", res: 2 },
+      rider_rival_5: { path: "assets/img/rider_rival_5.webp", res: 2 },
+      // results-screen portraits (helmet seen from behind)
+      start_gate: { path: "assets/img/start_gate.webp", res: 2 },
+      rider_head_fille: { path: "assets/img/rider_head_fille.webp", res: 2 }, rider_head_garcon: { path: "assets/img/rider_head_garcon.webp", res: 2 },
+      rival_head_1: { path: "assets/img/rival_head_1.webp", res: 2 },
+      rival_head_2: { path: "assets/img/rival_head_2.webp", res: 2 },
+      rival_head_3: { path: "assets/img/rival_head_3.webp", res: 2 },
+      rival_head_4: { path: "assets/img/rival_head_4.webp", res: 2 },
+      rival_head_5: { path: "assets/img/rival_head_5.webp", res: 2 },
+      horse_back_gris: { path: "assets/img/horse_back_gris.webp", res: 2 }, horse_back_palomino: { path: "assets/img/horse_back_palomino.webp", res: 2 },
+      horse_back_blanc: { path: "assets/img/horse_back_blanc.webp", res: 2 },
+      race_log: { path: "assets/img/race_log.webp", res: 2 }, race_hurdle: { path: "assets/img/race_hurdle.webp", res: 2 },
       mud_1: "assets/img/mud_1.webp", mud_2: "assets/img/mud_2.webp", straw: "assets/img/straw.webp", curry: "assets/img/curry.webp",
     },
     sheets: {
@@ -177,8 +196,8 @@ window.GAME = {
     shadow: { w: 34, h: 12 },
   },
   characters: [
-    { id: "fille", name: "Cavalière", sheet: "kid_fille", rideSheet: "kid_fille_ride", thumb: "assets/ui/kid_fille.webp" },
-    { id: "garcon", name: "Cavalier", sheet: "kid_garcon", rideSheet: "kid_garcon_ride", thumb: "assets/ui/kid_garcon.webp" },
+    { id: "fille", name: "Cavalière", sheet: "kid_fille", rideSheet: "kid_fille_ride", raceRider: "rider_back_fille", raceHead: "rider_head_fille", thumb: "assets/ui/kid_fille.webp" },
+    { id: "garcon", name: "Cavalier", sheet: "kid_garcon", rideSheet: "kid_garcon_ride", raceRider: "rider_back_garcon", raceHead: "rider_head_garcon", thumb: "assets/ui/kid_garcon.webp" },
   ],
 
   /* ---- Horses ---- */
@@ -205,11 +224,11 @@ window.GAME = {
     // a little carrot bubble pops up now and then above a hungry horse (with the mood heart below it)
     wantBubble: { sprite: "want", need: "faim", below: 35, scale: 0.5, lift: 26, withMood: true, intermittent: true, showFor: 2.4, hideMin: 4, hideMax: 10 },
     variants: [
-      { id: "brown", name: "Bai", color: "#8a5a2b", sheet: "horse_brown", thumb: "assets/ui/horse_bai.webp", closeupBg: "flank_brown", closeupBgDone: "flank_brown_done" },
-      { id: "black", name: "Noir", color: "#3a332e", sheet: "horse_black", thumb: "assets/ui/horse_noir.webp", closeupBg: "flank_black", closeupBgDone: "flank_black_done" },
-      { id: "gray", name: "Gris", color: "#a3a19c", sheet: "horse_gray", thumb: "assets/ui/horse_gris.webp", closeupBg: "flank_gray", closeupBgDone: "flank_gray_done" },
-      { id: "golden", name: "Palomino", color: "#d4a94e", sheet: "horse_golden", thumb: "assets/ui/horse_palomino.webp", closeupBg: "flank_golden", closeupBgDone: "flank_golden_done" },
-      { id: "white", name: "Blanc", color: "#ece6da", sheet: "horse_white", thumb: "assets/ui/horse_blanc.webp", closeupBg: "flank_white", closeupBgDone: "flank_white_done" },
+      { id: "brown", raceSprite: "horse_back_bai", name: "Bai", color: "#8a5a2b", sheet: "horse_brown", thumb: "assets/ui/horse_bai.webp", closeupBg: "flank_brown", closeupBgDone: "flank_brown_done" },
+      { id: "black", raceSprite: "horse_back_noir", name: "Noir", color: "#3a332e", sheet: "horse_black", thumb: "assets/ui/horse_noir.webp", closeupBg: "flank_black", closeupBgDone: "flank_black_done" },
+      { id: "gray", raceSprite: "horse_back_gris", name: "Gris", color: "#a3a19c", sheet: "horse_gray", thumb: "assets/ui/horse_gris.webp", closeupBg: "flank_gray", closeupBgDone: "flank_gray_done" },
+      { id: "golden", raceSprite: "horse_back_palomino", name: "Palomino", color: "#d4a94e", sheet: "horse_golden", thumb: "assets/ui/horse_palomino.webp", closeupBg: "flank_golden", closeupBgDone: "flank_golden_done" },
+      { id: "white", raceSprite: "horse_back_blanc", name: "Blanc", color: "#ece6da", sheet: "horse_white", thumb: "assets/ui/horse_blanc.webp", closeupBg: "flank_white", closeupBgDone: "flank_white_done" },
     ],
     actions: [
       { id: "nourrir", label: "Nourrir", icon: "food", color: "#f2a341",
@@ -235,6 +254,7 @@ window.GAME = {
         celebrateMessage: "{i:joy} {name} est au comble du bonheur, il se cabre de joie !" },
       { id: "monter", type: "ride", label: "Monter", icon: "saddle", color: "#7cc96a", dismountLabel: "Descendre", dismountIcon: "close" },
       { id: "sauter", type: "jump", label: "Sauter", icon: "jump", color: "#ffb43a" },
+      { id: "course", type: "race", label: "Course", icon: "flag", color: "#ff8a65" },
       { id: "relooker", type: "customize", label: "Relooker", icon: "palette", color: "#b48ae6" },
     ],
     ride: {
@@ -256,6 +276,51 @@ window.GAME = {
     names: ["Éclair", "Tornade", "Caramel", "Étoile", "Tonnerre", "Cannelle", "Bandit", "Mistral", "Pépite", "Comète", "Bravo", "Sable"],
     startCount: 1,
     startCreatures: [{ name: "Éclair", variant: "brown" }],
+  },
+
+  /* ---- Course de cross: a race seen from behind your horse, in the forest (mounted action "Course") ---- */
+  race: {
+    time: 60, reward: 30, stat: "raceWin", hitPenalty: 3,
+    sprite: "horse_back_bai",               // each coat has its own rear view (variant.raceSprite)
+    rideWidth: 0.56,                         // the horse from behind is tall and narrow: bigger frame
+    roadside: ["pine", "tree", "pine", "bush", "pine", "tree"], roadsideScale: 5,   // a forest cross: dense trees
+    topSpeed: 55, speedUnit: "km/h",         // a galloping horse, not a car
+    spriteZoom: 0.13,
+    drain: 0.9,                              // a race tires the horse a little (energy gauge on screen)
+    tiredSpeed: 0.5, tiredMessage: "{name} est épuisé, il ralentit !",
+    track: { segments: 900, speed: 0.85, steer: 2.4, centrifugal: 0.5 },
+    obstacles: [
+      { sprite: "race_log", every: 40, phase: 0, scale: 6.5, hw: 0.32, spread: 0.5 },
+      { sprite: "race_hurdle", every: 52, phase: 24, scale: 6.5, hw: 0.32, spread: 0.5 },
+    ],
+    // a REAL race: 5 riders to overtake (you start last), ranking, results with a reward per place
+    horizon: 0.42,                           // tall phones: more road, less empty sky
+    rivals: {
+      list: [
+        { name: "Hugo", sprite: "horse_back_gris", rider: "rider_rival_1", head: "rival_head_1", color: "#a98bf0" },
+        { name: "Léa", sprite: "horse_back_noir", rider: "rider_rival_2", head: "rival_head_2", color: "#4fbf5e" },
+        { name: "Tom", sprite: "horse_back_palomino", rider: "rider_rival_3", head: "rival_head_3", color: "#4a6fe0" },
+        { name: "Inès", sprite: "horse_back_blanc", rider: "rider_rival_4", head: "rival_head_4", color: "#ff9640" },
+        { name: "Jade", sprite: "horse_back_bai", rider: "rider_rival_5", head: "rival_head_5", color: "#f5c23a" },
+      ],
+      scale: 11, hw: 0.28, skill: [0.8, 0.95], gridGap: 4, gridFirst: 4, startGate: "start_gate", startGateScale: 30, lanes: [-0.6, 0.35, -0.15, 0.7, -0.45],
+      rewards: [40, 25, 15, 8, 5, 3],
+      placeLabels: ["1er", "2e", "3e", "4e", "5e", "6e"],
+      placeMessages: ["{i:trophy} Tu as gagné la course !", "{i:star} Bravo, tu finis 2e !", "{i:star} Super, tu montes sur le podium : 3e !", "Tu finis {place}. Essaie de doubler plus de cavaliers !"],
+      resultsTitle: "{i:flag} Résultats",
+      startMessage: "{i:flag} Double les 5 cavaliers et franchis la ligne en premier !",
+      bumpMessage: "Attention, tu as bousculé {name} !",
+      goLabel: "Partez !",
+    },
+    colors: { sky: ["#7cc6f0", "#a8dcf5", "#e8f6ff"], sun: ["#fff3a8", "#ffd24a"], sunPos: { x: 0.78, y: 0.55, r: 0.07 }, sunOutline: "#4a3428", skyline: false, ground: "#5ea446",
+              grass: ["#78bb58", "#6cae4e"], road: ["#d9b37a", "#cfa86e"], rumble: ["#b88a55", "#a87c4a"], lane: "#e3c491", finish: ["#ffffff", "#4a3428"] },   // sandy cross path
+    icons: { time: "timer", distance: "distance", speed: "speed", quit: "quit", left: "left", right: "right", place: "flag" },
+    quitLabel: "Quitter", hint: "Touche à gauche ou à droite pour diriger ton cheval",
+    startMessage: "{i:flag} 3… 2… 1… Partez ! Évite les rondins, les barres et les autres chevaux !",
+    hitMessage: "Oups ! −{n} s",
+    winMessage: "{i:trophy} Bravo, tu as gagné la course ! +{r}",
+    loseMessage: "{i:timer} Temps écoulé ! Essaie encore !",
+    quitMessage: "{i:flag} Tu quittes la course.",
   },
 
   /* ---- The paddock (horses roam here; fenced, gate on the left) ---- */
@@ -367,6 +432,13 @@ window.GAME = {
         { id: "deuxPoulains", name: "Grande famille", desc: "Fais naître 2 poulains", check: (s) => s.stats.births >= 2 },
         { id: "fortune", name: "Grande fortune", desc: "Atteins 300 pièces", check: (s) => s.coins >= 300 },
       ] },
+      { name: "Jockey", goals: [
+        { id: "course1", name: "Première course", desc: "Gagne une course de cross {i:flag}", check: (s) => (s.stats.raceWin || 0) >= 1 },
+        { id: "podium1", name: "Sur le podium", desc: "Finis dans les 3 premiers d'une course {i:star}", check: (s) => (s.stats.racePodium || 0) >= 1 },
+        { id: "course3", name: "Bon jockey", desc: "Gagne 3 courses {i:flag}", check: (s) => (s.stats.raceWin || 0) >= 3 },
+        { id: "course5", name: "Champion de cross", desc: "Gagne 5 courses {i:flag}", check: (s) => (s.stats.raceWin || 0) >= 5 },
+        { id: "riche2", name: "Trésor du centre", desc: "Atteins 500 pièces", check: (s) => s.coins >= 500 },
+      ] },
     ],
   },
 
@@ -377,6 +449,7 @@ window.GAME = {
     "{i:horse} <b>Un cheval :</b> touche-le pour t'en occuper : {i:food} nourrir, {i:brush} brosser, {i:ball} jouer, {i:palette} relooker.",
     "{i:brush} <b>Brosser :</b> frotte la boue avec ton doigt jusqu'à ce qu'il brille !",
     "{i:saddle} <b>Monter :</b> fais le tour du <b>parcours de cross</b> et saute {i:jump} les rondins et les obstacles de la <b>carrière</b>.",
+    "{i:flag} <b>Course de cross :</b> à cheval, touche « Course » : tu galopes en forêt, vu de derrière ton cheval. Tu pars dernier derrière 5 cavaliers : touche à gauche ou à droite pour les doubler et éviter les rondins et les barres. Arrive le premier pour gagner le plus de pièces ! Ta jauge d'énergie s'affiche : un cheval épuisé ralentit !",
     "{i:shop} <b>Sellerie :</b> achète du foin {i:hay}, des décorations et de nouveaux chevaux.",
     "{i:rest} <b>Maison :</b> dors pour passer au jour suivant. Deux chevaux très heureux peuvent avoir un poulain {i:foal} !",
     "{i:goals} <b>Objectifs :</b> réussis-les pour monter de niveau. Le jeu se sauvegarde tout seul.",

@@ -14,9 +14,11 @@ module.exports = async (page) => {
   for (const [t, d, v] of [["9.9s", "9 m", "8 km/h"], ["58.8s", "4413 m", "210 km/h"], ["108.8s", "12345 m", "388 km/h"]]) {
     out.push(await page.evaluate(([t, d, v]) => {
       R3.on = false;    // freeze the HUD updates
-      document.querySelector("#rh-time b").textContent = t; document.querySelector("#rh-dist b").textContent = d; document.querySelector("#rh-speed b").textContent = v;
+      // the middle chip is the distance, or the live place "n/N" in a race with rivals (longest label: "6th/6")
+      const mid = document.getElementById("rh-dist") ? "rh-dist" : "rh-place";
+      document.querySelector("#rh-time b").textContent = t; document.querySelector("#" + mid + " b").textContent = mid === "rh-dist" ? d : "6th/6"; document.querySelector("#rh-speed b").textContent = v;
       const r = (id) => document.getElementById(id).getBoundingClientRect();
-      const ids = ["rh-time", "rh-dist", "rh-speed", "rh-quit"], b = ids.map(r);
+      const ids = ["rh-time", mid, "rh-speed", "rh-quit"], b = ids.map(r);
       const spill = ids.slice(0, 3).some((id) => { const c = r(id), t = document.querySelector("#" + id + " b").getBoundingClientRect(); return t.right > c.right - 2 || t.left < c.left; });
       const oneRow = b.every((x) => Math.abs(x.top - b[0].top) < 12);
       const overlap = b.slice(0, -1).some((x, i) => x.right > b[i + 1].left + 1);

@@ -203,10 +203,12 @@ Everything in `assets` is preloaded automatically (with cache-busting via `av()`
 ```
 player: { scale, speed:{walk,run,rideWalk,rideRun}, spawn:{x,y}, nameY, shadow:{w,h},
           frameRate, originY, showName }  // nameY = y offset of the name label above the head (default -80)
-characters: [ { id, name, sheet, thumb, rideSheet? } ]   // sheet = LPC walkcycle (9 cols × 4 rows: up,left,down,right;
+characters: [ { id, name, sheet, thumb, rideSheet?, raceRider?, raceHead? } ]   // sheet = LPC walkcycle (9 cols × 4 rows: up,left,down,right;
                                              // col 0 = idle) at any frame size; thumb in assets/ui/
                                              // rideSheet = ONE frame, the character SEATED (side view facing
                                              // left; flipped for right) shown while riding (ride.sitY places it)
+                                             // raceRider = image key: this rider SEEN FROM BEHIND, drawn over the
+                                             // mount's race rear view (same frame size) — see `race`
 ```
 
 ### `creature` (optional system)
@@ -229,7 +231,7 @@ moodFrom: ["food","energy","clean","joy"],   // needs averaged into the mood hea
 showBars: true,                        // false → hide the per-need bars in the panel (kid-friendly)
 moodDay: { base, lowPenalty, lowAt, highBonus, highAt },   // overnight mood rule
 needs: [ { id, icon, label, start, perDay } ],      // perDay = overnight delta (0..100 bars)
-variants: [ { id, name, color, tint?, sheet?, happySheet?, closeupBg?, closeupBgDone?, thumb?, fixedName?, raceSprite? } ],
+variants: [ { id, name, color, tint?, sheet?, happySheet?, closeupBg?, closeupBgDone?, closeupBgWide?, closeupBgWideDone?, thumb?, fixedName?, raceSprite? } ],
    // sheet = a dedicated, animated spritesheet for this variant (else base sheet + optional tint);
    // raceSprite = this variant's own rear-view image in the race (else race.sprite tinted by `tint`);
    // thumb = image path shown in the customize preview; fixedName = the variant IS a person
@@ -356,6 +358,9 @@ action = {
                                   //    spots are placed cover-aware so they stay on the teeth).
                                   //   May be an ARRAY of regions (e.g. upper + lower teeth) —
                                   //   spots alternate between them so each region gets some.
+                                  //   A region can be a QUAD { quad:[[x,y],[x,y],[x,y],[x,y]], margin:0.15 }
+                                  //   (corners in order) for a slanted panel seen in perspective (car door).
+                                  //   Any region may set max:n (a small panel holds n spots at most).
     },
     finishParticles: ["star","heart"], // icon keys bursting when the scene is cleared
     popParticles: ["sparkle","star"], // icon keys when one spot is cleared
@@ -364,6 +369,14 @@ action = {
     progress: false,              // hide the progress bar (fixed size: one star slot per spot up to
                                   //   spots.max — this round's stars grey→gold, later ones dimmed)
     finishDelay: 1900,            // ms before returning to the world
+    brushRest: { x, y }?,         // where the brush waits before the first scrub (screen fractions, default 0.5/0.82)
+    keepVisible: [{x,y,w,h}]?,    // key art (a face, a car's nose) as image fractions: probes/cuwide.cjs fails when
+                                  //   it falls out of the phone crop or under the HUD (progress bar, close button)
+    wide: { bg, bgDone?, area?, size?, brushRest?, keepVisible? }?, // LANDSCAPE backdrop (e.g. the whole car in 3/4 view) used while the
+                                  //   screen is wider than tall, swapped live on rotation; per creature via
+                                  //   variant.closeupBgWide / closeupBgWideDone. `area` = the same NUMBER of
+                                  //   regions in the same order as spots.area: a spot keeps its region and
+                                  //   relative position when the backdrop swaps. Omitted → spots.area / size.
   },
   effects:{ need:+/- }, reward?, stat?, message?, celebrateMessage?,
 }
@@ -513,10 +526,11 @@ A mounted action `type:"race"` covers the world with a full-screen canvas: the r
 to a horizon, your ride (`sprite`, multiplied by its variant tint) sits at the bottom, and
 you steer (left/right half of the screen, or arrow keys) to reach the finish before the timer
 runs out while dodging obstacles (hit where they reach the car on screen, not at the camera).
+A character's `raceRider` (image key, same frame size as the mount's rear view) is drawn over the mount, so the player sees their own rider from behind (skipped when `ride.hideRider`).
 A variant with its own `raceSprite` (e.g. creatures drawn as separate sheets) uses it instead of the tinted `race.sprite`. The ride's `speedMul` / `grip` change top speed / steering.
 The HUD (timer, distance, speed, quit, steering hints) is DOM with the game's icons.
 ```
-race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys], roadsideScale:3.4, spriteZoom,   // sprite width = road half-width × scale × spriteZoom
+race: { time, reward, stat:"raceWin", hitPenalty, sprite, rideWidth:0.32 /* ride frame width / screen width (capped at 55 % of the height) */, roadside:[image keys], roadsideScale:3.4, spriteZoom,   // sprite width = road half-width × scale × spriteZoom
                                          // (≈0.13 makes an obstacle car the size of yours when it reaches you)
   track:{ segments, speed, steer, centrifugal, curveEvery, seed },
   obstacles:[{ sprite, every, phase, scale, hw, spread }],
@@ -525,6 +539,35 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, roadside:[image keys],
   startMessage, hitMessage("{n}"), winMessage("{r}"), loseMessage, quitMessage }
 // drain (per s, default 2.4): the ride's fatigue need burns while racing; at 0 the ride slows to tiredSpeed (0.5)
 // for the rest of the race (tiredMessage("{name}")), or to ride.emptySpeed with ride.empty:"slow".
+// chase (optional; an action with mode:"chase") — escape a pursuer to the finish:
+//   chase: { name, sprite /* rear view, shown when it catches you */, front /* front view, in the mirror */, tint?, scale,
+//            icon, startGap:30 /* segments behind */, skill:[0.9,1.04] /* its pace, ramping over the race */, catchGap:0.8,
+//            reward, caughtReward, stat:"chaseEscape", mirror:true, arrows:true, arrowColor, siren:true, sirenColors,
+//            startMessage, hitMessage, caughtMessage("{name}"), resultsTitle, escapeMessage, escapeHint("{t}"),
+//            caughtTitle, caughtHint, goLabel }
+//   HUD: a gauge + distance to the pursuer; a REAR-VIEW MIRROR (top centre) shows it growing as it closes in;
+//   red chevrons rise beside the ride and a red/blue glow pulses on the edges when it is near. Caught = it pulls
+//   alongside and passes, then the "caught" result. Probe: probes/racechase.cjs.
+// rivals (optional) — a REAL race instead of a time trial: a fixed field to overtake.
+//   rivals: { list:[{ name, sprite, tint?, rider?, riderTint?, color? /* results swatch */, head? /* results portrait (image key) */, scale?, hw? }], count?, scale:6.5, hw:0.28,
+//             lanes:[-0.45,0.45] /* grid lanes */, gridFirst:0 /* segments before the first row */,
+//             skill:[0.84,0.97] /* top-speed share, front of the grid = strongest */, gridGap:4 /* segments */,
+//             rubber:0.12 /* pack stays in reach */, avoid:[0.7,0.95] /* chance to dodge each obstacle */, countdown:3.2, maxTime:240,
+//             rewards:[1st,2nd,3rd,...], placeLabels:["1st","2nd","3rd"], placeSuffix:"th",
+//             placeMessages:["{place}"...] /* by place, last one reused */, resultsTitle, startMessage,
+//             bumpMessage("{name}"), hitMessage, goLabel:"GO!", podiumStat:"racePodium", medalIcon:"trophy" }
+//   Everybody starts BEHIND the chequered start line (the player in the last row) after a 3-2-1 countdown (real
+//   seconds). Each race shuffles who is fast; every rival has its own reaction time and launch, a wobble and a
+//   rubber band, and dodges obstacles most of the time (a hit makes it stumble and slow down for ~1 s); bumping one costs speed (no time penalty);
+//   the time chip counts UP; a live place chip "n/N" (icons.place) replaces the distance and pops on overtakes.
+//   At the line: results modal (ranking, medals, player row highlighted, reward by place); stats raceRun,
+//   raceWin (1st), racePodium (top 3), raceBest. A rival = sprite (tinted) + optional rider layer (tinted).
+//   Probe: probes/racerivals.cjs.
+// horizon: 0.5 (fraction of the screen; 0.4 fills a tall phone with road); colors.sunPos:{x,y,r} moves the sun
+// off the centre (the countdown is drawn there); colors.sunOutline:"#hex" outlines it; colors.stars:{count,color,twinkle} draws a
+// twinkling starfield in the sky (space / night). rivals.startLine:false hides
+// the chequered start line drawn in front of the field; rivals.startGate (image key) + startGateScale (9) raise an
+// arch / gantry over it so the start reads above the pack.
 // showNeed (default true): the ride's fatigue need (e.g. fuel) as a gauge under the HUD chips — turns red and
 // pulses below 25 %, so a ride slowing down mid-race (empty tank, ride.empty:"slow") is understood. false hides it.
 ```
