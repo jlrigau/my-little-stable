@@ -2971,13 +2971,16 @@ function openCloseup(c, a) {
   const placed = [];
   const sprites = cfg.spotSprites || (cfg.spotSprite ? [cfg.spotSprite] : null);
   for (let i = 0; i < count; i++) {
-    const ai = i % areas.length, ar = areas[ai];
+    // area.max caps the spots one region gets (a small panel holds one); the others take the rest
+    const used = placed.reduce((m, p) => (m[p.ai] = (m[p.ai] || 0) + 1, m), {});
+    let ai = i % areas.length; for (let t = 0; t < areas.length && areas[ai].max != null && (used[ai] || 0) >= areas[ai].max; t++) ai = (ai + 1) % areas.length;
+    const ar = areas[ai];
     let fx = 0, fy = 0, u = 0, v = 0;
     for (let tries = 0; tries < 20; tries++) {
       u = Math.random(); v = Math.random(); [fx, fy] = cuAreaPoint(ar, u, v);
       if (!placed.some((p) => Math.hypot((p.x - fx) * 1.3, p.y - fy) < (sp.minGap || 0.07))) break;
     }
-    placed.push({ x: fx, y: fy });
+    placed.push({ x: fx, y: fy, ai });
     const s = document.createElement(sprites ? "img" : "div");
     s.className = "cu-spot" + (sp.wiggle === false ? "" : " wiggle"); s.draggable = false;
     if (sprites) s.src = imgPath(sprites[i % sprites.length], "spot");
@@ -3909,7 +3912,12 @@ function r3Grid() {
   // the chequered start line is just in FRONT of the whole field: everybody starts behind it
   // (rivals.startLine:false hides it)
   const front = Math.max(pz, ...R3.rivals.map((r) => r.z));
-  if (RV.startLine !== false) { const i0 = Math.floor((front + R3.segLen * 1.2) / R3.segLen); for (let i = i0; i < i0 + 2 && R3.segs[i]; i++) R3.segs[i].start = true; }
+  if (RV.startLine !== false) {
+    const i0 = Math.floor((front + R3.segLen * 1.2) / R3.segLen); for (let i = i0; i < i0 + 2 && R3.segs[i]; i++) R3.segs[i].start = true;
+    // rivals.startGate (image key): an arch / gantry across the road over the line, readable above the pack
+    const gi = RV.startGate && r3Img(RV.startGate);
+    if (gi && R3.segs[i0 + 1]) R3.segs[i0 + 1].sprites.push({ img: gi, offset: 0, scale: RV.startGateScale || 9, gate: true });
+  }
   R3.gridSet = true;
 }
 // player's track position = where the ride is DRAWN (camera + carDepth)

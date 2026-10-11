@@ -360,6 +360,7 @@ action = {
                                   //   spots alternate between them so each region gets some.
                                   //   A region can be a QUAD { quad:[[x,y],[x,y],[x,y],[x,y]], margin:0.15 }
                                   //   (corners in order) for a slanted panel seen in perspective (car door).
+                                  //   Any region may set max:n (a small panel holds n spots at most).
     },
     finishParticles: ["star","heart"], // icon keys bursting when the scene is cleared
     popParticles: ["sparkle","star"], // icon keys when one spot is cleared
@@ -565,7 +566,8 @@ race: { time, reward, stat:"raceWin", hitPenalty, sprite, rideWidth:0.32 /* ride
 // horizon: 0.5 (fraction of the screen; 0.4 fills a tall phone with road); colors.sunPos:{x,y,r} moves the sun
 // off the centre (the countdown is drawn there); colors.sunOutline:"#hex" outlines it; colors.stars:{count,color,twinkle} draws a
 // twinkling starfield in the sky (space / night). rivals.startLine:false hides
-// the chequered start line drawn just ahead of the player.
+// the chequered start line drawn in front of the field; rivals.startGate (image key) + startGateScale (9) raise an
+// arch / gantry over it so the start reads above the pack.
 // showNeed (default true): the ride's fatigue need (e.g. fuel) as a gauge under the HUD chips — turns red and
 // pulses below 25 %, so a ride slowing down mid-race (empty tank, ride.empty:"slow") is understood. false hides it.
 ```
