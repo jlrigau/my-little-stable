@@ -48,6 +48,8 @@ Checklist — answer each explicitly (write down the defects you find):
   ≤ ~2× the rider's back, art ≤ ~half the frame width); a rider's thighs are hidden by the rump,
   only the lower legs hang along the flanks. (The owner once saw "big buttocks" and frog legs.)
   A narrow drawing then needs a bigger frame in-game (`race.rideWidth`), not a wider drawing.
+- **Glows that vanish**: a `filter` (glow/blur) on a `<line>` or a purely horizontal/vertical path renders NOTHING
+  (zero-size filter region). render-svg.cjs warns about it — never ignore that warning; use a thin `<rect>`.
 - **Variants** differ clearly (colour, hair…) but share the same anatomy.
 - **Sharpness (no blur)**: crop at the DPR-3 (iPhone) resolution — art must be rendered at
   ≥ 2× its displayed size (`svg-kit` `hidpi()` rules + `res` in `GAME.assets`, see ENGINE.md

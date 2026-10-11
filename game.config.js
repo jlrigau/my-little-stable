@@ -303,7 +303,7 @@ window.GAME = {
         { name: "Inès", sprite: "horse_back_bai", rider: "rider_rival_4", head: "rival_head_4", color: "#ff9640" },
         { name: "Jade", sprite: "horse_back_blanc", rider: "rider_rival_5", head: "rival_head_5", color: "#f5c23a" },
       ],
-      scale: 11, hw: 0.28, skill: [0.8, 0.95], gridGap: 3, gridFirst: 5, startGate: "start_gate", startGateScale: 17, lanes: [-0.6, 0.6, -0.2, 0.2],
+      scale: 11, hw: 0.28, skill: [0.8, 0.95], gridGap: 4, gridFirst: 5, startGate: "start_gate", startGateScale: 30, lanes: [-0.75, 0.25, -0.25, 0.75, 0],
       rewards: [40, 25, 15, 8, 5, 3],
       placeLabels: ["1er", "2e", "3e", "4e", "5e", "6e"],
       placeMessages: ["{i:trophy} Tu as gagné la course !", "{i:star} Bravo, tu finis 2e !", "{i:star} Super, tu montes sur le podium : 3e !", "Tu finis {place}. Essaie de doubler plus de cavaliers !"],
