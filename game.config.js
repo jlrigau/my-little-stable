@@ -160,6 +160,7 @@ window.GAME = {
       rider_rival_3: { path: "assets/img/rider_rival_3.webp", res: 2 }, rider_rival_4: { path: "assets/img/rider_rival_4.webp", res: 2 },
       rider_rival_5: { path: "assets/img/rider_rival_5.webp", res: 2 },
       // results-screen portraits (helmet seen from behind)
+      start_gate: { path: "assets/img/start_gate.webp", res: 2 },
       rider_head_fille: { path: "assets/img/rider_head_fille.webp", res: 2 }, rider_head_garcon: { path: "assets/img/rider_head_garcon.webp", res: 2 },
       rival_head_1: { path: "assets/img/rival_head_1.webp", res: 2 },
       rival_head_2: { path: "assets/img/rival_head_2.webp", res: 2 },
@@ -302,7 +303,7 @@ window.GAME = {
         { name: "Inès", sprite: "horse_back_bai", rider: "rider_rival_4", head: "rival_head_4", color: "#ff9640" },
         { name: "Jade", sprite: "horse_back_blanc", rider: "rider_rival_5", head: "rival_head_5", color: "#f5c23a" },
       ],
-      scale: 11, hw: 0.28, skill: [0.8, 0.95], gridGap: 3, gridFirst: 5, lanes: [-0.6, 0.6, -0.2, 0.2],
+      scale: 11, hw: 0.28, skill: [0.8, 0.95], gridGap: 3, gridFirst: 5, startGate: "start_gate", startGateScale: 17, lanes: [-0.6, 0.6, -0.2, 0.2],
       rewards: [40, 25, 15, 8, 5, 3],
       placeLabels: ["1er", "2e", "3e", "4e", "5e", "6e"],
       placeMessages: ["{i:trophy} Tu as gagné la course !", "{i:star} Bravo, tu finis 2e !", "{i:star} Super, tu montes sur le podium : 3e !", "Tu finis {place}. Essaie de doubler plus de cavaliers !"],

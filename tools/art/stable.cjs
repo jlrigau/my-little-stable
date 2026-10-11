@@ -837,6 +837,46 @@ function riderHeadFront(file, k, u) {
   return job(file, 40, 40, `<g transform="scale(${40 / 104}) translate(-12 -22)">${g}</g>`, defs);
 }
 function riderRival(i) { const r = riderBackParts(RIVAL_RIDERS[i], "rq" + i); return job(`assets/img/rider_rival_${i + 1}.png`, 200, 170, r.body, r.defs); }
+function startGate() {   // cross-country START arch, seen from behind, spanning the track (middle left transparent)
+  const W = 400, H = 220;
+  const defs = lin("sgw", [[0, "#c58a56"], [0.5, "#b07a4a"], [1, "#8a5a36"]], 0, 0, 1, 0) + lin("sgb", [[0, "#c58a56"], [1, "#9a6a42"]]) + blur("sgs", 2);
+  let g = "";
+  [26, 374].forEach((x) => { g += `<ellipse cx="${x}" cy="212.5" rx="19" ry="3.2" fill="#2a3a1a" opacity=".28" filter="url(#sgs)"/>`; });
+  // posts with base blocks and gold finials
+  [26, 374].forEach((x) => {
+    g += `<rect x="${x - 9}" y="14" width="18" height="198" rx="5" fill="url(#sgw)" ${stk(3)}/>`;
+    g += `<path d="M${x - 4} 30 V200" stroke="#fff" stroke-width="2.2" opacity=".25" stroke-linecap="round"/>`;
+    g += `<rect x="${x - 14}" y="200" width="28" height="15" rx="4" fill="${WOOD_D}" ${stk(3)}/>`;
+    g += `<circle cx="${x}" cy="11" r="8" fill="${GOLD}" ${stk(2.8)}/><circle cx="${x - 2.5}" cy="8.5" r="2.2" fill="#fff" opacity=".8"/>`;
+  });
+  // top beam
+  g += `<rect x="22" y="18" width="356" height="12" rx="6" fill="url(#sgb)" ${stk(3)}/><path d="M34 21.5 H366" stroke="#fff" stroke-width="2" opacity=".35" stroke-linecap="round"/>`;
+  // chequered strip
+  let ch = `<clipPath id="sgc"><rect x="40" y="30" width="320" height="15" rx="3"/></clipPath><g clip-path="url(#sgc)">`;
+  for (let i = 0; i < 40; i++) for (let j = 0; j < 2; j++) ch += `<rect x="${40 + i * 8}" y="${30 + j * 7.5}" width="8" height="7.5" fill="${(i + j) % 2 ? "#4a3428" : "#fffaf2"}"/>`;
+  g += ch + `</g><rect x="40" y="30" width="320" height="15" rx="3" fill="none" ${stk(2.6)}/>`;
+  // bunting along a sagging string
+  const P = (t) => { const u = 1 - t; return [u * u * 40 + 2 * u * t * 200 + t * t * 360, u * u * 46 + 2 * u * t * 60 + t * t * 46]; };
+  const cols = [CORAL, GOLD, SKY, PINK, MEADOW];
+  let pts = []; for (let i = 0; i <= 40; i++) pts.push(P(i / 40));
+  g += `<path d="M${pts.map((p) => f2(p[0]) + " " + f2(p[1])).join(" L")}" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`;
+  const N = 15;
+  for (let i = 0; i < N; i++) {
+    const a = P((i + 0.15) / N), b = P((i + 0.85) / N), m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 15];
+    g += `<path d="M${f2(a[0])} ${f2(a[1])} L${f2(b[0])} ${f2(b[1])} L${f2(m[0])} ${f2(m[1])} Z" fill="${cols[i % cols.length]}" ${stk(2.2)}/>`;
+    g += `<path d="M${f2(a[0] + 3)} ${f2(a[1] + 2.5)} L${f2(m[0] - 1)} ${f2(m[1] - 5)}" stroke="#fff" stroke-width="1.6" opacity=".45" stroke-linecap="round"/>`;
+  }
+  // flower garlands spiralling down the posts
+  [26, 374].forEach((x, s) => {
+    for (let k = 0; k < 7; k++) {
+      const y = 52 + k * 21, dx = (k % 2 ? 7 : -7) * (s ? -1 : 1);
+      g += `<path d="M${x + dx} ${y} Q${x} ${y + 12} ${x - dx} ${y + 21}" fill="none" stroke="#5f9e4a" stroke-width="3" stroke-linecap="round"/>`;
+      g += `<ellipse cx="${x + dx * 0.4}" cy="${y + 8}" rx="4" ry="2.2" fill="${MEADOW}" ${stk(1.4)} transform="rotate(${dx > 0 ? -30 : 30} ${x + dx * 0.4} ${y + 8})"/>`;
+      g += flowerHead(x + dx, y, 4.2, [PINK, "#fff", GOLD, CORAL][k % 4]);
+    }
+  });
+  return job("assets/img/start_gate.png", W, H, g, defs);
+}
 function raceLog() {   // cross-country log jump seen from the FRONT: 3 stacked logs, cut ends on both sides
   const W = 200, H = 110;
   const defs = lin("rlg", [[0, "#b98250"], [0.45, "#9a6a40"], [1, "#6e4a2e"]]) + rad("rlc", [[0, "#f8e2b6"], [1, "#d6ab74"]]) + blur("rlb", 2.5);
@@ -1294,7 +1334,7 @@ function build(jobs) {
   jobs.push(mud("mud_1", 3, "#a9784a"), mud("mud_2", 8, "#a27046"), straw(), curry(), logo(), splash(),
     icon("assets/favicon.png", 512), icon("assets/apple-touch-icon.png", 180), icon("assets/icon-192.png", 192), icon("assets/icon-maskable.png", 512, 0.78),
     ...gameIcons(),
-    ...Object.keys(COATS).map((c) => horseBack(c)), ...Object.keys(KIDS).map((id) => riderBack(id)), ...RIVAL_RIDERS.map((_, i) => riderRival(i)), ...RIVAL_RIDERS.map((k, i) => riderHeadFront(`assets/img/rival_head_${i + 1}.png`, k, "qh" + i)), ...Object.keys(KIDS).map((id) => riderHeadFront(`assets/img/rider_head_${id}.png`, KIDS[id], "kh" + id)), raceLog(), raceHurdle(), ...raceIcons(),
+    ...Object.keys(COATS).map((c) => horseBack(c)), ...Object.keys(KIDS).map((id) => riderBack(id)), ...RIVAL_RIDERS.map((_, i) => riderRival(i)), ...RIVAL_RIDERS.map((k, i) => riderHeadFront(`assets/img/rival_head_${i + 1}.png`, k, "qh" + i)), ...Object.keys(KIDS).map((id) => riderHeadFront(`assets/img/rider_head_${id}.png`, KIDS[id], "kh" + id)), raceLog(), raceHurdle(), startGate(), ...raceIcons(),
     ...IK.jobs(PAL, ["star", "heart", "heartEmpty", "sound", "soundOff", "help", "avatar", "goals", "close", "play", "resume", "check", "gift", "hand", "sparkle", "bell", "refresh", "arrow", "trophy", "joy", "moon", "calendar", "palette", "ball", "smile", "meh", "sad", "lock", "battery", "home"]));
   return jobs;
 }
